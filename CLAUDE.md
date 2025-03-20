@@ -16,10 +16,10 @@ When updating rules:
 ### Using Nix Develop (Recommended)
 - Development environment: `nix develop`
 - Run server: `run`
-- Run tests (automatically manages server): `test`
-  - Run tests with existing server: `test-with-server`
-  - Run test mocks (no server needed): `test-dry`
-  - Run tests in debug mode: `test-debug`
+- Run tests (automatically manages server): `run-tests`
+  - Run tests with existing server: `run-tests-with-server`
+  - Run test mocks (no server needed): `run-tests-dry`
+  - Run tests in debug mode: `run-tests-debug`
 - List all commands: `menu`
 - Development commands:
   - `setup`: Set up Python environment

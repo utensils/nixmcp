@@ -118,7 +118,7 @@
                 '';
               }
               {
-                name = "test";
+                name = "run-tests";
                 category = "testing";
                 help = "Run tests (automatically manages server)";
                 command = ''
@@ -131,9 +131,9 @@
                     pip install pytest types-requests
                   fi
                   
-                  # Run the test script directly with unbuffered output
+                  # Run tests using pytest directly
                   echo "Starting tests..."
-                  python -u test_mcp.py
+                  python -m pytest -xvs test_mcp.py
                   TEST_EXIT=$?
                   
                   # Report test result
@@ -146,7 +146,7 @@
                 '';
               }
               {
-                name = "test-dry";
+                name = "run-tests-dry";
                 category = "testing";
                 help = "Run test mocks (no server needed)";
                 command = ''
@@ -168,7 +168,7 @@
                 '';
               }
               {
-                name = "test-with-server";
+                name = "run-tests-with-server";
                 category = "testing";
                 help = "Run tests with an existing server";
                 command = ''
@@ -203,13 +203,18 @@
                 '';
               }
               {
-                name = "test-debug";
+                name = "run-tests-debug";
                 category = "testing";
                 help = "Run tests in debug mode";
                 command = ''
                   echo "Running tests in debug mode..."
                   source .venv/bin/activate
-                  python -u test_mcp.py --debug
+                  # Run with debug flag to trigger special debug mode
+                  python -m pytest -xvs test_mcp.py::test_debug
+                  # If test_debug doesn't exist, fall back to regular debug mode
+                  if [ $? -ne 0 ]; then
+                    python -u test_mcp.py --debug
+                  fi
                 '';
               }
               {
@@ -259,12 +264,13 @@
               echo "│                 Quick Commands                   │"
               echo "└─────────────────────────────────────────────────┘"
               echo ""
-              echo "  ⚡ run       - Start the NixMCP server"
-              echo "  🧪 test      - Run tests (requires server)"
-              echo "  🧪 test-dry  - Run test mocks (no server needed)"
-              echo "  🧹 lint      - Format code with Black"
-              echo "  🔍 typecheck - Run mypy type checking"
-              echo "  🔧 setup     - Set up Python environment"
+              echo "  ⚡ run               - Start the NixMCP server"
+              echo "  🧪 run-tests          - Run all tests (auto-manages server)"
+              echo "  🧪 run-tests-dry      - Run test mocks (no server needed)"
+              echo "  🧪 run-tests-debug    - Run tests in debug mode"
+              echo "  🧹 lint              - Format code with Black"
+              echo "  🔍 typecheck         - Run mypy type checking"
+              echo "  🔧 setup             - Set up Python environment"
               echo ""
               echo "Use 'menu' to see all available commands."
               echo "─────────────────────────────────────────────────────"
