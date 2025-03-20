@@ -289,7 +289,14 @@ async def get_option_resource_with_channel(option_name: str, channel: str):
 if __name__ == "__main__":
     import uvicorn
     import logging
+    import argparse
     from fastapi.middleware.cors import CORSMiddleware
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="NixMCP Server")
+    parser.add_argument("--reload", action="store_true", help="Enable hot reloading for development")
+    parser.add_argument("--port", type=int, default=9421, help="Port to run the server on (default: 9421)")
+    args = parser.parse_args()
 
     # Enable debug logging
     logging.basicConfig(level=logging.DEBUG)
@@ -324,12 +331,19 @@ if __name__ == "__main__":
         print(f"Error accessing resources: {e}")
         print(f"MCP object dir: {dir(mcp)}")
 
+    port = args.port
     print("\nDebug access URLs:")
-    print("  - Test URL: http://localhost:8000/mcp/resource?uri=nixos://package/python")
-    print("  - Direct FastAPI: http://localhost:8000/packages/python")
+    print(f"  - Test URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python")
+    print(f"  - Direct FastAPI: http://localhost:{port}/packages/python")
 
-    print("\nStarting NixMCP server on port 8000...")
-    print("Access FastAPI docs at http://localhost:8000/docs")
-    print("Access MCP endpoints at http://localhost:8000/mcp")
-
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, log_level="debug")
+    print(f"\nStarting NixMCP server on port {port}...")
+    print(f"Access FastAPI docs at http://localhost:{port}/docs")
+    print(f"Access MCP endpoints at http://localhost:{port}/mcp")
+    
+    uvicorn.run(
+        "server:app", 
+        host="0.0.0.0", 
+        port=port, 
+        log_level="debug",
+        reload=args.reload
+    )

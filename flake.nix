@@ -46,7 +46,7 @@
           echo ""
           echo "MCP SDK is installed in .venv/"
           echo "Run the server with: python server.py"
-          echo "Access the MCP Inspector at: http://localhost:8000/docs"
+          echo "Access the MCP Inspector at: http://localhost:9421/docs"
         '';
 
       in {
@@ -114,7 +114,51 @@
                 command = ''
                   echo "Starting NixMCP server..."
                   source .venv/bin/activate
-                  python server.py
+                  
+                  # Default port
+                  PORT=9421
+                  
+                  # Parse arguments to extract port if specified
+                  for arg in "$@"; do
+                    case $arg in
+                      --port=*)
+                        PORT=''${arg#*=}
+                        shift
+                        ;;
+                      *)
+                        # Unknown option
+                        ;;
+                    esac
+                  done
+                  
+                  python server.py --port $PORT
+                '';
+              }
+              {
+                name = "run-dev";
+                category = "server";
+                help = "Run the NixMCP server with hot reloading for development";
+                command = ''
+                  echo "Starting NixMCP development server with hot reloading..."
+                  source .venv/bin/activate
+                  
+                  # Default port
+                  PORT=9421
+                  
+                  # Parse arguments to extract port if specified
+                  for arg in "$@"; do
+                    case $arg in
+                      --port=*)
+                        PORT=''${arg#*=}
+                        shift
+                        ;;
+                      *)
+                        # Unknown option
+                        ;;
+                    esac
+                  done
+                  
+                  python server.py --reload --port $PORT
                 '';
               }
               {
@@ -182,7 +226,7 @@
                   fi
                   
                   # Check if server is running
-                  if ! curl -s http://localhost:8000/docs -o /dev/null; then
+                  if ! curl -s http://localhost:9421/docs -o /dev/null; then
                     echo -e "\n❌ ERROR: Server is not running!"
                     echo "Please start the server with 'run' command first"
                     exit 1
@@ -265,6 +309,7 @@
               echo "└─────────────────────────────────────────────────┘"
               echo ""
               echo "  ⚡ run               - Start the NixMCP server"
+              echo "  ⚡ run-dev           - Start the NixMCP server with hot reloading"
               echo "  🧪 run-tests          - Run all tests (auto-manages server)"
               echo "  🧪 run-tests-dry      - Run test mocks (no server needed)"
               echo "  🧪 run-tests-debug    - Run tests in debug mode"

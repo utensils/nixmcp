@@ -21,7 +21,7 @@ from multiprocessing import Process
 
 # Server configuration
 SERVER_HOST = "localhost"
-SERVER_PORT = 8000
+SERVER_PORT = 9421
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
 SERVER_STARTUP_TIMEOUT = 5  # seconds
 

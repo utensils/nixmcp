@@ -15,7 +15,8 @@ When updating rules:
 
 ### Using Nix Develop (Recommended)
 - Development environment: `nix develop`
-- Run server: `run`
+- Run server: `run [--port=PORT]`
+  - Run with hot reloading for development: `run-dev [--port=PORT]`
 - Run tests (automatically manages server): `run-tests`
   - Run tests with existing server: `run-tests-with-server`
   - Run test mocks (no server needed): `run-tests-dry`

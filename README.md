@@ -27,8 +27,14 @@ nix develop
 # List all available commands
 menu
 
-# Run the server
+# Run the server (default port is 9421)
 run
+
+# Run the server with hot reloading for development
+run-dev
+
+# Run on specific port with hot reloading
+run-dev --port=8080
 
 # Run tests (automatically handles server startup/shutdown)
 run-tests
@@ -113,10 +119,10 @@ The project includes comprehensive test coverage that can be run in several ways
 4. **Manual Testing with curl:**
    ```bash
    # Test MCP package resource
-   curl -X GET "http://localhost:8000/mcp/resource?uri=nixos://package/python"
+   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
 
    # Test MCP option resource
-   curl -X GET "http://localhost:8000/mcp/resource?uri=nixos://option/services.nginx"
+   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
    ```
 
 5. **Debug Testing:**
@@ -130,7 +136,7 @@ The project includes comprehensive test coverage that can be run in several ways
    This runs tests in debug mode with detailed output for troubleshooting.
 
 6. **Exploring with the MCP UI:**
-   - Open your browser to: http://localhost:8000/mcp
+   - Open your browser to: http://localhost:9421/mcp
    - This provides a UI to explore MCP resources and tools
 
 ### Available Resources
