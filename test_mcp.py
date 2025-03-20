@@ -84,52 +84,47 @@ def server_process() -> Generator[Optional[Process], None, None]:
             process.kill()
 
 
-def test_legacy_package_api(server_process) -> None:
-    """Test legacy FastAPI package endpoints."""
-    package_url = f"{BASE_URL}/packages/python"
-    response = requests.get(package_url)
+def test_health_check(server_process) -> None:
+    """Test health check endpoint."""
+    health_url = f"{BASE_URL}/health"
+    response = requests.get(health_url)
 
     # Check that the response is valid
-    assert response.status_code == 200, f"Package endpoint failed: {response.text}"
+    assert response.status_code == 200, f"Health check endpoint failed: {response.text}"
     data = response.json()
 
-    # In test environments without Nix packages, we'll get an error response
-    # but it should still be properly formatted JSON
-    if "error" in data:
-        print(f"NOTE: Package test received error: {data['error']}")
-        print("This is expected in environments without Nix packages")
-        # The test passes if we at least got a valid error response
-        assert isinstance(data["error"], str), "Error should be a string"
-    else:
-        # If we have package data, validate it
-        assert "name" in data, "Package data missing 'name' field"
-        assert "version" in data, "Package data missing 'version' field"
-        assert data["name"] == "python", f"Expected python package, got {data['name']}"
+    # Validate health check data
+    assert "status" in data, "Health check data missing 'status' field"
+    assert data["status"] == "ok", f"Expected status 'ok', got {data['status']}"
+    assert "timestamp" in data, "Health check data missing 'timestamp' field"
+    assert "server" in data, "Health check data missing 'server' field"
+    assert "version" in data, "Health check data missing 'version' field"
+    assert data["server"] == "NixMCP", f"Expected server 'NixMCP', got {data['server']}"
 
 
-def test_legacy_option_api(server_process) -> None:
-    """Test legacy FastAPI option endpoints."""
-    option_url = f"{BASE_URL}/options/services.nginx"
-    response = requests.get(option_url)
+def test_server_status(server_process) -> None:
+    """Test server status endpoint."""
+    status_url = f"{BASE_URL}/status"
+    response = requests.get(status_url)
 
     # Check that the response is valid
-    assert response.status_code == 200, f"Option endpoint failed: {response.text}"
+    assert response.status_code == 200, f"Status endpoint failed: {response.text}"
     data = response.json()
 
-    # In test environments without Nix options, we'll get an error response
-    # but it should still be properly formatted JSON
-    if "error" in data:
-        print(f"NOTE: Option test received error: {data['error']}")
-        print("This is expected in environments without nixos-option")
-        # The test passes if we at least got a valid error response
-        assert isinstance(data["error"], str), "Error should be a string"
-    else:
-        # If we have option data, validate it
-        assert "name" in data, "Option data missing 'name' field"
-        assert "description" in data, "Option data missing 'description' field"
-        assert (
-            data["name"] == "services.nginx"
-        ), f"Expected services.nginx option, got {data['name']}"
+    # Validate status data
+    assert "status" in data, "Status data missing 'status' field"
+    assert data["status"] == "ok", f"Expected status 'ok', got {data['status']}"
+    assert "timestamp" in data, "Status data missing 'timestamp' field"
+    assert "server" in data, "Status data missing 'server' field"
+    assert "version" in data, "Status data missing 'version' field"
+    assert "nix_installed" in data, "Status data missing 'nix_installed' field"
+    assert "endpoints" in data, "Status data missing 'endpoints' field"
+    assert (
+        "mcp_resources" in data["endpoints"]
+    ), "Endpoints missing 'mcp_resources' field"
+
+
+# Legacy API endpoints removed - focusing on MCP standard only
 
 
 def test_mcp_package_resource(server_process) -> None:
@@ -241,6 +236,29 @@ def dry_run_test() -> None:
     print("It's useful for checking if the test script itself works correctly.")
 
     # Mock response data
+    mock_health = {
+        "status": "ok",
+        "timestamp": time.time(),
+        "server": "NixMCP",
+        "version": "0.1.0",
+    }
+
+    mock_status = {
+        "status": "ok",
+        "timestamp": time.time(),
+        "server": "NixMCP",
+        "version": "0.1.0",
+        "nix_installed": True,
+        "endpoints": {
+            "mcp_resources": [
+                "nixos://package/{package_name}",
+                "nixos://package/{package_name}/{channel}",
+                "nixos://option/{option_name}",
+                "nixos://option/{option_name}/{channel}",
+            ],
+        },
+    }
+
     mock_package = {
         "name": "python",
         "version": "3.11.0",
@@ -255,6 +273,12 @@ def dry_run_test() -> None:
         "default": {},
         "example": {"enable": True},
     }
+
+    print("\nMock health check response:")
+    print(json.dumps(mock_health, indent=2))
+
+    print("\nMock status response:")
+    print(json.dumps(mock_status, indent=2))
 
     print("\nMock package response:")
     print(json.dumps(mock_package, indent=2))
@@ -297,20 +321,46 @@ if __name__ == "__main__":
                 start_server()
                 print("✓ Server started for debugging")
 
-            # Test the legacy API endpoints directly
-            print("\n--- Testing /packages/python ---")
+            # Test the health check endpoint
+            print("\n--- Testing /health ---")
             try:
-                response = requests.get(f"{BASE_URL}/packages/python")
+                response = requests.get(f"{BASE_URL}/health")
                 print(f"Status code: {response.status_code}")
                 print(f"Response data: {json.dumps(response.json(), indent=2)}")
             except Exception as e:
                 print(f"Error: {e}")
 
-            print("\n--- Testing /options/services.nginx ---")
+            # Test the status endpoint
+            print("\n--- Testing /status ---")
             try:
-                response = requests.get(f"{BASE_URL}/options/services.nginx")
+                response = requests.get(f"{BASE_URL}/status")
                 print(f"Status code: {response.status_code}")
                 print(f"Response data: {json.dumps(response.json(), indent=2)}")
+            except Exception as e:
+                print(f"Error: {e}")
+
+            # Test only MCP endpoints in debug mode
+            print("\n--- Testing MCP package endpoint ---")
+            try:
+                response = requests.get(
+                    f"{BASE_URL}/mcp/resource?uri=nixos://package/python"
+                )
+                print(f"Status code: {response.status_code}")
+                print(
+                    f"Response data: {json.dumps(response.json(), indent=2) if response.status_code == 200 else response.text}"
+                )
+            except Exception as e:
+                print(f"Error: {e}")
+
+            print("\n--- Testing MCP option endpoint ---")
+            try:
+                response = requests.get(
+                    f"{BASE_URL}/mcp/resource?uri=nixos://option/services.nginx"
+                )
+                print(f"Status code: {response.status_code}")
+                print(
+                    f"Response data: {json.dumps(response.json(), indent=2) if response.status_code == 200 else response.text}"
+                )
             except Exception as e:
                 print(f"Error: {e}")
 
@@ -388,8 +438,8 @@ if __name__ == "__main__":
                 return True
 
         # Run all tests
-        run_test("Legacy package API", test_legacy_package_api)
-        run_test("Legacy option API", test_legacy_option_api)
+        run_test("Health check", test_health_check)
+        run_test("Server status", test_server_status)
         run_expected_fail_test("MCP package resource", test_mcp_package_resource)
         run_expected_fail_test(
             "MCP package with channel", test_mcp_package_with_channel

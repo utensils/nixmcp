@@ -8,6 +8,7 @@ NixOS packages and options using the Model Context Protocol (MCP).
 
 import json
 import subprocess
+import time
 from typing import Dict, List, Optional, Any, Union
 
 try:
@@ -214,36 +215,51 @@ mcp = FastMCP(
 )
 
 
-# Legacy REST API Resources (keeping for backward compatibility)
-@app.get("/packages/{package_name}")
-def get_package(package_name: str, channel: str = "unstable") -> Dict[str, Any]:
-    """Get information about a NixOS package."""
-    package = context.query_package(package_name, channel)
-    if not package:
-        return {"error": f"Package '{package_name}' not found"}
-    return package
+# Health check endpoint
+@app.get("/health")
+def health_check():
+    """Health check endpoint that doesn't require Nix."""
+    return {
+        "status": "ok",
+        "timestamp": time.time(),
+        "server": "NixMCP",
+        "version": "0.1.0",
+    }
 
 
-@app.get("/options/{option_name}")
-def get_option(option_name: str, channel: str = "unstable") -> Dict[str, Any]:
-    """Get information about a NixOS option."""
-    option = context.query_option(option_name, channel)
-    if not option:
-        return {"error": f"Option '{option_name}' not found"}
-    return option
+# Status endpoint with more detailed information
+@app.get("/status")
+def server_status():
+    """Status endpoint with detailed server information."""
+    nix_installed = True
+    try:
+        subprocess.run(
+            ["nix", "--version"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except (subprocess.SubprocessError, FileNotFoundError):
+        nix_installed = False
+
+    return {
+        "status": "ok",
+        "timestamp": time.time(),
+        "server": "NixMCP",
+        "version": "0.1.0",
+        "nix_installed": nix_installed,
+        "endpoints": {
+            "mcp_resources": [
+                "nixos://package/{package_name}",
+                "nixos://package/{package_name}/{channel}",
+                "nixos://option/{option_name}",
+                "nixos://option/{option_name}/{channel}",
+            ],
+        },
+    }
 
 
-@app.get("/search/packages")
-def search_packages(
-    query: str, channel: str = "unstable", limit: int = 10
-) -> Dict[str, Any]:
-    """Search for NixOS packages."""
-    packages = context.api.search_packages(query, channel)
-    if not packages:
-        return {"results": [], "count": 0}
-
-    limited_results = packages[:limit]
-    return {"results": limited_results, "count": len(limited_results)}
+# MCP is the focus of this project, legacy REST endpoints removed
 
 
 # MCP Resource Handlers
