@@ -124,11 +124,13 @@ The project includes comprehensive test coverage that can be run in several ways
    # Test direct API endpoints (recommended)
    curl -X GET "http://localhost:9421/api/package/python"
    curl -X GET "http://localhost:9421/api/search/packages/python"
+   curl -X GET "http://localhost:9421/api/search/options/postgresql"
    curl -X GET "http://localhost:9421/api/option/services.nginx"
    
    # Test MCP resources (these require proper MCP client integration)
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/packages/python"
+   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/options/postgresql"
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
    ```
 
@@ -197,12 +199,16 @@ These resources can be accessed by AI models using the MCP protocol:
 - `nixos://option/{option_name}` - Get information about a specific NixOS option (using default unstable channel)
 - `nixos://option/{option_name}/{channel}` - Get information about a specific NixOS option in a specific channel
 - `nixos://search/packages/{query}` - Search for packages matching the query
+- `nixos://search/options/{query}` - Search for NixOS options matching the query
+- `nixos://search/options/{query}/{channel}` - Search for options in a specific channel
 - `nixos://search/packages/{query}/{channel}` - Search for packages in a specific channel
 
 Example MCP resource URLs:
 - `nixos://package/python` (uses default channel)
 - `nixos://package/python/unstable` (explicitly specifies channel)
 - `nixos://search/packages/python` (search for packages containing "python")
+- `nixos://search/options/postgresql` (search for options related to PostgreSQL)
+- `nixos://option/services.postgresql.enable` (get specific option details)
 
 #### Direct API Endpoints
 
@@ -210,6 +216,7 @@ For direct programmatic access without MCP, the following REST API endpoints are
 
 - `GET /api/package/{package_name}[?channel={channel}]` - Get package information
 - `GET /api/search/packages/{query}[?channel={channel}&limit={limit}&offset={offset}]` - Search for packages
+- `GET /api/search/options/{query}[?channel={channel}&limit={limit}&offset={offset}]` - Search for NixOS options
 - `GET /api/option/{option_name}[?channel={channel}]` - Get NixOS option information
 
 Example direct API calls:
@@ -219,6 +226,9 @@ curl -X GET "http://localhost:9421/api/package/python"
 
 # Search for packages with pagination
 curl -X GET "http://localhost:9421/api/search/packages/python?limit=5&offset=0"
+
+# Search for options related to PostgreSQL
+curl -X GET "http://localhost:9421/api/search/options/postgresql"
 
 # Get option information for a specific channel
 curl -X GET "http://localhost:9421/api/option/services.nginx?channel=unstable"
@@ -238,6 +248,9 @@ Please provide information about the Python package in NixOS.
 
 What configuration options are available for NGINX in NixOS?
 ~nixos://option/services.nginx
+
+How do I set up PostgreSQL in NixOS?
+~nixos://search/options/postgresql
 ```
 
 Claude will automatically fetch the requested information through the MCP server.

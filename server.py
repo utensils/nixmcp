@@ -1041,64 +1041,44 @@ if __name__ == "__main__":
         except Exception as e:
             return {"error": f"Error processing resource: {str(e)}"}
 
-    # Add direct MCP endpoint for debugging
-    @app.get("/direct-mcp/resource")
-    async def direct_mcp_resource(uri: str):
-        """Direct proxy to MCP resource handling for testing."""
-        print(f"Direct MCP resource access: {uri}")
+    # We've removed the direct-mcp endpoint to just use the standard MCP implementation
+
+    # Let's implement a custom MCP resource endpoint that manually dispatches to our resource handlers
+    @app.get("/mcp/resource")
+    async def mcp_resource_endpoint(uri: str):
+        """Standard MCP resource endpoint that manually dispatches to our resource handlers."""
+        print(f"MCP resource endpoint access: {uri}")
         try:
-            # For nixos:// URIs, forward to appropriate handler
+            # Parse the URI and call the appropriate handler
             if uri.startswith("nixos://package/"):
                 parts = uri.replace("nixos://package/", "").split("/")
                 if len(parts) == 1:
                     return await get_package_resource(parts[0])
                 elif len(parts) == 2:
                     return await get_package_resource_with_channel(parts[0], parts[1])
+                
             elif uri.startswith("nixos://search/packages/"):
                 parts = uri.replace("nixos://search/packages/", "").split("/")
                 if len(parts) == 1:
                     return await search_packages_resource(parts[0])
                 elif len(parts) == 2:
                     return await search_packages_resource_with_channel(parts[0], parts[1])
+                
             elif uri.startswith("nixos://search/options/"):
                 parts = uri.replace("nixos://search/options/", "").split("/")
                 if len(parts) == 1:
-                    # Call directly our handler function
-                    print(f"Searching options with query: {parts[0]}")
-                    options = context.api.es_client.search_options(parts[0], limit=50)
-                    return {
-                        "query": parts[0],
-                        "total": len(options),
-                        "results": options,
-                    }
+                    return await mcp_search_options(parts[0])
                 elif len(parts) == 2:
-                    # Include channel (mostly for API consistency)
-                    print(f"Searching options with query: {parts[0]} in channel: {parts[1]}")
-                    options = context.api.es_client.search_options(parts[0], limit=50)
-                    return {
-                        "query": parts[0],
-                        "channel": parts[1],
-                        "total": len(options),
-                        "results": options,
-                    }
+                    return await mcp_search_options_with_channel(parts[0], parts[1])
+                
             elif uri.startswith("nixos://option/"):
                 parts = uri.replace("nixos://option/", "").split("/")
                 if len(parts) == 1:
                     return await get_option_resource(parts[0])
                 elif len(parts) == 2:
                     return await get_option_resource_with_channel(parts[0], parts[1])
+                
             return {"error": f"Unsupported URI format: {uri}"}
-        except Exception as e:
-            return {"error": f"Error processing resource: {str(e)}"}
-
-    # Add a proper MCP resource endpoint that follows the MCP protocol
-    @app.get("/mcp/resource")
-    async def mcp_resource_endpoint(uri: str):
-        """MCP resource endpoint that follows the MCP protocol."""
-        print(f"MCP resource endpoint access: {uri}")
-        try:
-            # Call the direct endpoint implementation
-            return await direct_mcp_resource(uri)
         except Exception as e:
             print(f"Error in MCP resource endpoint: {e}")
             return {"error": f"Error processing resource: {str(e)}"}
@@ -1109,10 +1089,10 @@ if __name__ == "__main__":
         resource_count = len(mcp._resource_manager._resources)
         print(f"\nFound {resource_count} registered MCP resources")
 
-        # We'll still mount MCP, but we've added our own MCP resource endpoint too
-        app.mount("/mcp-original", mcp)
+        # Mount the FastMCP instance at /mcp (standard MCP path)
+        app.mount("/mcp", mcp)
 
-        print("Mounted MCP at /mcp-original")
+        print("Mounted MCP at /mcp")
         print("Added custom MCP endpoint at /mcp/resource")
     except Exception as e:
         print(f"\nError mounting MCP: {e}")
@@ -1129,7 +1109,7 @@ if __name__ == "__main__":
     port = args.port
     print("\nDebug access URLs:")
     print(
-        f"  - MCP Package URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python"
+        f"  - MCP URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python"
     )
     print(
         f"  - MCP Package Search URL: http://localhost:{port}/mcp/resource?uri=nixos://search/packages/python"
@@ -1137,11 +1117,8 @@ if __name__ == "__main__":
     print(
         f"  - MCP Option Search URL: http://localhost:{port}/mcp/resource?uri=nixos://search/options/postgresql"
     )
-    print(
-        f"  - Direct MCP Package URL: http://localhost:{port}/direct-mcp/resource?uri=nixos://package/python"
-    )
-    print(f"  - Direct API Package URL: http://localhost:{port}/api/package/python")
-    print(f"  - Direct API Option Search URL: http://localhost:{port}/api/search/options/postgresql")
+    print(f"  - REST API Package URL: http://localhost:{port}/api/package/python")
+    print(f"  - REST API Option Search URL: http://localhost:{port}/api/search/options/postgresql")
 
     print(f"\nStarting NixMCP server on port {port}...")
     print(f"Access FastAPI docs at http://localhost:{port}/docs")

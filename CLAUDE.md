@@ -11,6 +11,37 @@ When updating rules:
    cp CLAUDE.md .goosehints
    ```
 
+## MCP Endpoint Implementation
+The server implements two types of endpoints for accessing NixOS resources:
+
+1. REST API endpoints:
+   - `/api/package/{package_name}`: Direct package info
+   - `/api/search/packages/{query}`: Package search
+   - `/api/search/options/{query}`: Options search
+   - `/api/option/{option_name}`: Option info
+
+2. MCP endpoints:
+   - `/mcp/resource?uri=nixos://package/{package_name}`: MCP-compatible package endpoint
+   - `/mcp/resource?uri=nixos://search/packages/{query}`: MCP-compatible package search
+   - `/mcp/resource?uri=nixos://search/options/{query}`: MCP-compatible options search
+   - `/mcp/resource?uri=nixos://option/{option_name}`: MCP-compatible option info
+
+The MCP implementation uses the FastMCP library from the Model Context Protocol (MCP) project. To properly register MCP resources, use:
+
+```python
+# Define the resource handler
+async def get_resource(resource_id: str):
+    # Implement handler logic
+    return {"data": "result"}
+
+# Register with the MCP server
+@mcp.resource("nixos://resource/{resource_id}")
+async def mcp_resource_handler(resource_id: str):
+    return await get_resource(resource_id)
+```
+
+When implementing a custom MCP endpoint like we do with `/mcp/resource`, the implementation manually dispatches to the appropriate handler based on the URI.
+
 ## System Requirements
 
 ### Elasticsearch API Access (Required)

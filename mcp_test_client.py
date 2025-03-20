@@ -161,6 +161,16 @@ def main():
         action="store_true", 
         help="Test all endpoints with sample data"
     )
+    parser.add_argument(
+        "--direct-only", 
+        action="store_true", 
+        help="Only test direct MCP endpoint"
+    )
+    parser.add_argument(
+        "--mcp-only", 
+        action="store_true", 
+        help="Only test standard MCP endpoint"
+    )
     
     args = parser.parse_args()
     client = MCPTestClient(args.url)
@@ -168,8 +178,14 @@ def main():
     if args.all:
         client.test_all_endpoints()
     elif args.resource:
-        client.test_mcp_resource(args.resource)
-        client.test_direct_mcp_resource(args.resource)
+        if args.mcp_only:
+            client.test_mcp_resource(args.resource)
+        elif args.direct_only:
+            client.test_direct_mcp_resource(args.resource)
+        else:
+            # Default to test both
+            client.test_mcp_resource(args.resource)
+            client.test_direct_mcp_resource(args.resource)
     elif args.api:
         if "/" in args.api:
             resource_type, name = args.api.split("/", 1)
