@@ -58,7 +58,7 @@
             
             # Better prompt appearance
             motd = ''
-              \e[1;34mNixMCP Dev Environment\e[0m - \e[0;32mModel Context Protocol for NixOS resources\e[0m
+              NixMCP Dev Environment - Model Context Protocol for NixOS resources
             '';
             
             # Environment variables
