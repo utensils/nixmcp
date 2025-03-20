@@ -187,6 +187,32 @@ class ModelContext:
 
         return None
 
+    def search_packages(
+        self, query: str, channel: str = "unstable", limit: int = 10, offset: int = 0
+    ) -> Dict[str, Any]:
+        """Search for NixOS packages matching a query string with pagination."""
+        cache_key = f"search:{channel}:{query}:{limit}:{offset}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        results = self.api.search_packages(query, channel=channel)
+
+        # Apply pagination
+        total = len(results)
+        paginated_results = results[offset : offset + limit] if results else []
+
+        search_result = {
+            "query": query,
+            "channel": channel,
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+            "results": paginated_results,
+        }
+
+        self.cache[cache_key] = search_result
+        return search_result
+
     def query_option(
         self, option_name: str, channel: str = "unstable"
     ) -> Optional[Dict[str, Any]]:
@@ -213,6 +239,45 @@ mcp = FastMCP(
     name="NixMCP",
     instructions="A Model Context Protocol server that provides access to NixOS packages and options.",
 )
+
+# Debug info about MCP
+print("\nMCP server created:")
+print(f"Type: {type(mcp)}")
+print(f"Attributes: {dir(mcp)}")
+
+# Direct API endpoints
+# These endpoints provide the same functionality as the MCP resources
+# but in a more traditional REST API format. They're useful for clients
+# that don't support MCP or for simpler integration scenarios.
+
+
+@app.get("/api/package/{package_name}")
+async def get_package_direct(package_name: str, channel: str = "unstable"):
+    """Direct endpoint for package data."""
+    package = context.query_package(package_name, channel)
+    if not package:
+        return {"error": f"Package '{package_name}' not found"}
+    return package
+
+
+@app.get("/api/search/packages/{query}")
+async def search_packages_direct(
+    query: str, channel: str = "unstable", limit: int = 10, offset: int = 0
+):
+    """Direct endpoint for package search."""
+    search_results = context.search_packages(query, channel, limit, offset)
+    if not search_results["results"]:
+        return {"error": f"No packages found matching '{query}'"}
+    return search_results
+
+
+@app.get("/api/option/{option_name}")
+async def get_option_direct(option_name: str, channel: str = "unstable"):
+    """Direct endpoint for NixOS option data."""
+    option = context.query_option(option_name, channel)
+    if not option:
+        return {"error": f"Option '{option_name}' not found"}
+    return option
 
 
 # Health check endpoint
@@ -254,6 +319,13 @@ def server_status():
                 "nixos://package/{package_name}/{channel}",
                 "nixos://option/{option_name}",
                 "nixos://option/{option_name}/{channel}",
+                "nixos://search/packages/{query}",
+                "nixos://search/packages/{query}/{channel}",
+            ],
+            "direct_api": [
+                "/api/package/{package_name}[?channel={channel}]",
+                "/api/search/packages/{query}[?channel={channel}&limit={limit}&offset={offset}]",
+                "/api/option/{option_name}[?channel={channel}]",
             ],
         },
     }
@@ -262,8 +334,7 @@ def server_status():
 # MCP is the focus of this project, legacy REST endpoints removed
 
 
-# MCP Resource Handlers
-@mcp.resource("nixos://package/{package_name}")
+# Define MCP Resource Handlers first, then register them
 async def get_package_resource(package_name: str):
     """MCP resource handler for NixOS packages."""
     print(f"MCP: Fetching package {package_name}")
@@ -274,7 +345,6 @@ async def get_package_resource(package_name: str):
     return package
 
 
-@mcp.resource("nixos://package/{package_name}/{channel}")
 async def get_package_resource_with_channel(package_name: str, channel: str):
     """MCP resource handler for NixOS packages with specific channel."""
     package = context.query_package(package_name, channel)
@@ -283,7 +353,25 @@ async def get_package_resource_with_channel(package_name: str, channel: str):
     return package
 
 
-@mcp.resource("nixos://option/{option_name}")
+async def search_packages_resource(query: str):
+    """MCP resource handler for searching NixOS packages."""
+    print(f"MCP: Searching packages with query: {query}")
+    # Default channel and pagination
+    search_results = context.search_packages(query)
+    if not search_results["results"]:
+        return {"error": f"No packages found matching '{query}'"}
+    return search_results
+
+
+async def search_packages_resource_with_channel(query: str, channel: str):
+    """MCP resource handler for searching NixOS packages with specific channel."""
+    print(f"MCP: Searching packages with query: {query} in channel: {channel}")
+    search_results = context.search_packages(query, channel)
+    if not search_results["results"]:
+        return {"error": f"No packages found matching '{query}' in channel '{channel}'"}
+    return search_results
+
+
 async def get_option_resource(option_name: str):
     """MCP resource handler for NixOS options."""
     # Default channel is used (unstable)
@@ -293,13 +381,52 @@ async def get_option_resource(option_name: str):
     return option
 
 
-@mcp.resource("nixos://option/{option_name}/{channel}")
 async def get_option_resource_with_channel(option_name: str, channel: str):
     """MCP resource handler for NixOS options with specific channel."""
     option = context.query_option(option_name, channel)
     if not option:
         return {"error": f"Option '{option_name}' not found in channel '{channel}'"}
     return option
+
+
+# Explicitly register all resources using the decorator pattern
+print("\nRegistering MCP resources...")
+
+
+# Register package resources
+@mcp.resource("nixos://package/{package_name}")
+async def mcp_package(package_name: str):
+    return await get_package_resource(package_name)
+
+
+@mcp.resource("nixos://package/{package_name}/{channel}")
+async def mcp_package_with_channel(package_name: str, channel: str):
+    return await get_package_resource_with_channel(package_name, channel)
+
+
+# Register search resources
+@mcp.resource("nixos://search/packages/{query}")
+async def mcp_search_packages(query: str):
+    return await search_packages_resource(query)
+
+
+@mcp.resource("nixos://search/packages/{query}/{channel}")
+async def mcp_search_packages_with_channel(query: str, channel: str):
+    return await search_packages_resource_with_channel(query, channel)
+
+
+# Register option resources
+@mcp.resource("nixos://option/{option_name}")
+async def mcp_option(option_name: str):
+    return await get_option_resource(option_name)
+
+
+@mcp.resource("nixos://option/{option_name}/{channel}")
+async def mcp_option_with_channel(option_name: str, channel: str):
+    return await get_option_resource_with_channel(option_name, channel)
+
+
+print("Registration complete")
 
 
 if __name__ == "__main__":
@@ -342,8 +469,35 @@ if __name__ == "__main__":
             registered.append(str(resource.uri_template))
         return {"registered_resources": registered}
 
-    # Add MCP routes to the FastAPI app
-    app.mount("/mcp", mcp)
+    # Add a debug endpoint to test direct resources
+    @app.get("/debug/resource/{resource_type}/{query}")
+    async def debug_resource(resource_type: str, query: str, channel: str = "unstable"):
+        """Debug endpoint for direct resource access."""
+        print(f"Debug resource request: {resource_type}/{query}")
+
+        try:
+            if resource_type == "package":
+                return await get_package_resource(query)
+            elif resource_type == "search":
+                return await search_packages_resource(query)
+            elif resource_type == "option":
+                return await get_option_resource(query)
+            else:
+                return {"error": f"Unknown resource type: {resource_type}"}
+        except Exception as e:
+            return {"error": f"Error processing resource: {str(e)}"}
+
+    # Mount the MCP server
+    try:
+        # Make sure the resources actually got registered
+        resource_count = len(mcp._resource_manager._resources)
+        print(f"\nFound {resource_count} registered MCP resources")
+
+        # Now mount the MCP server to FastAPI
+        app.mount("/mcp", mcp)
+        print("Mounted MCP at /mcp")
+    except Exception as e:
+        print(f"\nError mounting MCP: {e}")
 
     # Debug info about registered resources
     print("\nRegistered MCP resources:")
@@ -357,9 +511,11 @@ if __name__ == "__main__":
     port = args.port
     print("\nDebug access URLs:")
     print(
-        f"  - Test URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python"
+        f"  - Package URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python"
     )
-    print(f"  - Direct FastAPI: http://localhost:{port}/packages/python")
+    print(
+        f"  - Search URL: http://localhost:{port}/mcp/resource?uri=nixos://search/packages/python"
+    )
 
     print(f"\nStarting NixMCP server on port {port}...")
     print(f"Access FastAPI docs at http://localhost:{port}/docs")

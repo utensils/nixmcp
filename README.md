@@ -120,10 +120,14 @@ The project includes comprehensive test coverage that can be run in several ways
 
 4. **Manual Testing with curl:**
    ```bash
-   # Test MCP package resource
+   # Test direct API endpoints (recommended)
+   curl -X GET "http://localhost:9421/api/package/python"
+   curl -X GET "http://localhost:9421/api/search/packages/python"
+   curl -X GET "http://localhost:9421/api/option/services.nginx"
+   
+   # Test MCP resources (these require proper MCP client integration)
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
-
-   # Test MCP option resource
+   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/packages/python"
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
    ```
 
@@ -143,16 +147,43 @@ The project includes comprehensive test coverage that can be run in several ways
 
 ### Available Resources
 
-The MCP server exposes the following resources that can be accessed by AI models:
+The server provides access to NixOS resources through two interfaces:
+
+#### MCP Resources
+
+These resources can be accessed by AI models using the MCP protocol:
 
 - `nixos://package/{package_name}` - Get information about a specific package (using default unstable channel)
 - `nixos://package/{package_name}/{channel}` - Get information about a specific package in a specific channel
 - `nixos://option/{option_name}` - Get information about a specific NixOS option (using default unstable channel)
 - `nixos://option/{option_name}/{channel}` - Get information about a specific NixOS option in a specific channel
+- `nixos://search/packages/{query}` - Search for packages matching the query
+- `nixos://search/packages/{query}/{channel}` - Search for packages in a specific channel
 
-Example resource URLs:
+Example MCP resource URLs:
 - `nixos://package/python` (uses default channel)
 - `nixos://package/python/unstable` (explicitly specifies channel)
+- `nixos://search/packages/python` (search for packages containing "python")
+
+#### Direct API Endpoints
+
+For direct programmatic access without MCP, the following REST API endpoints are available:
+
+- `GET /api/package/{package_name}[?channel={channel}]` - Get package information
+- `GET /api/search/packages/{query}[?channel={channel}&limit={limit}&offset={offset}]` - Search for packages
+- `GET /api/option/{option_name}[?channel={channel}]` - Get NixOS option information
+
+Example direct API calls:
+```bash
+# Get package information
+curl -X GET "http://localhost:9421/api/package/python"
+
+# Search for packages with pagination
+curl -X GET "http://localhost:9421/api/search/packages/python?limit=5&offset=0"
+
+# Get option information for a specific channel
+curl -X GET "http://localhost:9421/api/option/services.nginx?channel=unstable"
+```
 
 ### Available Tools
 
