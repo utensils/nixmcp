@@ -42,7 +42,7 @@ When updating rules:
 - Server is started/stopped automatically during tests
 
 ## Code Style Guidelines
-- Python 3.9+ with type hints required
+- Python 3.11+ with type hints required
 - Use consistent 4-space indentation
 - Follow PEP 8 naming conventions:
   - snake_case for functions and variables

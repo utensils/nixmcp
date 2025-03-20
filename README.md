@@ -31,7 +31,7 @@ menu
 run
 
 # Run tests (automatically handles server startup/shutdown)
-test
+run-tests
 
 # Format and check code
 lint
@@ -60,6 +60,9 @@ nix develop .#legacy
 python server.py
 
 # Run tests (automatically handles server startup/shutdown)
+# Using pytest with server management
+python -m pytest -xvs test_mcp.py
+# OR using the test script directly which works even without pytest
 python test_mcp.py
 ```
 
@@ -80,7 +83,7 @@ The project includes comprehensive test coverage that can be run in several ways
 1. **Automated Testing with Server Management:**
    ```bash
    # Inside the Nix development environment
-   test
+   run-tests
    
    # Or using Python directly (works even without pytest installed)
    python test_mcp.py
@@ -90,7 +93,7 @@ The project includes comprehensive test coverage that can be run in several ways
 2. **Dry Run Testing (No Server Required):**
    ```bash
    # Inside the Nix development environment
-   test-dry
+   run-tests-dry
    
    # Or using Python directly
    python test_mcp.py --dry-run
@@ -100,7 +103,7 @@ The project includes comprehensive test coverage that can be run in several ways
 3. **Testing with an Existing Server:**
    ```bash
    # Inside the Nix development environment (requires server running)
-   test-with-server
+   run-tests-with-server
    
    # Or using pytest directly
    python -m pytest -xvs test_mcp.py
@@ -119,7 +122,7 @@ The project includes comprehensive test coverage that can be run in several ways
 5. **Debug Testing:**
    ```bash
    # Inside the Nix development environment
-   test-debug
+   run-tests-debug
    
    # Or using Python directly
    python test_mcp.py --debug
@@ -145,13 +148,7 @@ Example resource URLs:
 
 ### Available Tools
 
-The MCP server provides the following tools for AI models:
-
-- `search_packages(query, channel, limit)` - Search for NixOS packages
-- `search_options(query, channel, limit)` - Search for NixOS options
-- `get_resource_context(packages, options, max_entries, format_type)` - Generate formatted context
-
-Note: Currently only package and option resource endpoints are implemented. Tools will be added in future updates.
+Note: Currently only package and option resource endpoints are implemented. MCP tool endpoints will be added in future updates.
 
 ### Using with Claude
 
