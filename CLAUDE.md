@@ -12,11 +12,28 @@ When updating rules:
    ```
 
 ## Build & Run Commands
-- Development environment: `nix develop` or use direnv
+
+### Using Nix Develop (Recommended)
+- Development environment: `nix develop`
+- Run server: `run`
+- Run tests: `test`
+- List all commands: `menu`
+- Development commands:
+  - `setup`: Set up Python environment
+  - `lint`: Run Black formatter on Python code
+  - `typecheck`: Run mypy type checker on Python code
+
+### Using Legacy Shell
+- Legacy shell: `nix develop .#legacy`
 - Run server: `python server.py`
 - Install dependencies manually: `pip install -r requirements.txt`
-- Lint: `black server.py` (recommended, not yet set up)
-- Type checking: `mypy server.py` (recommended, not yet set up)
+
+## Project Structure Guidelines
+- Keep the project structure clean and minimal
+- Do not create unnecessary wrapper scripts; prefer using existing tools directly
+- Use README.md to document common commands rather than creating separate scripts
+- Keep all Python code in properly structured modules
+- Test files should be placed in a tests directory and follow pytest naming conventions
 
 ## Code Style Guidelines
 - Python 3.9+ with type hints required

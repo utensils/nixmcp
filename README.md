@@ -12,10 +12,33 @@ The server uses the local Nix installation to provide accurate, up-to-date infor
 - Get detailed package and option metadata from your local Nix installation
 - Cache results to improve performance
 - Connect directly with Claude and other MCP-compatible AI models
+- MCP-compatible resource endpoints for packages and options
 
 ## Quick Start
 
-### Using direnv with Nix (Recommended)
+### Using Nix Develop (Recommended)
+
+NixMCP uses the [devshell](https://github.com/numtide/devshell) project to provide a rich, interactive development environment with convenient commands:
+
+```bash
+# Enter the development shell (now the default)
+nix develop
+
+# List all available commands
+menu
+
+# Run the server
+run
+
+# Run tests
+test
+
+# Format and check code
+lint
+typecheck
+```
+
+### Using direnv with Nix
 
 If you have [direnv](https://direnv.net/) installed, the included `.envrc` file will automatically activate the Nix development environment when you enter the directory:
 
@@ -27,32 +50,76 @@ direnv allow
 python server.py
 ```
 
-### Using Nix Directly
+### Using Legacy Shell
 
 ```bash
-# Enter development shell which automatically sets up everything
-nix develop
+# If you need the legacy shell without the menu system
+nix develop .#legacy
 
 # Run the server
 python server.py
+
+# In another terminal, run tests
+python test_mcp.py
 ```
 
 ### Manual Setup
 
 ```bash
 # Install required Python dependencies
-pip install mcp>=1.4.0 fastapi uvicorn
+pip install mcp>=1.4.0 fastapi uvicorn requests
 
 # Run the server
 python server.py
 ```
 
+### Testing the MCP Server
+
+Once the server is running, you can test it using the following methods:
+
+1. **Using the built-in MCP Explorer:**
+   - Open your browser to: http://localhost:8000/mcp
+   - This provides a UI to explore MCP resources and tools
+
+2. **Using curl to test the MCP endpoints:**
+
+   ```bash
+   # Test MCP package resource
+   curl -X GET "http://localhost:8000/mcp/resource?uri=nixos://package/python"
+
+   # Test MCP option resource
+   curl -X GET "http://localhost:8000/mcp/resource?uri=nixos://option/services.nginx"
+   ```
+
+3. **Testing from your IDE:**
+   - Create a simple Python test script:
+
+   ```python
+   import requests
+
+   # Test package resource
+   package_response = requests.get("http://localhost:8000/mcp/resource?uri=nixos://package/python")
+   print(f"Package Resource: {package_response.status_code}")
+   print(package_response.json())
+
+   # Test option resource
+   option_response = requests.get("http://localhost:8000/mcp/resource?uri=nixos://option/services.nginx")
+   print(f"Option Resource: {option_response.status_code}")
+   print(option_response.json())
+   ```
+
 ### Available Resources
 
 The MCP server exposes the following resources that can be accessed by AI models:
 
-- `nixos://package/{package_name}?channel={channel}` - Get information about a specific package
-- `nixos://option/{option_name}?channel={channel}` - Get information about a specific NixOS option
+- `nixos://package/{package_name}` - Get information about a specific package (using default unstable channel)
+- `nixos://package/{package_name}/{channel}` - Get information about a specific package in a specific channel
+- `nixos://option/{option_name}` - Get information about a specific NixOS option (using default unstable channel)
+- `nixos://option/{option_name}/{channel}` - Get information about a specific NixOS option in a specific channel
+
+Example resource URLs:
+- `nixos://package/python` (uses default channel)
+- `nixos://package/python/unstable` (explicitly specifies channel)
 
 ### Available Tools
 
@@ -61,6 +128,8 @@ The MCP server provides the following tools for AI models:
 - `search_packages(query, channel, limit)` - Search for NixOS packages
 - `search_options(query, channel, limit)` - Search for NixOS options
 - `get_resource_context(packages, options, max_entries, format_type)` - Generate formatted context
+
+Note: Currently only package and option resource endpoints are implemented. Tools will be added in future updates.
 
 ### Using with Claude
 
