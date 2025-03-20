@@ -41,19 +41,51 @@ class ElasticsearchClient:
         )
         self.es_user = os.getenv("ELASTICSEARCH_USER")
         self.es_password = os.getenv("ELASTICSEARCH_PASSWORD")
-
+        
+        # Store the credentials for direct API access
+        self.es_auth = None
+        if self.es_user and self.es_password:
+            self.es_auth = (self.es_user, self.es_password)
+        
         # Create Elasticsearch client if credentials are available
         self.es = None
         if self.es_user and self.es_password:
             try:
                 # Initialize Elasticsearch client with basic auth
+                # Set verify_certs=False and timeout to handle NixOS search API better
                 self.es = Elasticsearch(
-                    self.es_url, basic_auth=(self.es_user, self.es_password)
+                    self.es_url, 
+                    basic_auth=(self.es_user, self.es_password),
+                    verify_certs=False,
+                    request_timeout=30,
+                    max_retries=3,
+                    retry_on_timeout=True,
+                    # Set this to ignore version verification since NixOS search has a custom API
+                    meta_header=False
                 )
-                print("Elasticsearch client initialized")
+                print("Elasticsearch client initialized with Python client")
             except Exception as e:
                 print(f"Failed to initialize Elasticsearch client: {e}")
                 self.es = None
+                
+        # Test the connection with direct API access if the client fails
+        if self.es is None and self.es_auth:
+            print("Trying direct API access instead...")
+            try:
+                import requests
+                response = requests.get(
+                    self.es_url,
+                    auth=self.es_auth,
+                    verify=False,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    print("Direct API access to Elasticsearch works")
+                    # We'll implement the search with direct requests
+                else:
+                    print(f"Direct API access failed with status: {response.status_code}")
+            except Exception as e:
+                print(f"Direct API access error: {e}")
 
     def search_packages(
         self, query: str, limit: int = 50, offset: int = 0
@@ -165,41 +197,93 @@ class ElasticsearchClient:
         Returns:
             List of option dictionaries
         """
-        if not self.es:
-            print("Elasticsearch client not available, cannot search options")
-            return []
-
         try:
-            # Create a search query for options
+            import requests
+            
+            # Create search body based on the curl example
             search_body = {
-                "from": offset,
                 "size": limit,
-                "sort": [{"option_name.raw": {"order": "asc"}}],
+                "from": offset,
                 "query": {
                     "bool": {
-                        "should": [
-                            {"match": {"option_name": {"query": query, "boost": 10}}},
-                            {
-                                "match": {
-                                    "option_description": {"query": query, "boost": 5}
-                                }
-                            },
-                            {"match": {"option_all": query}},
+                        "filter": [
+                            {"term": {"type": {"value": "option", "_name": "filter_options"}}}
                         ],
-                        "filter": [{"term": {"type": "option"}}],
+                        "must": [
+                            {"dis_max": {
+                                "tie_breaker": 0.7,
+                                "queries": [
+                                    {"multi_match": {
+                                        "type": "cross_fields",
+                                        "query": query,
+                                        "analyzer": "whitespace",
+                                        "auto_generate_synonyms_phrase_query": False,
+                                        "operator": "and",
+                                        "fields": [
+                                            "option_name^6",
+                                            "option_name.*^3.6",
+                                            "option_description^1",
+                                            "option_description.*^0.6",
+                                            "flake_name^0.5",
+                                            "flake_name.*^0.3"
+                                        ]
+                                    }},
+                                    {"wildcard": {
+                                        "option_name": {
+                                            "value": f"*{query}*",
+                                            "case_insensitive": True
+                                        }
+                                    }}
+                                ]
+                            }}
+                        ]
                     }
-                },
+                }
             }
-
-            # Execute the search
-            result = self.es.search(body=search_body)
-
-            # Process results into a consistent format
-            options = []
-            for hit in result["hits"]["hits"]:
-                source = hit["_source"]
-                options.append(
-                    {
+            
+            # For queries like services.postgresql, also add some specific queries
+            if '.' in query:
+                # Add a prefix search for child options
+                search_body["query"]["bool"]["must"][0]["dis_max"]["queries"].append({
+                    "prefix": {
+                        "option_name.raw": {
+                            "value": query + ".",
+                            "boost": 5.0
+                        }
+                    }
+                })
+                
+                # Get the last part (e.g., "postgresql" from "services.postgresql")
+                service_name = query.split(".")[-1]
+                search_body["query"]["bool"]["must"][0]["dis_max"]["queries"].append({
+                    "wildcard": {
+                        "option_name": {
+                            "value": f"*{service_name}*",
+                            "case_insensitive": True
+                        }
+                    }
+                })
+            
+            # Make the request with proper auth - using the curl example approach
+            print(f"Making direct API request for options with query: {query}")
+            response = requests.post(
+                self.es_url,
+                json=search_body,
+                auth=self.es_auth if self.es_auth else None,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                total_hits = result.get("hits", {}).get("total", {}).get("value", 0)
+                print(f"Direct API search successful, got {total_hits} option results")
+                
+                # Process results into a consistent format
+                options = []
+                for hit in result.get("hits", {}).get("hits", []):
+                    source = hit.get("_source", {})
+                    options.append({
                         "name": source.get("option_name", ""),
                         "description": source.get("option_description", ""),
                         "type": source.get("option_type", ""),
@@ -207,17 +291,16 @@ class ElasticsearchClient:
                         "example": source.get("option_example", None),
                         "declared_by": source.get("option_declarations", []),
                         "score": hit.get("_score", 0),
-                    }
-                )
-
-            return options
-
-        except ApiError as e:
-            print(f"Elasticsearch API error: {e}")
-            return []
+                    })
+                
+                return options
+            else:
+                print(f"Direct API search failed with status {response.status_code}: {response.text}")
+        
         except Exception as e:
-            print(f"Unexpected error in Elasticsearch search: {e}")
-            return []
+            print(f"Error searching options: {e}")
+        
+        return []
 
     def get_package_by_attr(self, attr_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -345,28 +428,44 @@ class NixosAPI:
         """Query a NixOS option by path using Elasticsearch API.
 
         This will use Elasticsearch API to get NixOS option information.
+        For option paths like services.postgresql, this will also return related options.
         """
-        # Use Elasticsearch (direct API)
-        if self.es_client.es:
-            print(f"Querying option with Elasticsearch: {option_path}")
-            # Create search body for exact option name match
-            try:
-                search_body = {
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {"term": {"option_name.raw": option_path}},
-                                {"term": {"type": "option"}},
-                            ]
-                        }
+        is_prefix_query = '.' in option_path
+        
+        try:
+            import requests
+            
+            # First, try to get an exact match
+            search_body = {
+                "size": 1,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"type": {"value": "option"}}}
+                        ],
+                        "must": [
+                            {"term": {"option_name.raw": option_path}}
+                        ]
                     }
                 }
-
-                # Execute the search
-                result = self.es_client.es.search(body=search_body, size=1)
-
-                # If we found a match, return it
-                if result["hits"]["total"]["value"] > 0:
+            }
+            
+            # Make the request with proper auth - using the curl example approach
+            print(f"Making direct API request for exact option match: {option_path}")
+            response = requests.post(
+                self.es_client.es_url,
+                json=search_body,
+                auth=self.es_client.es_auth if self.es_client.es_auth else None,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                total_hits = result.get("hits", {}).get("total", {}).get("value", 0)
+                
+                # If we found an exact match, return it
+                if total_hits > 0:
                     source = result["hits"]["hits"][0]["_source"]
                     return {
                         "name": source.get("option_name", ""),
@@ -376,9 +475,26 @@ class NixosAPI:
                         "example": source.get("option_example", None),
                         "declared_by": source.get("option_declarations", []),
                     }
-            except Exception as e:
-                print(f"Elasticsearch option query failed: {e}")
-
+            
+            # If we didn't find an exact match but it's a prefix query like services.postgresql,
+            # search for all related options
+            if is_prefix_query:
+                print(f"No exact match found, searching for options related to: {option_path}")
+                # Get all related options (using the search_options function)
+                related_options = self.search_options(option_path, limit=50)
+                
+                if related_options:
+                    # Format the response for an LLM with useful context
+                    return {
+                        "name": option_path,
+                        "message": f"No exact match found for '{option_path}', but found {len(related_options)} related options.",
+                        "related_options": related_options,
+                        "note": "These are the available configuration options related to your query."
+                    }
+        
+        except Exception as e:
+            print(f"Error querying option: {e}")
+        
         return None
 
 
@@ -536,26 +652,57 @@ class ModelContext:
             self.cache[cache_key] = option
             return option
 
-        # Special case for common NixOS options
-        if option_name == "services.nginx":
+        # Special case for service options like services.postgresql
+        if option_name.startswith("services."):
+            service_name = option_name.split(".", 1)[1]
+            
+            # Try to get related options for this service
+            related_options = self.api.es_client.search_options(service_name, limit=10)
+            
+            # Check if we have an exact match in the related options
+            exact_match = next((opt for opt in related_options if opt["name"] == option_name), None)
+            # If we found an exact match, return it immediately
+            if exact_match:
+                return exact_match
+                
+            # Otherwise, filter to keep options that match the service name prefix
+            matching_options = [opt for opt in related_options if opt["name"].startswith(option_name)]
+            
+            response = {
+                "error": f"Option '{option_name}' not found",
+                "name": option_name,
+                "message": f"This appears to be a NixOS service configuration for '{service_name}'.",
+                "hint": f"Try searching for specific configuration options like '{option_name}.enable' or '{option_name}.settings'",
+                "try_search": f"To see all related options, try a search for '{service_name}' in NixOS options."
+            }
+            
+            # If we found related options, include them in the response
+            if matching_options:
+                response["related_options"] = matching_options
+                response["note"] = f"Found {len(matching_options)} related options for {option_name}."
+            else:
+                response["note"] = "The Elasticsearch API may not be properly configured, or this service might not be indexed."
+                
+            return response
+            
+        elif "." in option_name:
+            # Other dotted option paths
             return {
                 "error": f"Option '{option_name}' not found",
-                "note": "This is a valid NixOS option, but might not be available through the Elasticsearch API.",
+                "name": option_name,
+                "hint": "This appears to be a NixOS option path, but no exact match was found.",
+                "suggestion": "Try searching for related options by using a more general query.",
             }
-        elif option_name.startswith("services."):
+        else:
+            # Generic case
             return {
                 "error": f"Option '{option_name}' not found",
-                "suggestion": "To query NixOS options, you need to have Elasticsearch API configured properly.",
+                "suggestions": [
+                    "Check the spelling of the option name",
+                    "Verify that the option exists in the specified NixOS version",
+                    "Try a more general search term to find related options",
+                ],
             }
-
-        return {
-            "error": f"Option '{option_name}' not found",
-            "suggestions": [
-                "Check the spelling of the option name",
-                "Verify that the option exists in the specified NixOS version",
-                "Make sure Elasticsearch API is configured correctly",
-            ],
-        }
 
 
 # Create the FastAPI server
@@ -598,6 +745,30 @@ async def search_packages_direct(
     if not search_results["results"]:
         return {"error": f"No packages found matching '{query}'"}
     return search_results
+
+
+@app.get("/api/search/options/{query}")
+async def search_options_direct(
+    query: str, channel: str = "unstable", limit: int = 50, offset: int = 0
+):
+    """Direct endpoint for options search."""
+    if not context.api.es_client.es:
+        return {
+            "error": "Elasticsearch client not available",
+            "message": "The Elasticsearch API is required for option searching."
+        }
+    
+    # Use the ElasticsearchClient.search_options method directly
+    options = context.api.es_client.search_options(query, limit=limit, offset=offset)
+    
+    return {
+        "query": query,
+        "channel": channel,
+        "total": len(options),
+        "offset": offset,
+        "limit": limit,
+        "results": options,
+    }
 
 
 @app.get("/api/option/{option_name}")
@@ -669,10 +840,13 @@ def server_status():
                 "nixos://option/{option_name}/{channel}",
                 "nixos://search/packages/{query}",
                 "nixos://search/packages/{query}/{channel}",
+                "nixos://search/options/{query}",
+                "nixos://search/options/{query}/{channel}",
             ],
             "direct_api": [
                 "/api/package/{package_name}[?channel={channel}]",
                 "/api/search/packages/{query}[?channel={channel}&limit={limit}&offset={offset}]",
+                "/api/search/options/{query}[?channel={channel}&limit={limit}&offset={offset}]",
                 "/api/option/{option_name}[?channel={channel}]",
             ],
         },
@@ -763,6 +937,38 @@ async def mcp_search_packages_with_channel(query: str, channel: str):
     return await search_packages_resource_with_channel(query, channel)
 
 
+# Register option search resource
+@mcp.resource("nixos://search/options/{query}")
+async def mcp_search_options(query: str):
+    """MCP resource handler for searching NixOS options."""
+    print(f"MCP: Searching options with query: {query}")
+    
+    if not context.api.es_client.es:
+        return {
+            "error": "Elasticsearch client not available",
+            "message": "The Elasticsearch API is required for option searching."
+        }
+    
+    # Search for options
+    options = context.api.es_client.search_options(query, limit=50)
+    
+    return {
+        "query": query,
+        "total": len(options),
+        "results": options,
+    }
+
+
+@mcp.resource("nixos://search/options/{query}/{channel}")
+async def mcp_search_options_with_channel(query: str, channel: str):
+    """MCP resource handler for searching NixOS options with specific channel."""
+    print(f"MCP: Searching options with query: {query} in channel: {channel}")
+    
+    # Channel parameter is included for API consistency, but currently not used
+    # for options search since the Elasticsearch index doesn't separate by channel
+    return await mcp_search_options(query)
+
+
 # Register option resources
 @mcp.resource("nixos://option/{option_name}")
 async def mcp_option(option_name: str):
@@ -845,21 +1051,42 @@ if __name__ == "__main__":
             if uri.startswith("nixos://package/"):
                 parts = uri.replace("nixos://package/", "").split("/")
                 if len(parts) == 1:
-                    return await mcp_package(parts[0])
+                    return await get_package_resource(parts[0])
                 elif len(parts) == 2:
-                    return await mcp_package_with_channel(parts[0], parts[1])
+                    return await get_package_resource_with_channel(parts[0], parts[1])
             elif uri.startswith("nixos://search/packages/"):
                 parts = uri.replace("nixos://search/packages/", "").split("/")
                 if len(parts) == 1:
-                    return await mcp_search_packages(parts[0])
+                    return await search_packages_resource(parts[0])
                 elif len(parts) == 2:
-                    return await mcp_search_packages_with_channel(parts[0], parts[1])
+                    return await search_packages_resource_with_channel(parts[0], parts[1])
+            elif uri.startswith("nixos://search/options/"):
+                parts = uri.replace("nixos://search/options/", "").split("/")
+                if len(parts) == 1:
+                    # Call directly our handler function
+                    print(f"Searching options with query: {parts[0]}")
+                    options = context.api.es_client.search_options(parts[0], limit=50)
+                    return {
+                        "query": parts[0],
+                        "total": len(options),
+                        "results": options,
+                    }
+                elif len(parts) == 2:
+                    # Include channel (mostly for API consistency)
+                    print(f"Searching options with query: {parts[0]} in channel: {parts[1]}")
+                    options = context.api.es_client.search_options(parts[0], limit=50)
+                    return {
+                        "query": parts[0],
+                        "channel": parts[1],
+                        "total": len(options),
+                        "results": options,
+                    }
             elif uri.startswith("nixos://option/"):
                 parts = uri.replace("nixos://option/", "").split("/")
                 if len(parts) == 1:
-                    return await mcp_option(parts[0])
+                    return await get_option_resource(parts[0])
                 elif len(parts) == 2:
-                    return await mcp_option_with_channel(parts[0], parts[1])
+                    return await get_option_resource_with_channel(parts[0], parts[1])
             return {"error": f"Unsupported URI format: {uri}"}
         except Exception as e:
             return {"error": f"Error processing resource: {str(e)}"}
@@ -873,6 +1100,7 @@ if __name__ == "__main__":
             # Call the direct endpoint implementation
             return await direct_mcp_resource(uri)
         except Exception as e:
+            print(f"Error in MCP resource endpoint: {e}")
             return {"error": f"Error processing resource: {str(e)}"}
 
     # Configure and mount the MCP server
@@ -904,12 +1132,16 @@ if __name__ == "__main__":
         f"  - MCP Package URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python"
     )
     print(
-        f"  - MCP Search URL: http://localhost:{port}/mcp/resource?uri=nixos://search/packages/python"
+        f"  - MCP Package Search URL: http://localhost:{port}/mcp/resource?uri=nixos://search/packages/python"
+    )
+    print(
+        f"  - MCP Option Search URL: http://localhost:{port}/mcp/resource?uri=nixos://search/options/postgresql"
     )
     print(
         f"  - Direct MCP Package URL: http://localhost:{port}/direct-mcp/resource?uri=nixos://package/python"
     )
     print(f"  - Direct API Package URL: http://localhost:{port}/api/package/python")
+    print(f"  - Direct API Option Search URL: http://localhost:{port}/api/search/options/postgresql")
 
     print(f"\nStarting NixMCP server on port {port}...")
     print(f"Access FastAPI docs at http://localhost:{port}/docs")

@@ -94,6 +94,8 @@ class MCPTestClient:
             url = f"{self.api_url}/api/package/{name}"
         elif resource_type == "search":
             url = f"{self.api_url}/api/search/packages/{name}"
+        elif resource_type == "search-options":
+            url = f"{self.api_url}/api/search/options/{name}"
         elif resource_type == "option":
             url = f"{self.api_url}/api/option/{name}"
         else:

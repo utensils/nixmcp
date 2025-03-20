@@ -58,3 +58,7 @@ venv.bak/
 *.swp
 *.swo
 *~
+
+# Misc
+temp
+tmp
