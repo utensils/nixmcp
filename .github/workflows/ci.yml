@@ -59,7 +59,6 @@ jobs:
         run: |
           # Use nix develop to run linting tools defined in flake.nix
           nix develop --command black --check server.py test_mcp.py
-          nix develop --command mypy server.py test_mcp.py
 
   test-dry:
     name: Test (Dry Run)

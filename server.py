@@ -294,8 +294,15 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="NixMCP Server")
-    parser.add_argument("--reload", action="store_true", help="Enable hot reloading for development")
-    parser.add_argument("--port", type=int, default=9421, help="Port to run the server on (default: 9421)")
+    parser.add_argument(
+        "--reload", action="store_true", help="Enable hot reloading for development"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=9421,
+        help="Port to run the server on (default: 9421)",
+    )
     args = parser.parse_args()
 
     # Enable debug logging
@@ -333,17 +340,15 @@ if __name__ == "__main__":
 
     port = args.port
     print("\nDebug access URLs:")
-    print(f"  - Test URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python")
+    print(
+        f"  - Test URL: http://localhost:{port}/mcp/resource?uri=nixos://package/python"
+    )
     print(f"  - Direct FastAPI: http://localhost:{port}/packages/python")
 
     print(f"\nStarting NixMCP server on port {port}...")
     print(f"Access FastAPI docs at http://localhost:{port}/docs")
     print(f"Access MCP endpoints at http://localhost:{port}/mcp")
-    
+
     uvicorn.run(
-        "server:app", 
-        host="0.0.0.0", 
-        port=port, 
-        log_level="debug",
-        reload=args.reload
+        "server:app", host="0.0.0.0", port=port, log_level="debug", reload=args.reload
     )

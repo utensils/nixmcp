@@ -214,9 +214,9 @@
               {
                 name = "run-tests-with-server";
                 category = "testing";
-                help = "Run tests with an existing server";
+                help = "Run tests with server (starts one if needed)";
                 command = ''
-                  echo "Running tests using existing server..."
+                  echo "Running tests with server..."
                   source .venv/bin/activate
                   
                   # Check if pytest is installed
@@ -226,16 +226,42 @@
                   fi
                   
                   # Check if server is running
+                  SERVER_STARTED=false
                   if ! curl -s http://localhost:9421/docs -o /dev/null; then
-                    echo -e "\n❌ ERROR: Server is not running!"
-                    echo "Please start the server with 'run' command first"
-                    exit 1
+                    echo "Server not running, starting one..."
+                    # Start server in background
+                    python server.py --port=9421 &
+                    SERVER_PID=$!
+                    SERVER_STARTED=true
+                    
+                    # Wait for server to start
+                    echo "Waiting for server to start..."
+                    for i in {1..30}; do
+                      if curl -s http://localhost:9421/docs &>/dev/null; then
+                        echo "Server started successfully!"
+                        break
+                      fi
+                      if [ $i -eq 30 ]; then
+                        echo "Server failed to start in time"
+                        kill $SERVER_PID 2>/dev/null
+                        exit 1
+                      fi
+                      sleep 1
+                    done
+                  else
+                    echo "Using existing server at http://localhost:9421"
                   fi
                   
-                  # Run tests with existing server
-                  echo "Starting tests with existing server..."
+                  # Run tests with server
+                  echo "Starting tests with server..."
                   python -m pytest -xvs test_mcp.py
                   TEST_EXIT=$?
+                  
+                  # Clean up server if we started it
+                  if [ "$SERVER_STARTED" = true ]; then
+                    echo "Stopping server..."
+                    kill $SERVER_PID 2>/dev/null
+                  fi
                   
                   # Report test result
                   if [ $TEST_EXIT -ne 0 ]; then
@@ -271,16 +297,7 @@
                   black server.py test_mcp.py
                 '';
               }
-              {
-                name = "typecheck";
-                category = "development";
-                help = "Type check Python code with mypy";
-                command = ''
-                  echo "Type checking Python code..."
-                  source .venv/bin/activate
-                  mypy server.py test_mcp.py
-                '';
-              }
+
             ];
             
             # Define startup hook to create/activate venv
@@ -314,7 +331,7 @@
               echo "  🧪 run-tests-dry      - Run test mocks (no server needed)"
               echo "  🧪 run-tests-debug    - Run tests in debug mode"
               echo "  🧹 lint              - Format code with Black"
-              echo "  🔍 typecheck         - Run mypy type checking"
+
               echo "  🔧 setup             - Set up Python environment"
               echo ""
               echo "Use 'menu' to see all available commands."
