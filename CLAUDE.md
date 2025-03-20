@@ -13,8 +13,8 @@ When updating rules:
 
 ## System Requirements
 
-### Elasticsearch API Access (Recommended)
-The server can directly access the NixOS Elasticsearch API for optimal performance:
+### Elasticsearch API Access (Required)
+The server requires access to the NixOS Elasticsearch API to function:
 
 1. Create a `.env` file with your NixOS Elasticsearch credentials:
 ```
@@ -28,19 +28,7 @@ ELASTICSEARCH_PASSWORD=your_password
 python mcp_diagnose.py --es-only
 ```
 
-### Nix Channels (Fallback)
-As a fallback, the server can use local Nix channels:
-- `nixpkgs` (pointing to nixpkgs-unstable)
-- `nixpkgs-unstable`
-
-Add them with:
-```bash
-nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
-nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
-nix-channel --update
-```
-
-These channels allow the server to access package information when Elasticsearch is unavailable. The server will verify these channels on startup and warn if any are missing.
+Without valid Elasticsearch credentials, the server will start but will not be able to search packages or provide metadata.
 
 ## Build & Run Commands
 

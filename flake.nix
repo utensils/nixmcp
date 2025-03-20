@@ -281,12 +281,8 @@
                 command = ''
                   echo "Running tests in debug mode..."
                   source .venv/bin/activate
-                  # Run with debug flag to trigger special debug mode
-                  python -m pytest -xvs test_mcp.py::test_debug
-                  # If test_debug doesn't exist, fall back to regular debug mode
-                  if [ $? -ne 0 ]; then
-                    python -u test_mcp.py --debug
-                  fi
+                  # Run the test script directly with the debug flag
+                  python -u test_mcp.py --debug
                 '';
               }
               {
