@@ -35,7 +35,7 @@
             echo "Creating Python virtual environment..."
             ${pythonEnv}/bin/python -m venv .venv
             source .venv/bin/activate
-            pip install "mcp>=1.4.0" fastapi uvicorn requests
+            pip install "mcp>=1.4.0" fastapi uvicorn requests elasticsearch python-dotenv
           else
             source .venv/bin/activate
           fi
@@ -309,7 +309,7 @@
                 echo "Creating Python virtual environment..."
                 ${pythonEnv}/bin/python -m venv .venv
                 source .venv/bin/activate
-                pip install "mcp>=1.4.0" fastapi uvicorn requests
+                pip install "mcp>=1.4.0" fastapi uvicorn requests elasticsearch python-dotenv
               else
                 source .venv/bin/activate
               fi
