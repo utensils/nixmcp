@@ -40,7 +40,8 @@ coverage.xml
 .pytest_cache/
 
 # Environments
-.env
+# Note: We're keeping .env in the repo since it contains public credentials
+# .env
 .venv
 env/
 venv/
