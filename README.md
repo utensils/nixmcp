@@ -84,6 +84,12 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open p
 - **Tools**: Functions that the LLM can call to perform actions
 - **Prompts**: Reusable templates for LLM interactions
 
+## Development Guidelines
+
+This project includes a `CLAUDE.md` file which contains build commands, code style guidelines, and other development best practices. This file serves as the source of truth for project conventions and is synchronized with other tool-specific files (`.windsurfrules`, `.cursorrules`, and `.goosehints`).
+
+When contributing to this project, please follow the guidelines specified in `CLAUDE.md`.
+
 ## License
 
 MIT
