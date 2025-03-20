@@ -21,6 +21,11 @@ wheels/
 *.egg
 MANIFEST
 
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -45,7 +50,6 @@ venv.bak/
 
 # Nix
 .direnv/
-.envrc
 
 # IDE
 .idea/

@@ -1,0 +1,4 @@
+# MCP Server dependencies
+mcp>=1.4.0
+fastapi>=0.95.0
+uvicorn>=0.21.0

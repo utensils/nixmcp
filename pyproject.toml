@@ -1,11 +1,7 @@
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "nixmcp"
 version = "0.1.0"
-description = "Model Context Protocol for NixOS resources"
+description = "Model Context Protocol server for NixOS resources"
 readme = "README.md"
 authors = [
     {name = "James Brink", email = "user@example.com"},
@@ -21,35 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "lxml>=4.6.0",
-    "rich>=10.0.0",
+    "mcp>=1.4.0",
+    "fastapi>=0.95.0",
+    "uvicorn>=0.21.0",
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=6.0.0",
-    "black>=22.0.0",
-    "isort>=5.0.0",
-    "mypy>=0.910",
-]
-
-[project.scripts]
-nixmcp = "nixmcp.cli:main"
-
-[tool.setuptools]
-packages = ["nixmcp"]
-
-[tool.black]
-line-length = 100
-target-version = ["py39"]
-
-[tool.isort]
-profile = "black"
-line_length = 100
-
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true

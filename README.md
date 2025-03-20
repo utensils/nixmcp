@@ -2,105 +2,87 @@
 
 **Note: This project is under active development and is not yet ready for production use.**
 
-NixMCP is a Python library and CLI tool that exposes NixOS packages and options to AI models via a Model Context Protocol. This tool helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.
+NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. This server helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.
 
-The tool uses the local Nix installation to provide accurate, up-to-date information directly from the Nix package repository, rather than relying on web scraping or potentially outdated API sources.
+The server uses the local Nix installation to provide accurate, up-to-date information directly from the Nix package repository, rather than relying on web scraping or potentially outdated API sources.
 
 ## Features
 
-- Query NixOS packages and options directly using the Nix CLI tools
+- Access NixOS packages and options directly through a standardized MCP interface
 - Get detailed package and option metadata from your local Nix installation
 - Cache results to improve performance
-- Generate formatted context for AI models in various formats (text, Markdown, JSON)
-- CLI tool for easy integration with AI workflows
+- Connect directly with Claude and other MCP-compatible AI models
 
-## Installation
+## Quick Start
 
-### Using Nix
+### Using direnv with Nix (Recommended)
+
+If you have [direnv](https://direnv.net/) installed, the included `.envrc` file will automatically activate the Nix development environment when you enter the directory:
 
 ```bash
-# Enter development shell
+# Allow direnv the first time (only needed once)
+direnv allow
+
+# Run the server (direnv automatically loads the Nix environment)
+python server.py
+```
+
+### Using Nix Directly
+
+```bash
+# Enter development shell which automatically sets up everything
 nix develop
 
-# Or, to use the flake directly
-nix run github:username/nixmcp
+# Run the server
+python server.py
 ```
 
-### From source
+### Manual Setup
 
 ```bash
-pip install .
+# Install required Python dependencies
+pip install mcp>=1.4.0 fastapi uvicorn
+
+# Run the server
+python server.py
 ```
 
-## Usage
+### Available Resources
 
-### CLI
+The MCP server exposes the following resources that can be accessed by AI models:
 
-```bash
-# Query package information
-nixmcp package python --channel unstable
+- `nixos://package/{package_name}?channel={channel}` - Get information about a specific package
+- `nixos://option/{option_name}?channel={channel}` - Get information about a specific NixOS option
 
-# Query package information with JSON output
-nixmcp package python --json
+### Available Tools
 
-# Query package information with Markdown output
-nixmcp package python --markdown
+The MCP server provides the following tools for AI models:
 
-# Query option information
-nixmcp option services.nginx.enable --channel unstable
+- `search_packages(query, channel, limit)` - Search for NixOS packages
+- `search_options(query, channel, limit)` - Search for NixOS options
+- `get_resource_context(packages, options, max_entries, format_type)` - Generate formatted context
 
-# Search for packages
-nixmcp search python --type package --limit 5
+### Using with Claude
 
-# Search for options
-nixmcp search nginx --type option
+Once the server is running, you can use it with Claude by referencing NixOS resources in your prompts:
 
-# Generate context for AI models (plain text format)
-nixmcp context --packages python nodejs --options services.nginx.enable
+```
+Please provide information about the Python package in NixOS.
+~nixos://package/python
 
-# Generate context in JSON format
-nixmcp context --packages python nodejs --options services.nginx.enable --format json
-
-# Generate context in Markdown format
-nixmcp context --packages python nodejs --options services.nginx.enable --format markdown
+What configuration options are available for NGINX in NixOS?
+~nixos://option/services.nginx
 ```
 
-### Python API
+Claude will automatically fetch the requested information through the MCP server.
 
-```python
-from nixmcp.model_context import ModelContext
+## What is Model Context Protocol?
 
-# Create a ModelContext instance
-context = ModelContext()
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. MCP servers can expose:
 
-# Query package information
-python_pkg = context.query_package("python")
-print(python_pkg)
-
-# Generate context for AI models
-context_str = context.format_context(
-    packages=["python", "nodejs"],
-    options=["services.nginx.enable"]
-)
-print(context_str)
-```
-
-## Development
-
-```bash
-# Enter development shell
-nix develop
-
-# Run tests
-pytest
-
-# Format code
-black nixmcp tests
-isort nixmcp tests
-
-# Type checking
-mypy nixmcp
-```
+- **Resources**: Data that can be loaded into an LLM's context
+- **Tools**: Functions that the LLM can call to perform actions
+- **Prompts**: Reusable templates for LLM interactions
 
 ## License
 
