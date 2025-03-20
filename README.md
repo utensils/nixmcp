@@ -1,5 +1,7 @@
 # NixMCP - Model Context Protocol for NixOS resources
 
+[![CI](https://github.com/utensils/nixmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/nixmcp/actions/workflows/ci.yml)
+
 **Note: This project is under active development and is not yet ready for production use.**
 
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. This server helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.

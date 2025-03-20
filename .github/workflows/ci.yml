@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    name: Build Flake
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: cachix/install-nix-action@v23
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      
+      - name: Cache Nix store
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+      
+      - name: Build flake
+        run: |
+          nix flake check
+          nix develop -c echo "Flake development environment builds successfully"
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: cachix/install-nix-action@v23
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      
+      - name: Cache Nix store
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+      
+      - name: Run lint
+        run: |
+          # Use nix develop to run linting tools defined in flake.nix
+          nix develop --command black --check server.py test_mcp.py
+          nix develop --command mypy server.py test_mcp.py
+
+  test-dry:
+    name: Test (Dry Run)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: cachix/install-nix-action@v23
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      
+      - name: Cache Nix store
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+      
+      - name: Cache Python virtual environment
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-venv-
+      
+      - name: Setup and run dry tests
+        run: |
+          # Use nix develop to set up environment and run tests
+          nix develop --command setup
+          nix develop --command run-tests-dry
+
+  test-full:
+    name: Test (Full)
+    runs-on: ubuntu-latest
+    needs: [lint, test-dry]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: cachix/install-nix-action@v23
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            
+      - name: Cache Nix store
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+            
+      - name: Cache Python virtual environment
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-venv-
+      
+      - name: Install NixOS tools
+        run: |
+          # Only needed for full tests that require nixos-option
+          sudo apt-get update
+          sudo apt-get install -y curl
+          
+      - name: Setup and run full tests
+        run: |
+          # Setup environment
+          nix develop --command setup
+          nix develop --command setup-test
+          
+          # Start server in background
+          nix develop --command run --port=9421 &
+          SERVER_PID=$!
+          
+          # Wait for server to start
+          echo "Waiting for server to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:9421/docs &>/dev/null; then
+              echo "Server started successfully!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Server failed to start in time"
+              kill $SERVER_PID
+              exit 1
+            fi
+            sleep 1
+          done
+          
+          # Run tests against running server
+          nix develop --command run-tests-with-server
+          TEST_EXIT=$?
+          
+          # Clean up server
+          kill $SERVER_PID
+          
+          # Return the test exit code
+          exit $TEST_EXIT
