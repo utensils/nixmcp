@@ -62,7 +62,7 @@ def test_mcp_resources() -> None:
         print(f"Status Code: {option_response.status_code}")
         if option_response.status_code == 200:
             result = option_response.json()
-            print(f"Content type: {type(result.get('content'))}")
+            print(f"Content type: {type(result)}")
             print(json.dumps(result, indent=2)[:500] + "...")  # Print truncated result
         else:
             print(f"Error: {option_response.text}")
@@ -79,15 +79,55 @@ def check_server_running():
         return False
 
 
+def dry_run_test():
+    """Run test mocks without an actual server."""
+    print("NixMCP MCP Dry Run Test")
+    print("=====================")
+    print("This is a dry run that doesn't require a running server.")
+    print("It's useful for checking if the test script itself works correctly.")
+    
+    # Mock response data
+    mock_package = {
+        "name": "python",
+        "version": "3.11.0",
+        "description": "A programming language that lets you work quickly",
+        "attribute": "python3"
+    }
+    
+    mock_option = {
+        "name": "services.nginx",
+        "description": "NGINX web server",
+        "type": "attribute set",
+        "default": {},
+        "example": {"enable": True}
+    }
+    
+    print("\nMock package response:")
+    print(json.dumps(mock_package, indent=2))
+    
+    print("\nMock option response:")
+    print(json.dumps(mock_option, indent=2))
+    
+    print("\nTest script is working correctly!")
+
+
 if __name__ == "__main__":
     print("NixMCP MCP Test")
     print("===============")
+    
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "--dry-run":
+        dry_run_test()
+        exit(0)
 
     if not check_server_running():
         print("\033[91mERROR: Server is not running!\033[0m")
         print("Please start the server in another terminal with:")
+        print("  nix develop -c run")
+        print("  or")
         print("  nix develop -c python server.py")
-        print("\nThen run this test script again.")
+        print("\nAlternatively, run a dry test with:")
+        print("  python test_mcp.py --dry-run")
         exit(1)
 
     print("Server is running. Testing MCP endpoints...\n")

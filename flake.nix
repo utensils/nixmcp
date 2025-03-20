@@ -109,11 +109,21 @@
               {
                 name = "test";
                 category = "testing";
-                help = "Run tests";
+                help = "Run tests (requires server running)";
                 command = ''
                   echo "Running tests..."
                   source .venv/bin/activate
                   python test_mcp.py
+                '';
+              }
+              {
+                name = "test-dry";
+                category = "testing";
+                help = "Run test mocks (no server needed)";
+                command = ''
+                  echo "Running test dry run..."
+                  source .venv/bin/activate
+                  python test_mcp.py --dry-run
                 '';
               }
               {
@@ -164,7 +174,8 @@
               echo "└─────────────────────────────────────────────────┘"
               echo ""
               echo "  ⚡ run       - Start the NixMCP server"
-              echo "  🧪 test      - Run tests"
+              echo "  🧪 test      - Run tests (requires server)"
+              echo "  🧪 test-dry  - Run test mocks (no server needed)"
               echo "  🧹 lint      - Format code with Black"
               echo "  🔍 typecheck - Run mypy type checking"
               echo "  🔧 setup     - Set up Python environment"
