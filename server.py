@@ -32,175 +32,207 @@ load_dotenv()
 # Elasticsearch client for NixOS search
 class ElasticsearchClient:
     """Client for accessing NixOS Elasticsearch API."""
-    
+
     def __init__(self):
         """Initialize the Elasticsearch client."""
-        self.es_url = os.getenv("ELASTICSEARCH_URL", "https://search.nixos.org/backend/latest-42-nixos-unstable/_search")
+        self.es_url = os.getenv(
+            "ELASTICSEARCH_URL",
+            "https://search.nixos.org/backend/latest-42-nixos-unstable/_search",
+        )
         self.es_user = os.getenv("ELASTICSEARCH_USER")
         self.es_password = os.getenv("ELASTICSEARCH_PASSWORD")
-        
+
         # Create Elasticsearch client if credentials are available
         self.es = None
         if self.es_user and self.es_password:
             try:
                 # Initialize Elasticsearch client with basic auth
                 self.es = Elasticsearch(
-                    self.es_url,
-                    basic_auth=(self.es_user, self.es_password)
+                    self.es_url, basic_auth=(self.es_user, self.es_password)
                 )
                 print("Elasticsearch client initialized")
             except Exception as e:
                 print(f"Failed to initialize Elasticsearch client: {e}")
                 self.es = None
-    
-    def search_packages(self, query: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+
+    def search_packages(
+        self, query: str, limit: int = 50, offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """
         Search for NixOS packages using Elasticsearch.
-        
+
         Args:
             query: The search query string
             limit: Maximum number of results to return
             offset: Offset for pagination
-            
+
         Returns:
             List of package dictionaries
         """
         if not self.es:
             print("Elasticsearch client not available, cannot search packages")
             return []
-            
+
         try:
             # Create a search query for packages
             search_body = {
                 "from": offset,
                 "size": limit,
-                "sort": [
-                    {"package_attr_name.raw": {"order": "asc"}}
-                ],
+                "sort": [{"package_attr_name.raw": {"order": "asc"}}],
                 "query": {
                     "bool": {
                         "should": [
-                            {"match": {"package_attr_name": {"query": query, "boost": 10}}},
+                            {
+                                "match": {
+                                    "package_attr_name": {"query": query, "boost": 10}
+                                }
+                            },
                             {"match": {"package_pname": {"query": query, "boost": 8}}},
-                            {"match": {"package_attr_name_reverse": {"query": query, "boost": 5}}},
-                            {"match": {"package_description": {"query": query, "boost": 2}}},
-                            {"match": {"package_description_normalized": {"query": query}}},
-                            {"match": {"package_maintainers_names": {"query": query, "boost": 3}}},
-                            {"match": {"package_all": query}}
+                            {
+                                "match": {
+                                    "package_attr_name_reverse": {
+                                        "query": query,
+                                        "boost": 5,
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "package_description": {"query": query, "boost": 2}
+                                }
+                            },
+                            {
+                                "match": {
+                                    "package_description_normalized": {"query": query}
+                                }
+                            },
+                            {
+                                "match": {
+                                    "package_maintainers_names": {
+                                        "query": query,
+                                        "boost": 3,
+                                    }
+                                }
+                            },
+                            {"match": {"package_all": query}},
                         ],
-                        "filter": [
-                            {"term": {"type": "package"}}
-                        ]
+                        "filter": [{"term": {"type": "package"}}],
                     }
-                }
+                },
             }
-            
+
             # Execute the search
             result = self.es.search(body=search_body)
-            
+
             # Process results into a consistent format
             packages = []
             for hit in result["hits"]["hits"]:
                 source = hit["_source"]
-                packages.append({
-                    "attribute": source.get("package_attr_name", ""),
-                    "name": source.get("package_pname", ""),
-                    "version": source.get("package_version", ""),
-                    "description": source.get("package_description", ""),
-                    "homepage": source.get("package_homepage", [None])[0],
-                    "license": source.get("package_license", []),
-                    "maintainers": source.get("package_maintainers", []),
-                    "platforms": source.get("package_platforms", []),
-                    "score": hit.get("_score", 0)
-                })
-                
+                packages.append(
+                    {
+                        "attribute": source.get("package_attr_name", ""),
+                        "name": source.get("package_pname", ""),
+                        "version": source.get("package_version", ""),
+                        "description": source.get("package_description", ""),
+                        "homepage": source.get("package_homepage", [None])[0],
+                        "license": source.get("package_license", []),
+                        "maintainers": source.get("package_maintainers", []),
+                        "platforms": source.get("package_platforms", []),
+                        "score": hit.get("_score", 0),
+                    }
+                )
+
             return packages
-            
+
         except ApiError as e:
             print(f"Elasticsearch API error: {e}")
             return []
         except Exception as e:
             print(f"Unexpected error in Elasticsearch search: {e}")
             return []
-            
-    def search_options(self, query: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+
+    def search_options(
+        self, query: str, limit: int = 50, offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """
         Search for NixOS options using Elasticsearch.
-        
+
         Args:
             query: The search query string
             limit: Maximum number of results to return
             offset: Offset for pagination
-            
+
         Returns:
             List of option dictionaries
         """
         if not self.es:
             print("Elasticsearch client not available, cannot search options")
             return []
-            
+
         try:
             # Create a search query for options
             search_body = {
                 "from": offset,
                 "size": limit,
-                "sort": [
-                    {"option_name.raw": {"order": "asc"}}
-                ],
+                "sort": [{"option_name.raw": {"order": "asc"}}],
                 "query": {
                     "bool": {
                         "should": [
                             {"match": {"option_name": {"query": query, "boost": 10}}},
-                            {"match": {"option_description": {"query": query, "boost": 5}}},
-                            {"match": {"option_all": query}}
+                            {
+                                "match": {
+                                    "option_description": {"query": query, "boost": 5}
+                                }
+                            },
+                            {"match": {"option_all": query}},
                         ],
-                        "filter": [
-                            {"term": {"type": "option"}}
-                        ]
+                        "filter": [{"term": {"type": "option"}}],
                     }
-                }
+                },
             }
-            
+
             # Execute the search
             result = self.es.search(body=search_body)
-            
+
             # Process results into a consistent format
             options = []
             for hit in result["hits"]["hits"]:
                 source = hit["_source"]
-                options.append({
-                    "name": source.get("option_name", ""),
-                    "description": source.get("option_description", ""),
-                    "type": source.get("option_type", ""),
-                    "default": source.get("option_default", None),
-                    "example": source.get("option_example", None),
-                    "declared_by": source.get("option_declarations", []),
-                    "score": hit.get("_score", 0)
-                })
-                
+                options.append(
+                    {
+                        "name": source.get("option_name", ""),
+                        "description": source.get("option_description", ""),
+                        "type": source.get("option_type", ""),
+                        "default": source.get("option_default", None),
+                        "example": source.get("option_example", None),
+                        "declared_by": source.get("option_declarations", []),
+                        "score": hit.get("_score", 0),
+                    }
+                )
+
             return options
-            
+
         except ApiError as e:
             print(f"Elasticsearch API error: {e}")
             return []
         except Exception as e:
             print(f"Unexpected error in Elasticsearch search: {e}")
             return []
-            
+
     def get_package_by_attr(self, attr_name: str) -> Optional[Dict[str, Any]]:
         """
         Get a specific package by its attribute name.
-        
+
         Args:
             attr_name: The package attribute name
-            
+
         Returns:
             Package dictionary or None if not found
         """
         if not self.es:
             print("Elasticsearch client not available, cannot get package")
             return None
-            
+
         try:
             # Create an exact match query for the attribute name
             search_body = {
@@ -208,15 +240,15 @@ class ElasticsearchClient:
                     "bool": {
                         "must": [
                             {"term": {"package_attr_name.raw": attr_name}},
-                            {"term": {"type": "package"}}
+                            {"term": {"type": "package"}},
                         ]
                     }
                 }
             }
-            
+
             # Execute the search
             result = self.es.search(body=search_body, size=1)
-            
+
             # If we found a match, return it
             if result["hits"]["total"]["value"] > 0:
                 source = result["hits"]["hits"][0]["_source"]
@@ -228,11 +260,11 @@ class ElasticsearchClient:
                     "homepage": source.get("package_homepage", [None])[0],
                     "license": source.get("package_license", []),
                     "maintainers": source.get("package_maintainers", []),
-                    "platforms": source.get("package_platforms", [])
+                    "platforms": source.get("package_platforms", []),
                 }
-                
+
             return None
-            
+
         except ApiError as e:
             print(f"Elasticsearch API error: {e}")
             return None
@@ -265,7 +297,7 @@ class NixosAPI:
             raise RuntimeError(
                 "Nix installation not found. Please install Nix to use this tool."
             )
-            
+
     def _check_channels(self) -> None:
         """Verify that required Nix channels are available."""
         required_channels = ["nixpkgs", "nixpkgs-unstable"]
@@ -277,60 +309,74 @@ class NixosAPI:
                 stderr=subprocess.PIPE,
                 text=True,
             )
-            
+
             available_channels = []
             for line in result.stdout.strip().split("\n"):
                 if line:
                     channel_name = line.split()[0]
                     available_channels.append(channel_name)
-            
-            missing_channels = [ch for ch in required_channels if ch not in available_channels]
-            
+
+            missing_channels = [
+                ch for ch in required_channels if ch not in available_channels
+            ]
+
             if missing_channels:
-                print(f"Warning: Missing required Nix channels: {', '.join(missing_channels)}")
+                print(
+                    f"Warning: Missing required Nix channels: {', '.join(missing_channels)}"
+                )
                 print("For optimal functionality, please add these channels:")
                 for channel in missing_channels:
                     if channel == "nixpkgs":
-                        print("  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs")
+                        print(
+                            "  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs"
+                        )
                     elif channel == "nixpkgs-unstable":
-                        print("  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable")
+                        print(
+                            "  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable"
+                        )
                 print("Then run: nix-channel --update")
-                
+
         except (subprocess.SubprocessError, FileNotFoundError):
-            print("Warning: Could not verify Nix channels. nix-channel command not available.")
+            print(
+                "Warning: Could not verify Nix channels. nix-channel command not available."
+            )
             print("Ensure you have the following channels for optimal functionality:")
             for channel in required_channels:
                 if channel == "nixpkgs":
-                    print("  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs")
+                    print(
+                        "  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs"
+                    )
                 elif channel == "nixpkgs-unstable":
-                    print("  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable")
+                    print(
+                        "  nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable"
+                    )
 
     def search_packages(
         self, query: str, channel: str = "unstable", limit: int = 50, offset: int = 0
     ) -> List[Dict[str, Any]]:
         """
         Search for NixOS packages using Elasticsearch API with local fallback.
-        
+
         Args:
             query: Search query string
             channel: NixOS channel to search (currently only used for fallback)
             limit: Maximum number of results to return
             offset: Offset for pagination
-        
+
         Returns:
             List of package dictionaries
         """
         packages = []
-        
+
         # Skip empty queries
         if not query or query.strip() == "":
             return packages
-            
+
         # First try using Elasticsearch direct API (preferred method)
         if self.es_client.es:
             print(f"Searching packages with Elasticsearch: {query}")
             packages = self.es_client.search_packages(query, limit=limit, offset=offset)
-            
+
             # If we got results from Elasticsearch, return them
             if packages:
                 print(f"Found {len(packages)} packages using Elasticsearch")
@@ -339,7 +385,7 @@ class NixosAPI:
                 print("No results from Elasticsearch, using fallback")
         else:
             print("Elasticsearch client not available, using fallback")
-            
+
         # Fallback: Use local nix search
         try:
             # Format the search query for nix search
@@ -349,11 +395,11 @@ class NixosAPI:
                 # Escape special regex characters
                 escaped_query = query.replace(".", "\\.").replace("*", "\\*")
                 pattern = f".*{escaped_query}.*"
-                
+
             # Local nix search
             cmd = ["nix", "search", "nixpkgs", pattern, "--json"]
             print(f"Executing local search command: {' '.join(cmd)}")
-            
+
             result = subprocess.run(
                 cmd,
                 check=True,
@@ -363,7 +409,7 @@ class NixosAPI:
             )
 
             packages_data = json.loads(result.stdout)
-            
+
             for pkg_attr, pkg_info in packages_data.items():
                 name = pkg_attr.split(".")[-1]
                 packages.append(
@@ -374,17 +420,17 @@ class NixosAPI:
                         "description": pkg_info.get("description", ""),
                     }
                 )
-                
+
             # Apply pagination to local search results
             total_results = len(packages)
-            packages = packages[offset:offset+limit]
+            packages = packages[offset : offset + limit]
             print(f"Found {total_results} packages using local nix search")
-                
+
         except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
             print(f"Local search failed: {e}")
             # All attempts failed
             pass
-                
+
         return packages
 
     def get_package_metadata(self, attribute: str) -> Optional[Dict[str, Any]]:
@@ -397,19 +443,19 @@ class NixosAPI:
                 return package
             else:
                 print("Package not found with Elasticsearch, trying local fallbacks")
-        
+
         # Try different formats for package evaluation using local Nix
         formats = [
-            f"nixpkgs#{attribute}",      # Standard format
-            f"nixpkgs.{attribute}",       # Attribute path format
-            attribute                    # Direct attribute
+            f"nixpkgs#{attribute}",  # Standard format
+            f"nixpkgs.{attribute}",  # Attribute path format
+            attribute,  # Direct attribute
         ]
-        
+
         for pkg_spec in formats:
             try:
                 cmd = ["nix", "eval", "--json", pkg_spec]
                 print(f"Executing package metadata command: {' '.join(cmd)}")
-                
+
                 result = subprocess.run(
                     cmd,
                     check=True,
@@ -437,7 +483,7 @@ class NixosAPI:
                 continue
             except json.JSONDecodeError:
                 continue
-                
+
         # Try a more targeted approach for well-known packages
         if attribute == "python" or attribute == "python3":
             try:
@@ -450,18 +496,18 @@ class NixosAPI:
                     stderr=subprocess.PIPE,
                     text=True,
                 )
-                
+
                 # If this succeeds, we know Python is available
                 return {
                     "attribute": "python3",
                     "name": "python3",
                     "version": "3.x",
                     "description": "Python programming language",
-                    "note": "This is a simplified metadata record. For full metadata, use the attribute path 'python3'"
+                    "note": "This is a simplified metadata record. For full metadata, use the attribute path 'python3'",
                 }
             except (subprocess.CalledProcessError, json.JSONDecodeError):
                 pass
-                
+
         return None
 
     def query_option(self, option_path: str) -> Optional[Dict[str, Any]]:
@@ -482,15 +528,15 @@ class NixosAPI:
                         "bool": {
                             "must": [
                                 {"term": {"option_name.raw": option_path}},
-                                {"term": {"type": "option"}}
+                                {"term": {"type": "option"}},
                             ]
                         }
                     }
                 }
-                
+
                 # Execute the search
                 result = self.es_client.es.search(body=search_body, size=1)
-                
+
                 # If we found a match, return it
                 if result["hits"]["total"]["value"] > 0:
                     source = result["hits"]["hits"][0]["_source"]
@@ -506,7 +552,7 @@ class NixosAPI:
                 print(f"Elasticsearch option query failed: {e}")
                 # Continue to fallbacks
                 pass
-                
+
         # Try with nixos-option first
         try:
             # First try with --json flag (newer versions)
@@ -518,7 +564,7 @@ class NixosAPI:
                 option_path,
             ]
             print(f"Executing option command: {' '.join(cmd)}")
-            
+
             result = subprocess.run(
                 cmd,
                 check=True,
@@ -553,7 +599,7 @@ class NixosAPI:
                 option_path,
             ]
             print(f"Executing alternative option command: {' '.join(cmd)}")
-            
+
             result = subprocess.run(
                 cmd,
                 check=True,
@@ -572,7 +618,7 @@ class NixosAPI:
                 "example": None,
                 "declared_by": [],
             }
-            
+
             current_field = None
             for line in lines:
                 if ": " in line:
@@ -591,13 +637,13 @@ class NixosAPI:
                             option["declared_by"] = [value]
 
             return option
-            
+
         except subprocess.CalledProcessError as e:
             print(f"Alternative option command failed: {e}")
             # We could add more fallback approaches here in the future
             # For example, querying from GitHub NixOS options database
             pass
-            
+
         # All approaches failed
         return None
 
@@ -628,7 +674,7 @@ class ModelContext:
                 "error": "Nix is not installed on this system.",
                 "name": package_name,
                 "channel": channel,
-                "message": "To use this endpoint, please install Nix: https://nixos.org/download.html"
+                "message": "To use this endpoint, please install Nix: https://nixos.org/download.html",
             }
 
         # First try exact attribute path
@@ -658,17 +704,17 @@ class ModelContext:
                 "suggestions": [
                     "Try 'python3' instead of 'python'",
                     "Check that the channel is correctly specified",
-                    "Use search to find similar packages"
-                ]
+                    "Use search to find similar packages",
+                ],
             }
-        
+
         return {
             "error": f"Package '{package_name}' not found in channel '{channel}'",
             "suggestions": [
                 "Check the spelling of the package name",
                 "Try searching with a partial name",
-                "Verify the channel name is correct"
-            ]
+                "Verify the channel name is correct",
+            ],
         }
 
     def search_packages(
@@ -692,7 +738,7 @@ class ModelContext:
                 "offset": offset,
                 "limit": limit,
                 "results": [],
-                "message": "To use this endpoint, please install Nix: https://nixos.org/download.html"
+                "message": "To use this endpoint, please install Nix: https://nixos.org/download.html",
             }
 
         results = self.api.search_packages(query, channel=channel)
@@ -716,15 +762,15 @@ class ModelContext:
                 "Try using more general search terms",
                 "Check the spelling of your search query",
                 "Try searching in a different channel (e.g., unstable, 23.11)",
-                "If you know the exact package name, try querying it directly"
+                "If you know the exact package name, try querying it directly",
             ]
-            
+
             # Add specific suggestions for common searches
             if query.lower() == "python":
                 suggestions.insert(0, "Try searching for 'python3' instead")
             elif query.lower() == "node" or query.lower() == "nodejs":
                 suggestions.insert(0, "Try searching for 'nodejs' or 'nodejs_20'")
-                
+
             search_result["suggestions"] = suggestions
             search_result["error"] = f"No packages found matching '{query}'"
 
@@ -738,7 +784,7 @@ class ModelContext:
         cache_key = f"option:{channel}:{option_name}"
         if cache_key in self.cache:
             return self.cache[cache_key]
-            
+
         # Check if Nix is installed
         try:
             self.api._check_nix_installation()
@@ -748,7 +794,7 @@ class ModelContext:
                 "error": "Nix is not installed on this system.",
                 "name": option_name,
                 "channel": channel,
-                "message": "To use this endpoint, please install Nix: https://nixos.org/download.html"
+                "message": "To use this endpoint, please install Nix: https://nixos.org/download.html",
             }
 
         option = self.api.query_option(option_name)
@@ -761,21 +807,21 @@ class ModelContext:
             return {
                 "error": f"Option '{option_name}' not found",
                 "note": "This is a valid NixOS option, but the nixos-option tool might not be installed or configured properly.",
-                "suggestion": "Install NixOS or configure a nixos-config in your NIX_PATH to use this endpoint."
+                "suggestion": "Install NixOS or configure a nixos-config in your NIX_PATH to use this endpoint.",
             }
         elif option_name.startswith("services."):
             return {
                 "error": f"Option '{option_name}' not found",
-                "suggestion": "To query NixOS options, you need to have NixOS installed or a nixos-config configured."
+                "suggestion": "To query NixOS options, you need to have NixOS installed or a nixos-config configured.",
             }
-            
+
         return {
             "error": f"Option '{option_name}' not found",
             "suggestions": [
                 "Check the spelling of the option name",
                 "Verify that the option exists in the specified NixOS version",
-                "Make sure nixos-option is installed and configured correctly"
-            ]
+                "Make sure nixos-option is installed and configured correctly",
+            ],
         }
 
 
@@ -856,7 +902,7 @@ def server_status():
         )
     except (subprocess.SubprocessError, FileNotFoundError):
         nix_installed = False
-        
+
     # Check for required channels
     required_channels = ["nixpkgs", "nixpkgs-unstable"]
     available_channels = []
@@ -868,18 +914,18 @@ def server_status():
             stderr=subprocess.PIPE,
             text=True,
         )
-        
+
         for line in result.stdout.strip().split("\n"):
             if line:
                 channel_name = line.split()[0]
                 available_channels.append(channel_name)
-                
+
     except (subprocess.SubprocessError, FileNotFoundError):
         pass
-        
+
     missing_channels = [ch for ch in required_channels if ch not in available_channels]
     channels_ok = len(missing_channels) == 0
-    
+
     # Check Elasticsearch status
     es_status = "unavailable"
     es_info = {}
@@ -900,14 +946,16 @@ def server_status():
         "elasticsearch": {
             "status": es_status,
             "url": os.getenv("ELASTICSEARCH_URL", "not configured"),
-            "auth": "configured" if os.getenv("ELASTICSEARCH_USER") else "not configured",
-            "info": es_info
+            "auth": (
+                "configured" if os.getenv("ELASTICSEARCH_USER") else "not configured"
+            ),
+            "info": es_info,
         },
         "channels": {
             "required": required_channels,
             "available": available_channels,
             "missing": missing_channels,
-            "ok": channels_ok
+            "ok": channels_ok,
         },
         "endpoints": {
             "mcp_resources": [
@@ -1111,7 +1159,7 @@ if __name__ == "__main__":
             return {"error": f"Unsupported URI format: {uri}"}
         except Exception as e:
             return {"error": f"Error processing resource: {str(e)}"}
-    
+
     # Add a proper MCP resource endpoint that follows the MCP protocol
     @app.get("/mcp/resource")
     async def mcp_resource_endpoint(uri: str):
@@ -1131,7 +1179,7 @@ if __name__ == "__main__":
 
         # We'll still mount MCP, but we've added our own MCP resource endpoint too
         app.mount("/mcp-original", mcp)
-        
+
         print("Mounted MCP at /mcp-original")
         print("Added custom MCP endpoint at /mcp/resource")
     except Exception as e:
@@ -1157,9 +1205,7 @@ if __name__ == "__main__":
     print(
         f"  - Direct MCP Package URL: http://localhost:{port}/direct-mcp/resource?uri=nixos://package/python"
     )
-    print(
-        f"  - Direct API Package URL: http://localhost:{port}/api/package/python"
-    )
+    print(f"  - Direct API Package URL: http://localhost:{port}/api/package/python")
 
     print(f"\nStarting NixMCP server on port {port}...")
     print(f"Access FastAPI docs at http://localhost:{port}/docs")
