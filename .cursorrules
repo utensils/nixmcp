@@ -11,6 +11,37 @@ When updating rules:
    cp CLAUDE.md .goosehints
    ```
 
+## System Requirements
+
+### Elasticsearch API Access (Recommended)
+The server can directly access the NixOS Elasticsearch API for optimal performance:
+
+1. Create a `.env` file with your NixOS Elasticsearch credentials:
+```
+ELASTICSEARCH_URL=https://search.nixos.org/backend/latest-42-nixos-unstable/_search
+ELASTICSEARCH_USER=your_username
+ELASTICSEARCH_PASSWORD=your_password
+```
+
+2. Test the connection:
+```bash
+python mcp_diagnose.py --es-only
+```
+
+### Nix Channels (Fallback)
+As a fallback, the server can use local Nix channels:
+- `nixpkgs` (pointing to nixpkgs-unstable)
+- `nixpkgs-unstable`
+
+Add them with:
+```bash
+nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+nix-channel --update
+```
+
+These channels allow the server to access package information when Elasticsearch is unavailable. The server will verify these channels on startup and warn if any are missing.
+
 ## Build & Run Commands
 
 ### Using Nix Develop (Recommended)

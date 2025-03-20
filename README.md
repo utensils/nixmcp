@@ -6,12 +6,13 @@
 
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. This server helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.
 
-The server uses the local Nix installation to provide accurate, up-to-date information directly from the Nix package repository, rather than relying on web scraping or potentially outdated API sources.
+The server uses direct access to the NixOS Elasticsearch API to provide accurate, up-to-date information about packages and options, with fallback to the local Nix installation for additional reliability.
 
 ## Features
 
 - Access NixOS packages and options directly through a standardized MCP interface
-- Get detailed package and option metadata from your local Nix installation
+- Get detailed package and option metadata using direct Elasticsearch API access
+- Fallback to local Nix installation for additional reliability
 - Cache results to improve performance
 - Connect directly with Claude and other MCP-compatible AI models
 - MCP-compatible resource endpoints for packages and options
@@ -144,6 +145,44 @@ The project includes comprehensive test coverage that can be run in several ways
 6. **Exploring with the MCP UI:**
    - Open your browser to: http://localhost:9421/mcp
    - This provides a UI to explore MCP resources and tools
+
+### Prerequisites
+
+The server can operate in two modes:
+
+#### Elasticsearch API Mode (Recommended)
+
+For optimal performance and up-to-date results, the server can directly access the NixOS Elasticsearch API:
+
+1. **Elasticsearch Credentials**: Create a `.env` file in the project root with the following configuration:
+   ```
+   ELASTICSEARCH_URL=https://search.nixos.org/backend/latest-42-nixos-unstable/_search
+   ELASTICSEARCH_USER=your_username
+   ELASTICSEARCH_PASSWORD=your_password
+   ```
+
+2. **Test the connection**: Use the diagnostic tool to verify the Elasticsearch connection:
+   ```bash
+   python mcp_diagnose.py --es-only
+   ```
+
+#### Local Nix Fallback Mode
+
+If Elasticsearch credentials are not available or the connection fails, the server will fallback to the local Nix installation:
+
+1. **Nix Package Manager**: The server will use your local Nix installation to query package data.
+   - Install from: https://nixos.org/download.html
+
+2. **Required Nix Channels**: The server expects the following channels to be available:
+   - `nixpkgs` (pointing to nixpkgs-unstable)
+   - `nixpkgs-unstable`
+
+   If these channels are not present, you'll see a warning on startup. Add them with:
+   ```bash
+   nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+   nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+   nix-channel --update
+   ```
 
 ### Available Resources
 

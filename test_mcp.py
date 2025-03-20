@@ -118,6 +118,9 @@ def test_server_status(server_process) -> None:
     assert "server" in data, "Status data missing 'server' field"
     assert "version" in data, "Status data missing 'version' field"
     assert "nix_installed" in data, "Status data missing 'nix_installed' field"
+    assert "elasticsearch" in data, "Status data missing 'elasticsearch' field"
+    assert "status" in data["elasticsearch"], "Elasticsearch data missing 'status' field"
+    assert "url" in data["elasticsearch"], "Elasticsearch data missing 'url' field"
     assert "endpoints" in data, "Status data missing 'endpoints' field"
     assert (
         "mcp_resources" in data["endpoints"]
@@ -336,6 +339,12 @@ def dry_run_test() -> None:
         "server": "NixMCP",
         "version": "0.1.0",
         "nix_installed": True,
+        "elasticsearch": {
+            "status": "connected",
+            "url": "https://search.nixos.org/backend/latest-42-nixos-unstable/_search",
+            "auth": "configured",
+            "info": {"version": {"number": "7.10.2"}}
+        },
         "endpoints": {
             "mcp_resources": [
                 "nixos://package/{package_name}",

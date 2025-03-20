@@ -12,7 +12,9 @@
       let
         pkgs = import nixpkgs { 
           inherit system; 
-          overlays = [ devshell.overlays.default ];
+          overlays = [ 
+            devshell.overlays.default
+          ];
         };
         
         # Create a Python environment with all our dependencies
