@@ -16,7 +16,10 @@ When updating rules:
 ### Using Nix Develop (Recommended)
 - Development environment: `nix develop`
 - Run server: `run`
-- Run tests: `test`
+- Run tests (automatically manages server): `test`
+  - Run tests with existing server: `test-with-server`
+  - Run test mocks (no server needed): `test-dry`
+  - Run tests in debug mode: `test-debug`
 - List all commands: `menu`
 - Development commands:
   - `setup`: Set up Python environment
@@ -33,7 +36,10 @@ When updating rules:
 - Do not create unnecessary wrapper scripts; prefer using existing tools directly
 - Use README.md to document common commands rather than creating separate scripts
 - Keep all Python code in properly structured modules
-- Test files should be placed in a tests directory and follow pytest naming conventions
+- Test files can use pytest for automatic test discovery
+- The main test_mcp.py file uses pytest fixtures for server management
+- Tests are designed to work in any environment, with or without Nix packages
+- Server is started/stopped automatically during tests
 
 ## Code Style Guidelines
 - Python 3.9+ with type hints required

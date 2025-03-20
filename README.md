@@ -30,7 +30,7 @@ menu
 # Run the server
 run
 
-# Run tests
+# Run tests (automatically handles server startup/shutdown)
 test
 
 # Format and check code
@@ -59,7 +59,7 @@ nix develop .#legacy
 # Run the server
 python server.py
 
-# In another terminal, run tests
+# Run tests (automatically handles server startup/shutdown)
 python test_mcp.py
 ```
 
@@ -75,14 +75,39 @@ python server.py
 
 ### Testing the MCP Server
 
-Once the server is running, you can test it using the following methods:
+The project includes comprehensive test coverage that can be run in several ways. These tests are designed to work in all environments, including those without Nix packages available:
 
-1. **Using the built-in MCP Explorer:**
-   - Open your browser to: http://localhost:8000/mcp
-   - This provides a UI to explore MCP resources and tools
+1. **Automated Testing with Server Management:**
+   ```bash
+   # Inside the Nix development environment
+   test
+   
+   # Or using Python directly (works even without pytest installed)
+   python test_mcp.py
+   ```
+   This automatically starts the server, runs all tests, and shuts down the server. The test runner has a fallback mechanism that works even if pytest isn't installed.
 
-2. **Using curl to test the MCP endpoints:**
+2. **Dry Run Testing (No Server Required):**
+   ```bash
+   # Inside the Nix development environment
+   test-dry
+   
+   # Or using Python directly
+   python test_mcp.py --dry-run
+   ```
+   This runs mock tests without requiring a server.
 
+3. **Testing with an Existing Server:**
+   ```bash
+   # Inside the Nix development environment (requires server running)
+   test-with-server
+   
+   # Or using pytest directly
+   python -m pytest -xvs test_mcp.py
+   ```
+   This runs tests against an already-running server.
+
+4. **Manual Testing with curl:**
    ```bash
    # Test MCP package resource
    curl -X GET "http://localhost:8000/mcp/resource?uri=nixos://package/python"
@@ -91,22 +116,19 @@ Once the server is running, you can test it using the following methods:
    curl -X GET "http://localhost:8000/mcp/resource?uri=nixos://option/services.nginx"
    ```
 
-3. **Testing from your IDE:**
-   - Create a simple Python test script:
-
-   ```python
-   import requests
-
-   # Test package resource
-   package_response = requests.get("http://localhost:8000/mcp/resource?uri=nixos://package/python")
-   print(f"Package Resource: {package_response.status_code}")
-   print(package_response.json())
-
-   # Test option resource
-   option_response = requests.get("http://localhost:8000/mcp/resource?uri=nixos://option/services.nginx")
-   print(f"Option Resource: {option_response.status_code}")
-   print(option_response.json())
+5. **Debug Testing:**
+   ```bash
+   # Inside the Nix development environment
+   test-debug
+   
+   # Or using Python directly
+   python test_mcp.py --debug
    ```
+   This runs tests in debug mode with detailed output for troubleshooting.
+
+6. **Exploring with the MCP UI:**
+   - Open your browser to: http://localhost:8000/mcp
+   - This provides a UI to explore MCP resources and tools
 
 ### Available Resources
 

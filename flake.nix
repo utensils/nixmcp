@@ -97,6 +97,17 @@
                 '';
               }
               {
+                name = "setup-test";
+                category = "development";
+                help = "Set up Python environment for testing with type stubs";
+                command = ''
+                  echo "Setting up Python testing environment..."
+                  source .venv/bin/activate
+                  pip install pytest types-requests
+                  echo "✓ Test setup complete!"
+                '';
+              }
+              {
                 name = "run";
                 category = "server";
                 help = "Run the NixMCP server";
@@ -109,11 +120,29 @@
               {
                 name = "test";
                 category = "testing";
-                help = "Run tests (requires server running)";
+                help = "Run tests (automatically manages server)";
                 command = ''
-                  echo "Running tests..."
+                  echo "Running tests with automatic server management..."
                   source .venv/bin/activate
-                  python test_mcp.py
+                  
+                  # Check if pytest is installed
+                  if ! python -c "import pytest" 2>/dev/null; then
+                    echo "⚠️  pytest not found, installing..."
+                    pip install pytest types-requests
+                  fi
+                  
+                  # Run the test script directly with unbuffered output
+                  echo "Starting tests..."
+                  python -u test_mcp.py
+                  TEST_EXIT=$?
+                  
+                  # Report test result
+                  if [ $TEST_EXIT -ne 0 ]; then
+                    echo -e "\n❌ Tests failed with exit code $TEST_EXIT"
+                    exit $TEST_EXIT
+                  else
+                    echo -e "\n✅ All tests passed!"
+                  fi
                 '';
               }
               {
@@ -123,7 +152,64 @@
                 command = ''
                   echo "Running test dry run..."
                   source .venv/bin/activate
-                  python test_mcp.py --dry-run
+                  
+                  # Run dry test with unbuffered output
+                  echo "Starting dry run tests..."
+                  python -u test_mcp.py --dry-run
+                  TEST_EXIT=$?
+                  
+                  # Report test result
+                  if [ $TEST_EXIT -ne 0 ]; then
+                    echo -e "\n❌ Dry run tests failed with exit code $TEST_EXIT"
+                    exit $TEST_EXIT
+                  else
+                    echo -e "\n✅ Dry run tests passed!"
+                  fi
+                '';
+              }
+              {
+                name = "test-with-server";
+                category = "testing";
+                help = "Run tests with an existing server";
+                command = ''
+                  echo "Running tests using existing server..."
+                  source .venv/bin/activate
+                  
+                  # Check if pytest is installed
+                  if ! python -c "import pytest" 2>/dev/null; then
+                    echo "⚠️  pytest not found, installing..."
+                    pip install pytest types-requests
+                  fi
+                  
+                  # Check if server is running
+                  if ! curl -s http://localhost:8000/docs -o /dev/null; then
+                    echo -e "\n❌ ERROR: Server is not running!"
+                    echo "Please start the server with 'run' command first"
+                    exit 1
+                  fi
+                  
+                  # Run tests with existing server
+                  echo "Starting tests with existing server..."
+                  python -m pytest -xvs test_mcp.py
+                  TEST_EXIT=$?
+                  
+                  # Report test result
+                  if [ $TEST_EXIT -ne 0 ]; then
+                    echo -e "\n❌ Tests failed with exit code $TEST_EXIT"
+                    exit $TEST_EXIT
+                  else
+                    echo -e "\n✅ All tests passed!"
+                  fi
+                '';
+              }
+              {
+                name = "test-debug";
+                category = "testing";
+                help = "Run tests in debug mode";
+                command = ''
+                  echo "Running tests in debug mode..."
+                  source .venv/bin/activate
+                  python -u test_mcp.py --debug
                 '';
               }
               {

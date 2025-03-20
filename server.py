@@ -250,6 +250,7 @@ def search_packages(
 @mcp.resource("nixos://package/{package_name}")
 async def get_package_resource(package_name: str):
     """MCP resource handler for NixOS packages."""
+    print(f"MCP: Fetching package {package_name}")
     # Default channel is used (unstable)
     package = context.query_package(package_name)
     if not package:
@@ -287,7 +288,11 @@ async def get_option_resource_with_channel(option_name: str, channel: str):
 
 if __name__ == "__main__":
     import uvicorn
+    import logging
     from fastapi.middleware.cors import CORSMiddleware
+
+    # Enable debug logging
+    logging.basicConfig(level=logging.DEBUG)
 
     # Configure CORS for the API
     app.add_middleware(
@@ -298,10 +303,33 @@ if __name__ == "__main__":
         allow_headers=["*"],
     )
 
+    # Add specific route for easy testing
+    @app.get("/debug/mcp-registered")
+    def debug_mcp_registered():
+        """Debug endpoint to show registered MCP resources."""
+        registered = []
+        for resource in mcp._resource_manager._resources.values():
+            registered.append(str(resource.uri_template))
+        return {"registered_resources": registered}
+
     # Add MCP routes to the FastAPI app
     app.mount("/mcp", mcp)
 
-    print("Starting NixMCP server on port 8000...")
+    # Debug info about registered resources
+    print("\nRegistered MCP resources:")
+    try:
+        for resource in mcp._resource_manager._resources.values():
+            print(f"  - {resource.uri_template}")
+    except Exception as e:
+        print(f"Error accessing resources: {e}")
+        print(f"MCP object dir: {dir(mcp)}")
+
+    print("\nDebug access URLs:")
+    print("  - Test URL: http://localhost:8000/mcp/resource?uri=nixos://package/python")
+    print("  - Direct FastAPI: http://localhost:8000/packages/python")
+
+    print("\nStarting NixMCP server on port 8000...")
     print("Access FastAPI docs at http://localhost:8000/docs")
     print("Access MCP endpoints at http://localhost:8000/mcp")
-    uvicorn.run("server:app", host="0.0.0.0", port=8000)
+
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, log_level="debug")
