@@ -83,17 +83,41 @@ class ElasticsearchClient:
         # Check if query contains wildcards
         if '*' in query:
             # Use wildcard query for explicit wildcard searches
-            request_data = {
-                "from": offset,
-                "size": limit,
-                "query": {
-                    "query_string": {
-                        "query": query,
-                        "fields": ["package_attr_name^9", "package_pname^6", "package_description^2"],
-                        "analyze_wildcard": True
+            logger.info(f"Using wildcard query for package search: {query}")
+            
+            # Handle special case for queries like *term*
+            if query.startswith('*') and query.endswith('*') and query.count('*') == 2:
+                term = query.strip('*')
+                logger.info(f"Optimizing *term* query to search for: {term}")
+                
+                request_data = {
+                    "from": offset,
+                    "size": limit,
+                    "query": {
+                        "bool": {
+                            "should": [
+                                # Contains match with high boost
+                                {"wildcard": {"package_attr_name": {"value": f"*{term}*", "boost": 9}}},
+                                {"wildcard": {"package_pname": {"value": f"*{term}*", "boost": 6}}},
+                                {"match": {"package_description": {"query": term, "boost": 2}}}
+                            ],
+                            "minimum_should_match": 1
+                        }
                     }
-                },
-            }
+                }
+            else:
+                # Standard wildcard query
+                request_data = {
+                    "from": offset,
+                    "size": limit,
+                    "query": {
+                        "query_string": {
+                            "query": query,
+                            "fields": ["package_attr_name^9", "package_pname^6", "package_description^2"],
+                            "analyze_wildcard": True
+                        }
+                    },
+                }
         else:
             # For non-wildcard searches, use a more flexible approach
             # that can match partial terms and is more forgiving
@@ -160,17 +184,40 @@ class ElasticsearchClient:
         # Check if query contains wildcards
         if '*' in query:
             # Use wildcard query for explicit wildcard searches
-            request_data = {
-                "from": offset,
-                "size": limit,
-                "query": {
-                    "query_string": {
-                        "query": query,
-                        "fields": ["option_name^9", "option_description^3"],
-                        "analyze_wildcard": True
+            logger.info(f"Using wildcard query for option search: {query}")
+            
+            # Handle special case for queries like *term*
+            if query.startswith('*') and query.endswith('*') and query.count('*') == 2:
+                term = query.strip('*')
+                logger.info(f"Optimizing *term* query to search for: {term}")
+                
+                request_data = {
+                    "from": offset,
+                    "size": limit,
+                    "query": {
+                        "bool": {
+                            "should": [
+                                # Contains match with high boost
+                                {"wildcard": {"option_name": {"value": f"*{term}*", "boost": 9}}},
+                                {"match": {"option_description": {"query": term, "boost": 3}}}
+                            ],
+                            "minimum_should_match": 1
+                        }
                     }
-                },
-            }
+                }
+            else:
+                # Standard wildcard query
+                request_data = {
+                    "from": offset,
+                    "size": limit,
+                    "query": {
+                        "query_string": {
+                            "query": query,
+                            "fields": ["option_name^9", "option_description^3"],
+                            "analyze_wildcard": True
+                        }
+                    },
+                }
         else:
             # For non-wildcard searches, use a more flexible approach
             # that can match partial terms and is more forgiving
@@ -467,39 +514,127 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
         return f"Error: Invalid search_type. Must be 'packages' or 'options'."
     
     try:
+        # First try the original query as-is
         if search_type.lower() == "packages":
+            logger.info(f"Trying original query first: {query}")
             results = model_context.search_packages(query, limit)
             packages = results.get("packages", [])
             
-            if not packages:
-                return f"No packages found for query: '{query}'"
+            # If no results with original query and it doesn't already have wildcards,
+            # try with wildcards
+            if not packages and '*' not in query:
+                # Create wildcard query
+                if ' ' in query:
+                    # For multi-word queries, add wildcards around each word
+                    words = query.split()
+                    wildcard_terms = [f"*{word}*" for word in words]
+                    wildcard_query = " ".join(wildcard_terms)
+                else:
+                    # For single word queries, just wrap with wildcards
+                    wildcard_query = f"*{query}*"
+                    
+                logger.info(f"No results with original query, trying wildcard search: {wildcard_query}")
+                results = model_context.search_packages(wildcard_query, limit)
+                packages = results.get("packages", [])
+                
+                # If we got results with wildcards, note this in the output
+                if packages:
+                    logger.info(f"Found {len(packages)} results using wildcard search")
             
-            output = f"Found {len(packages)} packages for '{query}':\n\n"
+            if not packages:
+                return f"No packages found for query: '{query}'\n\nTry using wildcards like *{query}* for broader results."
+            
+            # Create a flag to track if wildcards were automatically used
+            used_wildcards = False
+            if packages and '*' not in query and 'wildcard_query' in locals():
+                used_wildcards = True
+                
+            # Indicate if wildcards were used to find results
+            if '*' in query:
+                output = f"Found {len(packages)} packages for wildcard query '{query}':\n\n"
+            elif used_wildcards:
+                output = f"Found {len(packages)} packages using automatic wildcard search for '{query}':\n\nNote: No exact matches were found, so wildcards were automatically added.\n\n"
+            else:
+                output = f"Found {len(packages)} packages for '{query}':\n\n"
             for pkg in packages:
-                output += f"- {pkg.get('name', 'Unknown')} ({pkg.get('version', 'Unknown')})\n"
-                output += f"  {pkg.get('description', 'No description')}\n"
-                output += f"  Channel: {pkg.get('channel', 'Unknown')}\n\n"
+                output += f"- {pkg.get('name', 'Unknown')}"
+                if pkg.get('version'):
+                    output += f" ({pkg.get('version')})"
+                output += "\n"
+                if pkg.get('description'):
+                    output += f"  {pkg.get('description')}\n"
+                if pkg.get('channel'):
+                    output += f"  Channel: {pkg.get('channel')}\n"
+                output += "\n"
             
             return output
         else:  # options
+            # First try the original query as-is
+            logger.info(f"Trying original query first: {query}")
             results = model_context.search_options(query, limit)
             options = results.get("options", [])
             
-            if not options:
-                return f"No options found for query: '{query}'"
+            # If no results with original query and it doesn't already have wildcards,
+            # try with wildcards
+            if not options and '*' not in query:
+                # Create wildcard query
+                if ' ' in query:
+                    # For multi-word queries, add wildcards around each word
+                    words = query.split()
+                    wildcard_terms = [f"*{word}*" for word in words]
+                    wildcard_query = " ".join(wildcard_terms)
+                else:
+                    # For single word queries, just wrap with wildcards
+                    wildcard_query = f"*{query}*"
+                    
+                logger.info(f"No results with original query, trying wildcard search: {wildcard_query}")
+                results = model_context.search_options(wildcard_query, limit)
+                options = results.get("options", [])
+                
+                # If we got results with wildcards, note this in the output
+                if options:
+                    logger.info(f"Found {len(options)} results using wildcard search")
             
-            output = f"Found {len(options)} options for '{query}':\n\n"
+            if not options:
+                return f"No options found for query: '{query}'\n\nTry using wildcards like *{query}* for broader results."
+            
+            # Create a flag to track if wildcards were automatically used
+            used_wildcards = False
+            if options and '*' not in query and 'wildcard_query' in locals():
+                used_wildcards = True
+                
+            # Indicate if wildcards were used to find results
+            if '*' in query:
+                output = f"Found {len(options)} options for wildcard query '{query}':\n\n"
+            elif used_wildcards:
+                output = f"Found {len(options)} options using automatic wildcard search for '{query}':\n\nNote: No exact matches were found, so wildcards were automatically added.\n\n"
+            else:
+                output = f"Found {len(options)} options for '{query}':\n\n"
             for opt in options:
                 output += f"- {opt.get('name', 'Unknown')}\n"
-                output += f"  {opt.get('description', 'No description')}\n"
-                output += f"  Type: {opt.get('type', 'Unknown')}\n"
-                output += f"  Default: {opt.get('default', 'None')}\n\n"
+                if opt.get('description'):
+                    output += f"  {opt.get('description')}\n"
+                if opt.get('type'):
+                    output += f"  Type: {opt.get('type')}\n"
+                if 'default' in opt:
+                    output += f"  Default: {opt.get('default')}\n"
+                output += "\n"
             
             return output
     
     except Exception as e:
-        logger.error(f"Error in search_nixos: {e}")
-        return f"Error performing search: {str(e)}"
+        logger.error(f"Error in search_nixos: {e}", exc_info=True)
+        error_message = f"Error performing search for '{query}': {str(e)}"
+        
+        # Add helpful suggestions based on the error
+        if "ConnectionError" in str(e) or "ConnectionTimeout" in str(e):
+            error_message += "\n\nThere seems to be a connection issue with the Elasticsearch server. Please try again later."
+        elif "AuthenticationException" in str(e):
+            error_message += "\n\nAuthentication failed. Please check your Elasticsearch credentials."
+        else:
+            error_message += "\n\nTry simplifying your query or using wildcards like *term* for broader results."
+            
+        return error_message
 
 @mcp.tool()
 def get_nixos_package(package_name: str) -> str:
