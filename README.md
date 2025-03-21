@@ -158,41 +158,28 @@ If Elasticsearch credentials are not available or the connection fails, the serv
    nix-channel --update
    ```
 
-### Available Resources
+### Available Resources and Tools
 
-The server provides access to NixOS resources through the Model Context Protocol (MCP):
+The server provides the following resources and tools via the HTTP-based Model Context Protocol:
 
 #### MCP Resources
 
-These resources can be accessed by AI models using the MCP protocol:
-
 - `nixos://status` - Get server status information
 - `nixos://package/{package_name}` - Get information about a specific package
-- `nixos://package/{package_name}/{channel}` - Get information about a specific package from a specific channel
 - `nixos://search/packages/{query}` - Search for packages matching the query
-- `nixos://search/packages/{query}/{channel}` - Search for packages matching the query in a specific channel
-- `nixos://option/{option_name}` - Get information about a specific NixOS option
 - `nixos://search/options/{query}` - Search for options matching the query
+- `nixos://option/{option_name}` - Get information about a specific NixOS option
+- `nixos://search/programs/{program}` - Search for packages that provide specific programs
+- `nixos://packages/stats` - Get statistics about NixOS packages
 
-Example MCP resource URLs:
-- `nixos://status` - Check server health and version information
-- `nixos://package/python` - Get information about the python package
-- `nixos://package/python/unstable` - Get information about the python package in the unstable channel
-- `nixos://search/packages/python` - Search for packages containing "python"
-- `nixos://search/options/postgresql` - Search for options related to PostgreSQL
-- `nixos://option/services.postgresql.enable` - Get specific option details
+#### MCP Tools
 
-#### MCP HTTP Endpoints
-
-All MCP resources and tools are accessed through the standard MCP HTTP endpoints:
-
-- `GET /mcp/resource?uri={resource_uri}` - Access any MCP resource
-- `POST /mcp/tool` - Invoke MCP tools with JSON payload
-
-#### Health & Debug Endpoints
-
-- `GET /health` - Server health status
-- `GET /debug/mcp-registered` - List of registered MCP resources
+- `search_nixos` - Search for packages, options, or programs with automatic wildcard fallback
+- `get_nixos_package` - Get detailed information about a specific package
+- `get_nixos_option` - Get detailed information about a specific NixOS option
+- `advanced_search` - Perform complex queries using Elasticsearch query syntax
+- `package_statistics` - Get statistical information about NixOS packages
+- `version_search` - Search for packages with specific version patterns
 
 ### Implementation Details
 
