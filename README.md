@@ -4,24 +4,25 @@
 
 > **⚠️ UNDER DEVELOPMENT**: NixMCP is currently under active development. Some features may be incomplete or subject to change.
 
-NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. This server helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.
+NixMCP is a Model Context Protocol (MCP) HTTP server that exposes NixOS packages and options to AI models. This server helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.
 
-Using the MCP framework, the server provides direct access to the NixOS Elasticsearch API to deliver accurate, up-to-date information about packages and options. It implements standard MCP resource endpoints and tools that can be consumed by any MCP-compatible client.
+Using the FastMCP framework, the server provides a REST API for accessing the NixOS Elasticsearch API to deliver accurate, up-to-date information about packages and options. It implements standard MCP resource endpoints and tools over HTTP that can be consumed by any MCP-compatible client.
 
 ## Features
 
-- MCP server implementation for NixOS resources
-- Access NixOS packages and options through a standardized MCP interface
+- HTTP-based MCP server implementation for NixOS resources
+- RESTful API to access NixOS packages and options through a standardized MCP interface
 - Get detailed package and option metadata using direct Elasticsearch API access
-- Connect seamlessly with Claude and other MCP-compatible AI models
-- Comprehensive MCP-compatible resource endpoints and tools
+- Connect seamlessly with Claude and other MCP-compatible AI models via HTTP
+- Comprehensive MCP-compatible resource endpoints and tools exposed via REST API
 - Rich search capabilities with automatic fallback to wildcard matching
+- JSON-based responses for easy integration with any HTTP client
 
-## MCP Implementation
+## MCP Implementation over HTTP
 
-The server implements both MCP resources and tools for accessing NixOS information:
+The server implements both MCP resources and tools for accessing NixOS information through a RESTful HTTP interface:
 
-### MCP Resources
+### MCP Resources (Accessed via HTTP GET)
 
 - `nixos://status`: Server status information
 - `nixos://package/{package_name}`: Package information
@@ -29,7 +30,7 @@ The server implements both MCP resources and tools for accessing NixOS informati
 - `nixos://search/options/{query}`: Options search
 - `nixos://option/{option_name}`: Option information
 
-### MCP Tools
+### MCP Tools (Accessed via HTTP POST)
 
 - `search_nixos`: Search for packages or options with smart fallback to wildcard matching
 - `get_nixos_package`: Get detailed information about a specific package
@@ -51,7 +52,7 @@ nix develop
 # List all available commands
 menu
 
-# Run the server (default port is 9421)
+# Run the server on the default HTTP port
 run
 
 # Run on specific port
@@ -113,29 +114,14 @@ python server.py
 
 ### Testing the MCP Server
 
-The server can be tested in several ways:
+To run the test suite:
 
-1. **Basic Testing:**
-   ```bash
-   # Inside the Nix development environment
-   run-tests
-   ```
-   This runs basic tests for the server functionality.
+```bash
+# Inside the Nix development environment
+run-tests
+```
 
-2. **Manual Testing with curl:**
-   ```bash
-   # Test MCP resource endpoints
-   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
-   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/packages/python"
-   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/options/postgresql"
-   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
-   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://status"
-   
-   # Test MCP tools endpoint
-   curl -X POST "http://localhost:9421/mcp/tool" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "search_nixos", "arguments": {"query": "python", "search_type": "packages", "limit": 5}}'
-   ```
+This runs basic tests for the server functionality.
 
 ### Prerequisites
 
@@ -196,41 +182,23 @@ Example MCP resource URLs:
 - `nixos://search/options/postgresql` - Search for options related to PostgreSQL
 - `nixos://option/services.postgresql.enable` - Get specific option details
 
-#### MCP Endpoint
+#### MCP HTTP Endpoints
 
-All MCP resources are accessed through the standard MCP endpoint:
+All MCP resources and tools are accessed through the standard MCP HTTP endpoints:
 
 - `GET /mcp/resource?uri={resource_uri}` - Access any MCP resource
+- `POST /mcp/tool` - Invoke MCP tools with JSON payload
 
 #### Health & Debug Endpoints
 
 - `GET /health` - Server health status
 - `GET /debug/mcp-registered` - List of registered MCP resources
 
-Example MCP resource calls:
-```bash
-# Get server status
-curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://status"
-
-# Get package information
-curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
-
-# Search for packages
-curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/packages/python"
-
-# Search for options related to PostgreSQL
-curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/options/postgresql"
-
-# Get option information
-curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
-
-# Check registered MCP resources
-curl -X GET "http://localhost:9421/debug/mcp-registered"
-```
-
 ### Implementation Details
 
-The server implements standard MCP resource endpoints for NixOS packages and options using the FastMCP library. It's designed to be used with any MCP-compatible client to provide AI models with up-to-date information about NixOS.
+The server implements standard MCP resource endpoints for NixOS packages and options using the FastMCP library, which provides a RESTful HTTP interface. The server exposes MCP resources and tools as HTTP endpoints that can be accessed by any HTTP client, including MCP-compatible AI models.
+
+Resources are accessed via GET requests to `/mcp/resource?uri=...`, while tools are invoked via POST requests to `/mcp/tool` with a JSON payload. All responses are returned as JSON.
 
 The server uses the NixOS Elasticsearch API when properly configured to provide rich, detailed information about packages and options. Without valid Elasticsearch credentials, the server will return simplified responses.
 
@@ -253,11 +221,15 @@ Claude will automatically fetch the requested information through the MCP server
 
 ## What is Model Context Protocol?
 
-The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. MCP servers can expose:
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. MCP is typically implemented over HTTP as a RESTful API, making it easy to integrate with any HTTP client or server.
 
-- **Resources**: Data that can be loaded into an LLM's context
-- **Tools**: Functions that the LLM can call to perform actions
+MCP servers can expose:
+
+- **Resources**: Data that can be loaded into an LLM's context (accessed via HTTP GET)
+- **Tools**: Functions that the LLM can call to perform actions (accessed via HTTP POST)
 - **Prompts**: Reusable templates for LLM interactions
+
+This project implements the MCP specification using the FastMCP library, which provides a robust HTTP server implementation of the protocol.
 
 ## Development Guidelines
 
