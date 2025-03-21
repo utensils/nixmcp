@@ -115,8 +115,8 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
 ### Best Practices
 
 1. **Resource vs. Tool Selection**:
-   - Use resources for retrieving data (similar to GET requests)
-   - Use tools for actions, processing, or complex queries (similar to POST)
+   - Use resources for retrieving data
+   - Use tools for actions, processing, or complex queries
    - Resources should be directly accessible by URI
    - Tools should provide user-friendly formatted output
 
@@ -140,13 +140,26 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
 
 ## Resource Endpoints
 
-The server implements standard MCP resource endpoints:
+The server implements the following MCP resource endpoints:
 
 - `nixos://status`: Server status information
 - `nixos://package/{package_name}`: Package information
 - `nixos://search/packages/{query}`: Package search
 - `nixos://search/options/{query}`: Options search
 - `nixos://option/{option_name}`: Option information
+- `nixos://search/programs/{program}`: Search for packages providing specific programs
+- `nixos://packages/stats`: Package statistics
+
+## Tool Endpoints
+
+The server implements the following MCP tools:
+
+- `search_nixos`: Search for packages, options, or programs with automatic wildcard fallback
+- `get_nixos_package`: Get detailed information about a specific package
+- `get_nixos_option`: Get detailed information about a specific NixOS option
+- `advanced_search`: Perform complex queries using Elasticsearch query syntax
+- `package_statistics`: Get statistical information about NixOS packages
+- `version_search`: Search for packages with specific version patterns
 
 ## System Requirements
 
@@ -162,7 +175,7 @@ ELASTICSEARCH_PASSWORD=your_password
 
 2. The server will authenticate with the Elasticsearch API using these credentials.
 
-Without valid Elasticsearch credentials, the server will start but will not be able to search packages or provide metadata.
+The server requires these credentials to access the NixOS package and option data.
 
 ## Build & Run Commands
 

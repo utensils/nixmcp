@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """
-NixMCP Server - An enhanced HTTP-based MCP server for NixOS resources.
+NixMCP Server - A MCP server for NixOS resources.
 
-This implements a comprehensive FastMCP server that provides RESTful HTTP endpoints
+This implements a comprehensive FastMCP server that provides MCP endpoints
 for accessing resources and tools for querying NixOS packages and options using the
-Model Context Protocol (MCP). The MCP is implemented as a set of HTTP endpoints
-that can be accessed by any HTTP client.
+Model Context Protocol (MCP). The server can be accessed by any HTTP client.
 """
 
 import os
