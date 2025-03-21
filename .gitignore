@@ -63,3 +63,4 @@ venv.bak/
 temp
 tmp
 nixmcp-server.log
+uv-*.lock

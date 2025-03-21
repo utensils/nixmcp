@@ -1,19 +1,42 @@
-# NixMCP - Model Context Protocol for NixOS resources
+# NixMCP - Model Context Protocol for NixOS Resources
 
 [![CI](https://github.com/utensils/nixmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/nixmcp/actions/workflows/ci.yml)
 
+> **⚠️ UNDER DEVELOPMENT**: NixMCP is currently under active development. Some features may be incomplete or subject to change.
+
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. This server helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.
 
-The server uses direct access to the NixOS Elasticsearch API to provide accurate, up-to-date information about packages and options. It implements standard MCP resource endpoints that can be consumed by any MCP-compatible client.
+Using the MCP framework, the server provides direct access to the NixOS Elasticsearch API to deliver accurate, up-to-date information about packages and options. It implements standard MCP resource endpoints and tools that can be consumed by any MCP-compatible client.
 
 ## Features
 
-- Access NixOS packages and options directly through a standardized MCP interface
+- MCP server implementation for NixOS resources
+- Access NixOS packages and options through a standardized MCP interface
 - Get detailed package and option metadata using direct Elasticsearch API access
-- Fallback to local Nix installation for additional reliability
-- Cache results to improve performance
-- Connect directly with Claude and other MCP-compatible AI models
-- MCP-compatible resource endpoints for packages and options
+- Connect seamlessly with Claude and other MCP-compatible AI models
+- Comprehensive MCP-compatible resource endpoints and tools
+- Rich search capabilities with automatic fallback to wildcard matching
+
+## MCP Implementation
+
+The server implements both MCP resources and tools for accessing NixOS information:
+
+### MCP Resources
+
+- `nixos://status`: Server status information
+- `nixos://package/{package_name}`: Package information
+- `nixos://search/packages/{query}`: Package search
+- `nixos://search/options/{query}`: Options search
+- `nixos://option/{option_name}`: Option information
+
+### MCP Tools
+
+- `search_nixos`: Search for packages or options with smart fallback to wildcard matching
+- `get_nixos_package`: Get detailed information about a specific package
+- `get_nixos_option`: Get detailed information about a specific NixOS option
+- `advanced_search`: Perform complex queries using Elasticsearch query syntax
+- `package_statistics`: Get statistical information about NixOS packages
+- `version_search`: Search for packages with specific version patterns
 
 ## Quick Start
 
@@ -31,19 +54,21 @@ menu
 # Run the server (default port is 9421)
 run
 
-# Run the server with hot reloading for development
-run-dev
-
-# Run on specific port with hot reloading
-run-dev --port=8080
+# Run on specific port
+run --port=8080
 
 # Run tests (automatically handles server startup/shutdown)
 run-tests
 
-# Format and check code
+# Format code
 lint
-typecheck
+
+# Set up with uv for faster dependency management (recommended)
+setup-uv  # Install uv fast Python package installer
+setup     # Will automatically use uv if installed
 ```
+
+The project supports [uv](https://github.com/astral-sh/uv), a much faster alternative to pip, for Python dependency management. When uv is installed, all package installation commands will automatically use it for improved performance.
 
 ### Using direnv with Nix
 
@@ -76,8 +101,11 @@ python test_mcp.py
 ### Manual Setup
 
 ```bash
-# Install required Python dependencies
+# Install required Python dependencies (using pip)
 pip install -r requirements.txt
+
+# OR install with uv (faster alternative to pip)
+uv pip install -r requirements.txt
 
 # Run the server
 python server.py
@@ -85,39 +113,16 @@ python server.py
 
 ### Testing the MCP Server
 
-The project includes comprehensive test coverage that can be run in several ways. These tests are designed to work in all environments, including those without Nix packages available:
+The server can be tested in several ways:
 
-1. **Automated Testing with Server Management:**
+1. **Basic Testing:**
    ```bash
    # Inside the Nix development environment
    run-tests
-   
-   # Or using Python directly (works even without pytest installed)
-   python test_mcp.py
    ```
-   This automatically starts the server, runs all tests, and shuts down the server. The test runner has a fallback mechanism that works even if pytest isn't installed.
+   This runs basic tests for the server functionality.
 
-2. **Dry Run Testing (No Server Required):**
-   ```bash
-   # Inside the Nix development environment
-   run-tests-dry
-   
-   # Or using Python directly
-   python test_mcp.py --dry-run
-   ```
-   This runs mock tests without requiring a server.
-
-3. **Testing with an Existing Server:**
-   ```bash
-   # Inside the Nix development environment (requires server running)
-   run-tests-with-server
-   
-   # Or using pytest directly
-   python -m pytest -xvs test_mcp.py
-   ```
-   This runs tests against an already-running server.
-
-4. **Manual Testing with curl:**
+2. **Manual Testing with curl:**
    ```bash
    # Test MCP resource endpoints
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
@@ -126,46 +131,11 @@ The project includes comprehensive test coverage that can be run in several ways
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://status"
    
-   # Test health and debug endpoints
-   curl -X GET "http://localhost:9421/health"
-   curl -X GET "http://localhost:9421/debug/mcp-registered"
+   # Test MCP tools endpoint
+   curl -X POST "http://localhost:9421/mcp/tool" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "search_nixos", "arguments": {"query": "python", "search_type": "packages", "limit": 5}}'
    ```
-
-5. **Debug Testing:**
-   ```bash
-   # Inside the Nix development environment
-   run-tests-debug
-   
-   # Or using Python directly
-   python test_mcp.py --debug
-   ```
-   This runs tests in debug mode with detailed output for troubleshooting.
-
-6. **Using the NixMCP Utility Tool:**
-   ```bash
-   # Check server status and available MCP resources
-   python nixmcp_util.py status
-   
-   # Test a specific MCP resource
-   python nixmcp_util.py resource nixos://package/python
-   
-   # Run diagnostics on all endpoints
-   python nixmcp_util.py diagnose
-   
-   # Check Elasticsearch connectivity
-   python nixmcp_util.py elasticsearch
-   
-   # Analyze server logs
-   python nixmcp_util.py logs
-   
-   # Run a comprehensive test of the server
-   python nixmcp_util.py test
-   ```
-   The utility tool combines testing, diagnostics, and MCP client functionality in a single command-line tool.
-   
-7. **Exploring with the MCP UI:**
-   - Open your browser to: http://localhost:9421/mcp
-   - This provides a UI to explore MCP resources and tools
 
 ### Prerequisites
 
@@ -182,10 +152,7 @@ For optimal performance and up-to-date results, the server can directly access t
    ELASTICSEARCH_PASSWORD=your_password
    ```
 
-2. **Test the connection**: Use the utility tool to verify the Elasticsearch connection:
-   ```bash
-   python nixmcp_util.py elasticsearch
-   ```
+2. The server will attempt to authenticate with these credentials on startup.
 
 #### Local Nix Fallback Mode
 
@@ -294,7 +261,14 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open p
 
 ## Development Guidelines
 
-This project includes a `CLAUDE.md` file which contains build commands, code style guidelines, and other development best practices. This file serves as the source of truth for project conventions and is synchronized with other tool-specific files (`.windsurfrules`, `.cursorrules`, and `.goosehints`).
+This project includes a `CLAUDE.md` file which serves as the source of truth for all development guidelines. The file contains:
+
+- **MCP Implementation Guidelines**: Best practices for implementing MCP resources and tools
+- **Code Style Rules**: Python styling, naming conventions, and typing requirements
+- **Build & Run Commands**: Documentation of all available development commands
+- **Project Structure Guidelines**: Rules for organizing code and resources
+
+The CLAUDE.md file is synchronized with tool-specific files (`.windsurfrules`, `.cursorrules`, and `.goosehints`) to ensure consistent guidance across all development environments and AI assistants.
 
 When contributing to this project, please follow the guidelines specified in `CLAUDE.md`.
 
