@@ -2,9 +2,10 @@
 """
 NixMCP Server - A MCP server for NixOS resources.
 
-This implements a comprehensive FastMCP server that provides MCP endpoints
-for accessing resources and tools for querying NixOS packages and options using the
-Model Context Protocol (MCP). The server can be accessed by any HTTP client.
+This implements a comprehensive FastMCP server that provides MCP resources and tools
+for querying NixOS packages and options using the Model Context Protocol (MCP).
+The server communicates via standard input/output streams using a JSON-based
+message format, allowing seamless integration with MCP-compatible AI models.
 """
 
 import os

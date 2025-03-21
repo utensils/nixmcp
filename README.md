@@ -14,8 +14,8 @@ Using the FastMCP framework, the server provides MCP endpoints for accessing the
 - Access to NixOS packages and options through a standardized MCP interface
 - Get detailed package and option metadata using direct Elasticsearch API access
 - Connect seamlessly with Claude and other MCP-compatible AI models
-- Rich search capabilities with automatic fallback to wildcard matching
-- JSON-based responses for easy integration with any client
+- Rich search capabilities with automatic wildcard matching
+- JSON-based responses for easy integration with MCP clients
 
 ## MCP Implementation
 
@@ -51,10 +51,10 @@ nix develop
 # List all available commands
 menu
 
-# Run the server on the default port
+# Run the server
 run
 
-# Run on specific port
+# Run with a specific port for debugging
 run --port=8080
 
 # Run tests
@@ -94,9 +94,9 @@ Claude will automatically fetch the requested information through the MCP server
 
 ## What is Model Context Protocol?
 
-The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. MCP is implemented over HTTP, making it easy to integrate with any client or server.
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. MCP uses a JSON-based message format exchanged over various transport mechanisms (typically standard input/output streams).
 
-This project implements the MCP specification using the FastMCP library, which provides a robust server implementation of the protocol.
+This project implements the MCP specification using the FastMCP library, providing a bridge between AI models and NixOS resources.
 
 ## License
 

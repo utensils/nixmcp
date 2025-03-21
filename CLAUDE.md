@@ -12,7 +12,7 @@ When updating rules:
    ```
 
 ## Project Overview
-NixMCP is a Model Context Protocol (MCP) server for NixOS resources. It provides MCP-compatible endpoints that allow AI assistants to search and retrieve information about NixOS packages and system options.
+NixMCP is a Model Context Protocol (MCP) server for NixOS resources. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages and system options. Communication happens over standard input/output streams using a JSON-based message format.
 
 ## MCP Implementation Guidelines
 

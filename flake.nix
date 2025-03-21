@@ -1,5 +1,5 @@
 {
-  description = "NixMCP - HTTP-based Model Context Protocol server for NixOS resources";
+  description = "NixMCP - Model Context Protocol server for NixOS resources";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -135,15 +135,15 @@
               {
                 name = "run";
                 category = "server";
-                help = "Run the NixMCP HTTP server";
+                help = "Run the NixMCP server";
                 command = ''
-                  echo "Starting NixMCP HTTP server..."
+                  echo "Starting NixMCP server..."
                   source .venv/bin/activate
                   
-                  # Default HTTP port from environment
+                  # Default port from environment
                   PORT=$DEFAULT_PORT
                   
-                  # Parse arguments to extract HTTP port if specified
+                  # Parse arguments to extract port if specified
                   for arg in "$@"; do
                     case $arg in
                       --port=*)
@@ -156,7 +156,7 @@
                     esac
                   done
                   
-                  echo "Starting server on HTTP port: $PORT"
+                  echo "Starting server (port: $PORT)"
                   python server.py --port $PORT
                 '';
               }
