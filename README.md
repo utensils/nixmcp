@@ -2,11 +2,9 @@
 
 [![CI](https://github.com/utensils/nixmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/nixmcp/actions/workflows/ci.yml)
 
-**Note: This project is under active development and is not yet ready for production use.**
-
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. This server helps AI models access up-to-date information about NixOS resources, reducing hallucinations and outdated information.
 
-The server uses direct access to the NixOS Elasticsearch API to provide accurate, up-to-date information about packages and options, with fallback to the local Nix installation for additional reliability.
+The server uses direct access to the NixOS Elasticsearch API to provide accurate, up-to-date information about packages and options. It implements standard MCP resource endpoints that can be consumed by any MCP-compatible client.
 
 ## Features
 
@@ -79,7 +77,7 @@ python test_mcp.py
 
 ```bash
 # Install required Python dependencies
-pip install mcp>=1.4.0 fastapi uvicorn requests
+pip install -r requirements.txt
 
 # Run the server
 python server.py
@@ -121,17 +119,16 @@ The project includes comprehensive test coverage that can be run in several ways
 
 4. **Manual Testing with curl:**
    ```bash
-   # Test direct API endpoints (recommended)
-   curl -X GET "http://localhost:9421/api/package/python"
-   curl -X GET "http://localhost:9421/api/search/packages/python"
-   curl -X GET "http://localhost:9421/api/search/options/postgresql"
-   curl -X GET "http://localhost:9421/api/option/services.nginx"
-   
-   # Test MCP resources (these require proper MCP client integration)
+   # Test MCP resource endpoints
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/packages/python"
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/options/postgresql"
    curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
+   curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://status"
+   
+   # Test health and debug endpoints
+   curl -X GET "http://localhost:9421/health"
+   curl -X GET "http://localhost:9421/debug/mcp-registered"
    ```
 
 5. **Debug Testing:**
@@ -144,7 +141,29 @@ The project includes comprehensive test coverage that can be run in several ways
    ```
    This runs tests in debug mode with detailed output for troubleshooting.
 
-6. **Exploring with the MCP UI:**
+6. **Using the NixMCP Utility Tool:**
+   ```bash
+   # Check server status and available MCP resources
+   python nixmcp_util.py status
+   
+   # Test a specific MCP resource
+   python nixmcp_util.py resource nixos://package/python
+   
+   # Run diagnostics on all endpoints
+   python nixmcp_util.py diagnose
+   
+   # Check Elasticsearch connectivity
+   python nixmcp_util.py elasticsearch
+   
+   # Analyze server logs
+   python nixmcp_util.py logs
+   
+   # Run a comprehensive test of the server
+   python nixmcp_util.py test
+   ```
+   The utility tool combines testing, diagnostics, and MCP client functionality in a single command-line tool.
+   
+7. **Exploring with the MCP UI:**
    - Open your browser to: http://localhost:9421/mcp
    - This provides a UI to explore MCP resources and tools
 
@@ -163,9 +182,9 @@ For optimal performance and up-to-date results, the server can directly access t
    ELASTICSEARCH_PASSWORD=your_password
    ```
 
-2. **Test the connection**: Use the diagnostic tool to verify the Elasticsearch connection:
+2. **Test the connection**: Use the utility tool to verify the Elasticsearch connection:
    ```bash
-   python mcp_diagnose.py --es-only
+   python nixmcp_util.py elasticsearch
    ```
 
 #### Local Nix Fallback Mode
@@ -188,55 +207,65 @@ If Elasticsearch credentials are not available or the connection fails, the serv
 
 ### Available Resources
 
-The server provides access to NixOS resources through two interfaces:
+The server provides access to NixOS resources through the Model Context Protocol (MCP):
 
 #### MCP Resources
 
 These resources can be accessed by AI models using the MCP protocol:
 
-- `nixos://package/{package_name}` - Get information about a specific package (using default unstable channel)
-- `nixos://package/{package_name}/{channel}` - Get information about a specific package in a specific channel
-- `nixos://option/{option_name}` - Get information about a specific NixOS option (using default unstable channel)
-- `nixos://option/{option_name}/{channel}` - Get information about a specific NixOS option in a specific channel
+- `nixos://status` - Get server status information
+- `nixos://package/{package_name}` - Get information about a specific package
+- `nixos://package/{package_name}/{channel}` - Get information about a specific package from a specific channel
 - `nixos://search/packages/{query}` - Search for packages matching the query
-- `nixos://search/options/{query}` - Search for NixOS options matching the query
-- `nixos://search/options/{query}/{channel}` - Search for options in a specific channel
-- `nixos://search/packages/{query}/{channel}` - Search for packages in a specific channel
+- `nixos://search/packages/{query}/{channel}` - Search for packages matching the query in a specific channel
+- `nixos://option/{option_name}` - Get information about a specific NixOS option
+- `nixos://search/options/{query}` - Search for options matching the query
 
 Example MCP resource URLs:
-- `nixos://package/python` (uses default channel)
-- `nixos://package/python/unstable` (explicitly specifies channel)
-- `nixos://search/packages/python` (search for packages containing "python")
-- `nixos://search/options/postgresql` (search for options related to PostgreSQL)
-- `nixos://option/services.postgresql.enable` (get specific option details)
+- `nixos://status` - Check server health and version information
+- `nixos://package/python` - Get information about the python package
+- `nixos://package/python/unstable` - Get information about the python package in the unstable channel
+- `nixos://search/packages/python` - Search for packages containing "python"
+- `nixos://search/options/postgresql` - Search for options related to PostgreSQL
+- `nixos://option/services.postgresql.enable` - Get specific option details
 
-#### Direct API Endpoints
+#### MCP Endpoint
 
-For direct programmatic access without MCP, the following REST API endpoints are available:
+All MCP resources are accessed through the standard MCP endpoint:
 
-- `GET /api/package/{package_name}[?channel={channel}]` - Get package information
-- `GET /api/search/packages/{query}[?channel={channel}&limit={limit}&offset={offset}]` - Search for packages
-- `GET /api/search/options/{query}[?channel={channel}&limit={limit}&offset={offset}]` - Search for NixOS options
-- `GET /api/option/{option_name}[?channel={channel}]` - Get NixOS option information
+- `GET /mcp/resource?uri={resource_uri}` - Access any MCP resource
 
-Example direct API calls:
+#### Health & Debug Endpoints
+
+- `GET /health` - Server health status
+- `GET /debug/mcp-registered` - List of registered MCP resources
+
+Example MCP resource calls:
 ```bash
-# Get package information
-curl -X GET "http://localhost:9421/api/package/python"
+# Get server status
+curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://status"
 
-# Search for packages with pagination
-curl -X GET "http://localhost:9421/api/search/packages/python?limit=5&offset=0"
+# Get package information
+curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://package/python"
+
+# Search for packages
+curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/packages/python"
 
 # Search for options related to PostgreSQL
-curl -X GET "http://localhost:9421/api/search/options/postgresql"
+curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://search/options/postgresql"
 
-# Get option information for a specific channel
-curl -X GET "http://localhost:9421/api/option/services.nginx?channel=unstable"
+# Get option information
+curl -X GET "http://localhost:9421/mcp/resource?uri=nixos://option/services.nginx"
+
+# Check registered MCP resources
+curl -X GET "http://localhost:9421/debug/mcp-registered"
 ```
 
-### Available Tools
+### Implementation Details
 
-Note: Currently only package and option resource endpoints are implemented. MCP tool endpoints will be added in future updates.
+The server implements standard MCP resource endpoints for NixOS packages and options using the FastMCP library. It's designed to be used with any MCP-compatible client to provide AI models with up-to-date information about NixOS.
+
+The server uses the NixOS Elasticsearch API when properly configured to provide rich, detailed information about packages and options. Without valid Elasticsearch credentials, the server will return simplified responses.
 
 ### Using with Claude
 

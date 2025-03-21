@@ -62,3 +62,4 @@ venv.bak/
 # Misc
 temp
 tmp
+nixmcp-server.log

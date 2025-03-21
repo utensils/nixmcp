@@ -12,35 +12,28 @@ When updating rules:
    ```
 
 ## MCP Endpoint Implementation
-The server implements two types of endpoints for accessing NixOS resources:
+The server implements standard MCP endpoints for accessing NixOS resources:
 
-1. REST API endpoints:
-   - `/api/package/{package_name}`: Direct package info
-   - `/api/search/packages/{query}`: Package search
-   - `/api/search/options/{query}`: Options search
-   - `/api/option/{option_name}`: Option info
+MCP resource endpoints:
+- `/mcp/resource?uri=nixos://status`: Server status information
+- `/mcp/resource?uri=nixos://package/{package_name}`: Package information
+- `/mcp/resource?uri=nixos://package/{package_name}/{channel}`: Package information from specific channel
+- `/mcp/resource?uri=nixos://search/packages/{query}`: Package search
+- `/mcp/resource?uri=nixos://search/packages/{query}/{channel}`: Package search in specific channel
+- `/mcp/resource?uri=nixos://search/options/{query}`: Options search
+- `/mcp/resource?uri=nixos://option/{option_name}`: Option information
 
-2. MCP endpoints:
-   - `/mcp/resource?uri=nixos://package/{package_name}`: MCP-compatible package endpoint
-   - `/mcp/resource?uri=nixos://search/packages/{query}`: MCP-compatible package search
-   - `/mcp/resource?uri=nixos://search/options/{query}`: MCP-compatible options search
-   - `/mcp/resource?uri=nixos://option/{option_name}`: MCP-compatible option info
-
-The MCP implementation uses the FastMCP library from the Model Context Protocol (MCP) project. To properly register MCP resources, use:
+The MCP implementation uses the FastMCP library from the Model Context Protocol (MCP) project. Resources are registered using decorators:
 
 ```python
-# Define the resource handler
-async def get_resource(resource_id: str):
-    # Implement handler logic
-    return {"data": "result"}
-
-# Register with the MCP server
-@mcp.resource("nixos://resource/{resource_id}")
-async def mcp_resource_handler(resource_id: str):
-    return await get_resource(resource_id)
+# Define the resource handler with decorator
+@mcp.resource("nixos://package/{package_name}")
+def package_resource(package_name: str) -> Dict[str, Any]:
+    """Get information about a NixOS package"""
+    return model_context.get_package(package_name)
 ```
 
-When implementing a custom MCP endpoint like we do with `/mcp/resource`, the implementation manually dispatches to the appropriate handler based on the URI.
+The server also includes a custom `/mcp/resource` endpoint that manually dispatches to the appropriate handler based on the URI pattern, which ensures compatibility with various MCP client implementations.
 
 ## System Requirements
 
@@ -56,7 +49,7 @@ ELASTICSEARCH_PASSWORD=your_password
 
 2. Test the connection:
 ```bash
-python mcp_diagnose.py --es-only
+python nixmcp_util.py elasticsearch
 ```
 
 Without valid Elasticsearch credentials, the server will start but will not be able to search packages or provide metadata.
