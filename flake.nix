@@ -189,8 +189,8 @@
                   echo "Running tests..."
                   source .venv/bin/activate
                   
-                  # Placeholder for tests
-                  echo "TODO: Implement tests"
+                  # Run pytest with proper configuration
+                  python -m pytest tests/ -v
                 '';
               }
               {
