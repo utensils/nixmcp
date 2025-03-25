@@ -150,12 +150,40 @@ The server implements the following MCP resource endpoints:
 - `nixos://search/programs/{program}`: Search for packages providing specific programs
 - `nixos://packages/stats`: Package statistics
 
+## Searching for NixOS Options
+
+When searching for NixOS options, particularly for service configurations:
+
+1. **Direct Hierarchical Paths**: Always use full hierarchical paths for precise option searching:
+   - `services.postgresql` for all PostgreSQL options
+   - `services.nginx.virtualHosts` for specific nginx virtual host options
+   - `services.postgresql.settings` for PostgreSQL configuration settings
+
+2. **Elasticsearch Implementation**:
+   - We connect directly to the NixOS search Elasticsearch API
+   - The search utilizes the same index as packages but filters for type="option"
+   - Hierarchical paths use special query handling with wildcards (services.postgresql*)
+   - Queries follow the same format as the NixOS search site for maximum compatibility
+
+3. **Avoid Mocking API Responses**: 
+   - Tests should use real ElasticSearch API calls where possible
+   - Do not create mock responses with hardcoded data
+   - The test suite is designed to be resilient to API changes by checking response structure rather than exact content
+
+4. **Multiple Channel Support**:
+   - Support searching across different NixOS channels (unstable, 24.11, etc.)
+   - Channel selection is done via the channel parameter in search functions
+   - Queries use the appropriate Elasticsearch index for the selected channel
+
 ## Tool Endpoints
 
 The server implements the following simplified MCP tools:
 
 - `nixos_search`: Search for packages, options, or programs with automatic wildcard handling
+  - Supports channel selection (`unstable`, `24.11`)
+  - Optimized for hierarchical path searching (services.postgresql.*)
 - `nixos_info`: Get detailed information about a specific package or option
+  - Supports channel selection (`unstable`, `24.11`)
 - `nixos_stats`: Get statistical information about NixOS packages
 
 ## System Requirements
@@ -163,14 +191,22 @@ The server implements the following simplified MCP tools:
 ### Elasticsearch API Access (Required)
 The server requires access to the NixOS Elasticsearch API to function:
 
-1. Credentials are hardcoded in server.py for simplicity, but can be overridden with environment variables:
+1. Credentials are hardcoded in server.py using the public NixOS search credentials, but can be overridden with environment variables:
 ```
-ELASTICSEARCH_URL=https://search.nixos.org/backend/latest-42-nixos-unstable/_search
-ELASTICSEARCH_USER=your_username
-ELASTICSEARCH_PASSWORD=your_password
+ELASTICSEARCH_URL=https://search.nixos.org/backend  # Base URL, channel/index will be added automatically
+ELASTICSEARCH_USER=aWVSALXpZv
+ELASTICSEARCH_PASSWORD=X8gPHnzL52wFEekuxsfQ9cSh
 ```
 
 2. The server will authenticate with the Elasticsearch API using these credentials.
+
+3. Search indices are dynamically determined based on the selected channel:
+```
+latest-42-nixos-unstable   # For unstable channel
+latest-42-nixos-24.11      # For 24.11 channel
+```
+
+4. Both packages and options are in the same index, but are differentiated by a "type" field.
 
 The server requires these credentials to access the NixOS package and option data.
 

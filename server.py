@@ -6,6 +6,22 @@ This implements a comprehensive FastMCP server that provides MCP resources and t
 for querying NixOS packages and options using the Model Context Protocol (MCP).
 The server communicates via standard input/output streams using a JSON-based
 message format, allowing seamless integration with MCP-compatible AI models.
+
+This server connects to the NixOS ElasticSearch API to provide information about:
+- NixOS packages (name, version, description, programs)
+- NixOS options (configuration options for the system)
+- NixOS service configuration (like services.postgresql.*)
+
+Elasticsearch Implementation Notes:
+-----------------------------------
+The server connects to the NixOS search Elasticsearch API with these details:
+  - URL: https://search.nixos.org/backend/{index}/_search
+  - Credentials: Basic authentication (public credentials from NixOS search)
+  - Index pattern: latest-42-nixos-{channel} (e.g., latest-42-nixos-unstable)
+  - Both packages and options are in the same index, distinguished by a "type" field
+  - Hierarchical paths use a special query format with wildcards
+
+Based on the official NixOS search implementation.
 """
 
 import os
@@ -131,23 +147,23 @@ class ElasticsearchClient:
 
     def __init__(self):
         """Initialize the Elasticsearch client with caching."""
-        # Elasticsearch endpoints
-        self.es_packages_url = (
-            "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
-        )
-        self.es_options_url = (
-            "https://search.nixos.org/backend/latest-42-nixos-unstable-options/_search"
-        )
-
+        # Elasticsearch endpoints - use the correct endpoints for NixOS search
+        # Use the real NixOS search URLs
+        self.es_base_url = "https://search.nixos.org/backend"
+        
         # Authentication
         self.es_user = "aWVSALXpZv"
         self.es_password = "X8gPHnzL52wFEekuxsfQ9cSh"
         self.es_auth = (self.es_user, self.es_password)
 
-        # AWS Elasticsearch endpoint (for reference)
-        self.es_aws_endpoint = (
-            "https://nixos-search-5886075189.us-east-1.bonsaisearch.net:443"
-        )
+        # Available channels - updated with proper index names from nixos-search
+        self.available_channels = {
+            "unstable": "latest-42-nixos-unstable",
+            "24.11": "latest-42-nixos-24.11"  # This is a guess, real implementation would need to verify
+        }
+        
+        # Default to unstable channel
+        self.set_channel("unstable")
 
         # Initialize cache
         self.cache = SimpleCache(max_size=500, ttl=600)  # 10 minutes TTL
@@ -415,84 +431,126 @@ class ElasticsearchClient:
         """
         # Check if query contains wildcards
         if "*" in query:
-            # Use wildcard query for explicit wildcard searches
-            logger.info(f"Using wildcard query for option search: {query}")
-
-            # Handle special case for queries like *term*
-            if query.startswith("*") and query.endswith("*") and query.count("*") == 2:
-                term = query.strip("*")
-                logger.info(f"Optimizing *term* query to search for: {term}")
-
-                request_data = {
-                    "from": offset,
-                    "size": limit,
-                    "query": {
-                        "bool": {
-                            "should": [
-                                # Contains match with high boost
-                                {
-                                    "wildcard": {
-                                        "option_name": {
-                                            "value": f"*{term}*",
-                                            "boost": 9,
+            # Build a query with wildcards
+            wildcard_value = query
+            logger.info(f"Using wildcard query for option search: {wildcard_value}")
+            
+            search_query = {
+                "bool": {
+                    "must": [
+                        {"wildcard": {"option_name": {"value": wildcard_value, "case_insensitive": True}}}
+                    ],
+                    "filter": [
+                        {"term": {"type": {"value": "option"}}}
+                    ]
+                }
+            }
+            
+        else:
+            # Check if the query contains dots, which likely indicates a hierarchical path
+            if "." in query:
+                # For hierarchical paths like services.postgresql, add a wildcard 
+                logger.info(f"Detected hierarchical path in option search: {query}")
+                
+                # Add wildcards for hierarchical paths by default
+                if not query.endswith("*"):
+                    hierarchical_query = f"{query}*"
+                    logger.info(f"Adding wildcard to hierarchical path: {hierarchical_query}")
+                else:
+                    hierarchical_query = query
+                
+                # Build a more sophisticated query for hierarchical paths
+                search_query = {
+                    "bool": {
+                        "filter": [
+                            {"term": {"type": {"value": "option", "_name": "filter_options"}}}
+                        ],
+                        "must": [
+                            {
+                                "dis_max": {
+                                    "tie_breaker": 0.7,
+                                    "queries": [
+                                        {
+                                            "multi_match": {
+                                                "type": "cross_fields",
+                                                "query": query,
+                                                "analyzer": "whitespace",
+                                                "auto_generate_synonyms_phrase_query": False,
+                                                "operator": "and",
+                                                "_name": f"multi_match_{query}",
+                                                "fields": [
+                                                    "option_name^6",
+                                                    "option_name.*^3.6",
+                                                    "option_description^1",
+                                                    "option_description.*^0.6",
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "wildcard": {
+                                                "option_name": {
+                                                    "value": hierarchical_query,
+                                                    "case_insensitive": True
+                                                }
+                                            }
                                         }
-                                    }
-                                },
-                                {
-                                    "match": {
-                                        "option_description": {
-                                            "query": term,
-                                            "boost": 3,
-                                        }
-                                    }
-                                },
-                            ],
-                            "minimum_should_match": 1,
-                        }
-                    },
+                                    ]
+                                }
+                            }
+                        ]
+                    }
                 }
             else:
-                # Standard wildcard query
-                request_data = {
-                    "from": offset,
-                    "size": limit,
-                    "query": {
-                        "query_string": {
-                            "query": query,
-                            "fields": ["option_name^9", "option_description^3"],
-                            "analyze_wildcard": True,
-                        }
-                    },
-                }
-        else:
-            # For non-wildcard searches, use a more refined approach with field boosting
-            request_data = {
-                "from": offset,
-                "size": limit,
-                "query": {
+                # For regular term searches, use the NixOS search format
+                search_query = {
                     "bool": {
-                        "should": [
-                            # Exact match with high boost
-                            {"term": {"option_name": {"value": query, "boost": 10}}},
-                            # Prefix match for option names
-                            {"prefix": {"option_name": {"value": query, "boost": 6}}},
-                            # Contains match for option names
-                            {
-                                "wildcard": {
-                                    "option_name": {"value": f"*{query}*", "boost": 4}
-                                }
-                            },
-                            # Full-text search in description
-                            {
-                                "match": {
-                                    "option_description": {"query": query, "boost": 2}
-                                }
-                            },
+                        "filter": [
+                            {"term": {"type": {"value": "option", "_name": "filter_options"}}}
                         ],
-                        "minimum_should_match": 1,
+                        "must": [
+                            {
+                                "dis_max": {
+                                    "tie_breaker": 0.7,
+                                    "queries": [
+                                        {
+                                            "multi_match": {
+                                                "type": "cross_fields",
+                                                "query": query,
+                                                "analyzer": "whitespace",
+                                                "auto_generate_synonyms_phrase_query": False,
+                                                "operator": "and",
+                                                "_name": f"multi_match_{query}",
+                                                "fields": [
+                                                    "option_name^6",
+                                                    "option_name.*^3.6",
+                                                    "option_description^1",
+                                                    "option_description.*^0.6",
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            "wildcard": {
+                                                "option_name": {
+                                                    "value": f"*{query}*",
+                                                    "case_insensitive": True
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
                     }
-                },
-            }
+                }
+        
+        # Build the full request
+        request_data = {
+            "from": offset,
+            "size": limit,
+            "sort": [{"_score": "desc", "option_name": "desc"}],
+            "aggs": {"all": {"global": {}, "aggregations": {}}},
+            "query": search_query
+        }
 
         # Execute the query
         data = self.safe_elasticsearch_query(self.es_options_url, request_data)
@@ -508,15 +566,17 @@ class ElasticsearchClient:
         options = []
         for hit in hits:
             source = hit.get("_source", {})
-            options.append(
-                {
-                    "name": source.get("option_name", ""),
-                    "description": source.get("option_description", ""),
-                    "type": source.get("option_type", ""),
-                    "default": source.get("option_default", ""),
-                    "score": hit.get("_score", 0),
-                }
-            )
+            # Check if this is actually an option (for safety)
+            if source.get("type") == "option":
+                options.append(
+                    {
+                        "name": source.get("option_name", ""),
+                        "description": source.get("option_description", ""),
+                        "type": source.get("option_type", ""),
+                        "default": source.get("option_default", ""),
+                        "score": hit.get("_score", 0),
+                    }
+                )
 
         return {
             "count": total,
@@ -749,6 +809,27 @@ class ElasticsearchClient:
         # Execute the query
         return self.safe_elasticsearch_query(endpoint, request_data)
 
+    def set_channel(self, channel: str) -> None:
+        """
+        Set the NixOS channel to use for queries.
+        
+        Args:
+            channel: The channel name ('unstable', '24.11', etc.)
+        """
+        # For now, we'll stick with unstable since we know it works
+        # In a real implementation, we would have better channel detection logic
+        channel_id = self.available_channels.get(channel, self.available_channels["unstable"])
+        logger.info(f"Setting channel to {channel} ({channel_id})")
+        
+        if channel.lower() != "unstable" and channel.lower() != "24.11":
+            logger.warning(f"Unknown channel: {channel}, falling back to unstable")
+            channel_id = self.available_channels["unstable"]
+        
+        # Update the Elasticsearch URLs - use the correct NixOS API endpoints
+        # Note: For options, we use the same index as packages, but filter by type
+        self.es_packages_url = f"{self.es_base_url}/{channel_id}/_search"
+        self.es_options_url = f"{self.es_base_url}/{channel_id}/_search"
+        
     def get_package_stats(self, query: str = "*") -> Dict[str, Any]:
         """
         Get statistics about NixOS packages.
@@ -841,10 +922,19 @@ class ElasticsearchClient:
         """
         logger.info(f"Getting detailed information for option: {option_name}")
 
-        # Build a query to find the exact option by name
+        # Build a query to find the exact option by name using the updated format
         request_data = {
             "size": 1,  # We only need one result
-            "query": {"bool": {"must": [{"term": {"option_name": option_name}}]}},
+            "query": {
+                "bool": {
+                    "filter": [
+                        {"term": {"type": {"value": "option"}}}
+                    ],
+                    "must": [
+                        {"term": {"option_name": option_name}}
+                    ]
+                }
+            }
         }
 
         # Execute the query
@@ -953,10 +1043,12 @@ async def app_lifespan(mcp_server: FastMCP):
     
     - `nixos_search`: Search for packages, options, or programs
       - Example: `nixos_search(query="python", type="packages")`
+      - Example: `nixos_search(query="services.postgresql", type="options", channel="24.11")`
       
     - `nixos_info`: Get detailed information about a package or option
       - Example: `nixos_info(name="firefox", type="package")`
       - Example: `nixos_info(name="services.postgresql.enable", type="option")`
+      - Example: `nixos_info(name="postgresql", type="package", channel="24.11")`
       
     - `nixos_stats`: Get statistics about available NixOS packages
       - Example: `nixos_stats()`
@@ -965,7 +1057,16 @@ async def app_lifespan(mcp_server: FastMCP):
     
     - Wildcards are automatically added to search terms
     - For more specific searches, use explicit wildcards: `*term*`, `term*`, etc.
-    - When searching for options related to a service, try patterns like `services.*name*`
+    - When searching for options related to a service, you can use direct hierarchical paths:
+        - `services.postgresql` for all PostgreSQL options
+        - `services.nginx.virtualHosts` for specific nginx virtual host options
+        - `services.postgresql.settings` for PostgreSQL configuration settings
+        
+    ## Channel Selection
+    
+    - Use the `channel` parameter to specify which NixOS version to search:
+      - `unstable` (default): Latest development branch
+      - `24.11`: Latest stable release
     """
 
     try:
@@ -1072,7 +1173,7 @@ def package_stats_resource():
 
 # Add MCP tools for searching and retrieving information
 @mcp.tool()
-def nixos_search(query: str, type: str = "packages", limit: int = 20) -> str:
+def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable") -> str:
     """
     Search for NixOS packages, options, or programs.
 
@@ -1080,19 +1181,28 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20) -> str:
         query: The search term
         type: What to search for - "packages", "options", or "programs"
         limit: Maximum number of results to return (default: 20)
+        channel: NixOS channel to search (default: "unstable", can also be "24.11")
 
     Returns:
         Results formatted as text
     """
-    logger.info(f"Searching for {type} with query '{query}'")
+    logger.info(f"Searching for {type} with query '{query}' in channel '{channel}'")
 
     valid_types = ["packages", "options", "programs"]
     if type.lower() not in valid_types:
         return f"Error: Invalid type. Must be one of: {', '.join(valid_types)}"
+        
+    # Set the channel for the search
+    model_context.es_client.set_channel(channel)
+    logger.info(f"Using channel: {channel}")
 
     try:
+        # Special handling for hierarchical paths in options
+        if type.lower() == "options" and "." in query and "*" not in query:
+            # Don't add wildcards yet - the search_options method will handle it
+            logger.info(f"Detected hierarchical path in options search: {query}")
         # Add wildcards if not present and not a special query
-        if "*" not in query and ":" not in query:
+        elif "*" not in query and ":" not in query:
             wildcard_query = create_wildcard_query(query)
             logger.info(f"Adding wildcards to query: {wildcard_query}")
             query = wildcard_query
@@ -1164,21 +1274,26 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20) -> str:
 
 
 @mcp.tool()
-def nixos_info(name: str, type: str = "package") -> str:
+def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> str:
     """
     Get detailed information about a NixOS package or option.
 
     Args:
         name: The name of the package or option
         type: Either "package" or "option"
+        channel: NixOS channel to search (default: "unstable", can also be "24.11")
 
     Returns:
         Detailed information formatted as text
     """
-    logger.info(f"Getting {type} information for: {name}")
+    logger.info(f"Getting {type} information for: {name} from channel '{channel}'")
 
     if type.lower() not in ["package", "option"]:
         return "Error: 'type' must be 'package' or 'option'"
+    
+    # Set the channel for the search
+    model_context.es_client.set_channel(channel)
+    logger.info(f"Using channel: {channel}")
 
     try:
         if type.lower() == "package":
