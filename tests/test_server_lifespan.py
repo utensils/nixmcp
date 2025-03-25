@@ -2,7 +2,7 @@ import unittest
 import sys
 import os
 import logging
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch, MagicMock
 
 # Add the parent directory to the path so we can import the server module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
