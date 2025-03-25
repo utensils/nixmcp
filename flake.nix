@@ -12,7 +12,6 @@
       let
         # Configuration variables
         pythonVersion = "311";
-        defaultPort = "8080";
         
         # Import nixpkgs with overlays
         pkgs = import nixpkgs { 
@@ -97,7 +96,6 @@
               { name = "PYTHONPATH"; value = "."; }
               { name = "NIXMCP_ENV"; value = "development"; }
               { name = "PS1"; value = "\\[\\e[1;36m\\][nixmcp]\\[\\e[0m\\]$ "; }
-              { name = "DEFAULT_PORT"; value = "${defaultPort}"; }
               # Ensure Python uses the virtual environment
               { name = "VIRTUAL_ENV"; eval = "$PWD/.venv"; }
               { name = "PATH"; eval = "$PWD/.venv/bin:$PATH"; }
@@ -161,24 +159,7 @@
                     export PATH="$PWD/.venv/bin:$PATH"
                   fi
                   
-                  # Default port from environment
-                  PORT=$DEFAULT_PORT
-                  
-                  # Parse arguments to extract port if specified
-                  for arg in "$@"; do
-                    case $arg in
-                      --port=*)
-                        PORT=''${arg#*=}
-                        shift
-                        ;;
-                      *)
-                        # Unknown option
-                        ;;
-                    esac
-                  done
-                  
-                  echo "Starting server (port: $PORT)"
-                  python server.py --port $PORT
+                  python server.py
                 '';
               }
               {

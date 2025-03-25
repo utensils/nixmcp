@@ -1,8 +1,9 @@
 # NixMCP - Model Context Protocol for NixOS Resources
 
 [![CI](https://github.com/utensils/nixmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/nixmcp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/utensils/nixmcp/graph/badge.svg?token=kdcbgvq4Bh)](https://codecov.io/gh/utensils/nixmcp)
 
-> **⚠️ UNDER DEVELOPMENT**: NixMCP is currently under active development. Some features may be incomplete or subject to change.
+> **⚠️ UNDER ACTIVE DEVELOPMENT**: NixMCP is being actively maintained and improved. I'm just a fool fumbling through the codebase like a raccoon in a dumpster, but having fun along the way!
 
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. It provides AI models with up-to-date information about NixOS resources, reducing hallucinations and outdated information.
 
@@ -41,19 +42,19 @@ The server implements both MCP resources and tools for accessing NixOS informati
 
 ```python
 # Search for packages
-nixos_search(query="firefox", type="packages", limit=10)
+nixos_search(query="firefox", type="packages", limit=10, channel="unstable")
 
 # Search for system options
-nixos_search(query="postgresql", type="options")
+nixos_search(query="postgresql", type="options", channel="24.11")
 
 # Search for programs
 nixos_search(query="python", type="programs")
 
 # Get package details
-nixos_info(name="nixos.firefox", type="package")
+nixos_info(name="nixos.firefox", type="package", channel="unstable")
 
 # Get option details
-nixos_info(name="services.postgresql.enable", type="option")
+nixos_info(name="services.postgresql.enable", type="option", channel="24.11")
 
 # Get package statistics
 nixos_stats()
@@ -72,9 +73,6 @@ menu
 
 # Run the server
 run
-
-# Run with a specific port for debugging
-run --port=8080
 
 # Run tests
 run-tests
@@ -124,7 +122,7 @@ format
 menu
 ```
 
-Current code coverage is approximately 72%.
+Current code coverage is tracked on [Codecov](https://codecov.io/gh/utensils/nixmcp).
 
 ## Using with Claude
 

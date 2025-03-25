@@ -29,7 +29,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
         with patch.object(NixOSContext, "get_status") as mock_status:
             mock_status.return_value = {
                 "status": "ok",
-                "version": "1.0.0",
+                "version": "0.1.0",
                 "name": "NixMCP",
                 "description": "NixOS HTTP-based Model Context Protocol Server",
                 "server_type": "http",
@@ -48,7 +48,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
 
             # Verify the structure of the response
             self.assertEqual(result["status"], "ok")
-            self.assertEqual(result["version"], "1.0.0")
+            self.assertEqual(result["version"], "0.1.0")
             self.assertEqual(result["name"], "NixMCP")
             self.assertIn("description", result)
             self.assertIn("cache_stats", result)

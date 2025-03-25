@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Model Context Protocol server for NixOS resources"
 readme = "README.md"
 authors = [
-    {name = "James Brink", email = "user@example.com"},
+    {name = "James Brink", email = "james@utensils.io"},
 ]
 requires-python = ">=3.11"
 classifiers = [

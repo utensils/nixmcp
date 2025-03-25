@@ -151,7 +151,7 @@ class ElasticsearchClient:
         # Available channels - updated with proper index names from nixos-search
         self.available_channels = {
             "unstable": "latest-42-nixos-unstable",
-            "24.11": "latest-42-nixos-24.11",  # This is a guess, real implementation would need to verify
+            "24.11": "latest-42-nixos-24.11",  # NixOS 24.11 stable release
         }
 
         # Default to unstable channel
@@ -1067,7 +1067,7 @@ class NixOSContext:
         """Get the status of the NixMCP server."""
         return {
             "status": "ok",
-            "version": "1.0.0",
+            "version": "0.1.0",
             "name": "NixMCP",
             "description": "NixOS HTTP-based Model Context Protocol Server",
             "server_type": "http",
@@ -1254,7 +1254,7 @@ model_context = NixOSContext()
 logger.info("Creating FastMCP server instance")
 mcp = FastMCP(
     "NixMCP",
-    version="1.0.0",
+    version="0.1.0",
     description="NixOS HTTP-based Model Context Protocol Server",
     lifespan=app_lifespan,
 )
