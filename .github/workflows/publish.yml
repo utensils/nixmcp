@@ -68,10 +68,10 @@ jobs:
         run: |
           python -m build
           
-      - name: Run tests with coverage
+      - name: Install dependencies
         run: |
-          pip install pytest pytest-cov
-          python -m pytest
+          pip install -r requirements.txt
+          pip install .
       
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
