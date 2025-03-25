@@ -459,47 +459,98 @@ class ElasticsearchClient:
                 else:
                     hierarchical_query = query
                 
-                # Build a more sophisticated query for hierarchical paths
-                search_query = {
-                    "bool": {
-                        "filter": [
-                            {"term": {"type": {"value": "option", "_name": "filter_options"}}}
-                        ],
-                        "must": [
-                            {
-                                "dis_max": {
-                                    "tie_breaker": 0.7,
-                                    "queries": [
-                                        {
-                                            "multi_match": {
-                                                "type": "cross_fields",
-                                                "query": query,
-                                                "analyzer": "whitespace",
-                                                "auto_generate_synonyms_phrase_query": False,
-                                                "operator": "and",
-                                                "_name": f"multi_match_{query}",
-                                                "fields": [
-                                                    "option_name^6",
-                                                    "option_name.*^3.6",
-                                                    "option_description^1",
-                                                    "option_description.*^0.6",
-                                                ]
-                                            }
-                                        },
-                                        {
-                                            "wildcard": {
-                                                "option_name": {
-                                                    "value": hierarchical_query,
-                                                    "case_insensitive": True
+                # Special handling for service modules
+                if query.startswith("services."):
+                    logger.info(f"Special handling for service module path: {query}")
+                    service_name = query.split(".", 2)[1] if len(query.split(".", 2)) > 1 else ""
+                    
+                    # Build a more specific query for service modules
+                    search_query = {
+                        "bool": {
+                            "filter": [
+                                {"term": {"type": {"value": "option"}}}
+                            ],
+                            "must": [
+                                {
+                                    "bool": {
+                                        "should": [
+                                            # Exact prefix match for the hierarchical path
+                                            {
+                                                "prefix": {
+                                                    "option_name": {
+                                                        "value": query,
+                                                        "boost": 10.0
+                                                    }
+                                                }
+                                            },
+                                            # Wildcard match
+                                            {
+                                                "wildcard": {
+                                                    "option_name": {
+                                                        "value": hierarchical_query,
+                                                        "case_insensitive": True,
+                                                        "boost": 8.0
+                                                    }
+                                                }
+                                            },
+                                            # Match against specific service name in description
+                                            {
+                                                "match": {
+                                                    "option_description": {
+                                                        "query": service_name,
+                                                        "boost": 2.0
+                                                    }
                                                 }
                                             }
-                                        }
-                                    ]
+                                        ],
+                                        "minimum_should_match": 1
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
-                }
+                else:
+                    # Build a more sophisticated query for other hierarchical paths
+                    search_query = {
+                        "bool": {
+                            "filter": [
+                                {"term": {"type": {"value": "option", "_name": "filter_options"}}}
+                            ],
+                            "must": [
+                                {
+                                    "dis_max": {
+                                        "tie_breaker": 0.7,
+                                        "queries": [
+                                            {
+                                                "multi_match": {
+                                                    "type": "cross_fields",
+                                                    "query": query,
+                                                    "analyzer": "whitespace",
+                                                    "auto_generate_synonyms_phrase_query": False,
+                                                    "operator": "and",
+                                                    "_name": f"multi_match_{query}",
+                                                    "fields": [
+                                                        "option_name^6",
+                                                        "option_name.*^3.6",
+                                                        "option_description^1",
+                                                        "option_description.*^0.6",
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "wildcard": {
+                                                    "option_name": {
+                                                        "value": hierarchical_query,
+                                                        "case_insensitive": True
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
             else:
                 # For regular term searches, use the NixOS search format
                 search_query = {
@@ -921,8 +972,15 @@ class ElasticsearchClient:
             Dict containing option details
         """
         logger.info(f"Getting detailed information for option: {option_name}")
-
-        # Build a query to find the exact option by name using the updated format
+        
+        # Check if this is a service option path
+        is_service_path = option_name.startswith("services.") if not option_name.startswith("*") else False
+        if is_service_path:
+            service_parts = option_name.split(".", 2)
+            service_name = service_parts[1] if len(service_parts) > 1 else ""
+            logger.info(f"Detected service module option: {service_name}")
+            
+        # Build a query to find the exact option by name
         request_data = {
             "size": 1,  # We only need one result
             "query": {
@@ -948,14 +1006,83 @@ class ElasticsearchClient:
         hits = data.get("hits", {}).get("hits", [])
 
         if not hits:
-            logger.warning(f"Option {option_name} not found")
-            return {"name": option_name, "error": "Option not found", "found": False}
+            logger.warning(f"Option {option_name} not found with exact match, trying prefix search")
+            
+            # Try a prefix search for hierarchical paths
+            request_data = {
+                "size": 1,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"type": {"value": "option"}}}
+                        ],
+                        "must": [
+                            {"prefix": {"option_name": option_name}}
+                        ]
+                    }
+                }
+            }
+            
+            data = self.safe_elasticsearch_query(self.es_options_url, request_data)
+            hits = data.get("hits", {}).get("hits", [])
+            
+            if not hits:
+                logger.warning(f"Option {option_name} not found with prefix search")
+                
+                # For service paths, provide context about common pattern structure
+                if is_service_path:
+                    service_name = option_name.split(".", 2)[1] if len(option_name.split(".", 2)) > 1 else ""
+                    return {
+                        "name": option_name,
+                        "error": f"Option not found. Try common patterns like services.{service_name}.enable or services.{service_name}.package",
+                        "found": False,
+                        "is_service_path": True,
+                        "service_name": service_name
+                    }
+                
+                return {"name": option_name, "error": "Option not found", "found": False}
 
         # Extract option details from the first hit
         source = hits[0].get("_source", {})
+        
+        # Get related options for service paths
+        related_options = []
+        if is_service_path:
+            # Perform a second query to find related options
+            service_path_parts = option_name.split(".")
+            if len(service_path_parts) >= 2:
+                service_prefix = ".".join(service_path_parts[:2])  # e.g., "services.postgresql"
+                
+                related_request = {
+                    "size": 5,  # Get top 5 related options
+                    "query": {
+                        "bool": {
+                            "filter": [
+                                {"term": {"type": {"value": "option"}}}
+                            ],
+                            "must": [
+                                {"prefix": {"option_name": f"{service_prefix}."}}
+                            ],
+                            "must_not": [
+                                {"term": {"option_name": option_name}}  # Exclude the current option
+                            ]
+                        }
+                    }
+                }
+                
+                related_data = self.safe_elasticsearch_query(self.es_options_url, related_request)
+                related_hits = related_data.get("hits", {}).get("hits", [])
+                
+                for hit in related_hits:
+                    rel_source = hit.get("_source", {})
+                    related_options.append({
+                        "name": rel_source.get("option_name", ""),
+                        "description": rel_source.get("option_description", ""),
+                        "type": rel_source.get("option_type", "")
+                    })
 
         # Return comprehensive option information
-        return {
+        result = {
             "name": source.get("option_name", option_name),
             "description": source.get("option_description", ""),
             "type": source.get("option_type", ""),
@@ -963,8 +1090,16 @@ class ElasticsearchClient:
             "example": source.get("option_example", ""),
             "declarations": source.get("option_declarations", []),
             "readOnly": source.get("option_readOnly", False),
-            "found": True,
+            "found": True
         }
+        
+        # Add related options for service paths
+        if is_service_path and related_options:
+            result["related_options"] = related_options
+            result["is_service_path"] = True
+            result["service_name"] = option_name.split(".", 2)[1] if len(option_name.split(".", 2)) > 1 else ""
+            
+        return result
 
 
 # Model Context with app-specific data
@@ -1227,10 +1362,29 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
             return output
 
         elif type.lower() == "options":
+            # Special handling for service module paths
+            is_service_path = query.startswith("services.") if not query.startswith("*") else False
+            service_name = ""
+            if is_service_path:
+                service_parts = query.split(".", 2)
+                service_name = service_parts[1] if len(service_parts) > 1 else ""
+                logger.info(f"Detected services module path, service name: {service_name}")
+            
             results = model_context.search_options(query, limit)
             options = results.get("options", [])
 
             if not options:
+                if is_service_path:
+                    suggestion_msg = f"\nTo find options for the '{service_name}' service, try these searches:\n"
+                    suggestion_msg += f"- `nixos_search(query=\"services.{service_name}.enable\", type=\"options\")`\n"
+                    suggestion_msg += f"- `nixos_search(query=\"services.{service_name}.package\", type=\"options\")`\n"
+                    
+                    # Add common option patterns for services
+                    common_options = ["enable", "package", "settings", "port", "user", "group", "dataDir", "configFile"]
+                    sample_options = [f"services.{service_name}.{opt}" for opt in common_options[:3]]
+                    suggestion_msg += f"\nOr try a more specific option path like: {', '.join(sample_options)}"
+                    
+                    return f"No options found for '{query}'.\n{suggestion_msg}"
                 return f"No options found for '{query}'."
 
             output = f"Found {len(options)} options for '{query}':\n\n"
@@ -1241,6 +1395,16 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
                 if opt.get("type"):
                     output += f"  Type: {opt.get('type')}\n"
                 output += "\n"
+
+            # For service modules, provide extra help
+            if is_service_path and service_name:
+                output += f"\n## Common option patterns for '{service_name}' service:\n\n"
+                output += "Services typically include these standard options:\n"
+                output += "- `enable`: Boolean to enable/disable the service\n"
+                output += "- `package`: The package to use for the service\n"
+                output += "- `settings`: Configuration settings for the service\n" 
+                output += "- `user`/`group`: User/group the service runs as\n"
+                output += "- `dataDir`: Data directory for the service\n"
 
             return output
 
@@ -1330,6 +1494,37 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
             info = model_context.get_option(name)
 
             if not info.get("found", False):
+                if info.get("is_service_path", False):
+                    # Special handling for service paths that weren't found
+                    service_name = info.get("service_name", "")
+                    output = f"# Option '{name}' not found\n\n"
+                    output += f"The option '{name}' doesn't exist or couldn't be found in the {channel} channel.\n\n"
+                    
+                    output += f"## Common Options for Services\n\n"
+                    output += f"For service '{service_name}', try these common options:\n\n"
+                    output += f"- `services.{service_name}.enable` - Enable the service (boolean)\n"
+                    output += f"- `services.{service_name}.package` - The package to use for the service\n"
+                    output += f"- `services.{service_name}.user` - The user account to run the service\n"
+                    output += f"- `services.{service_name}.group` - The group to run the service\n"
+                    output += f"- `services.{service_name}.settings` - Configuration settings for the service\n\n"
+                    
+                    output += f"## Example NixOS Configuration\n\n"
+                    output += f"```nix\n"
+                    output += f"# /etc/nixos/configuration.nix\n"
+                    output += f"{{ config, pkgs, ... }}:\n"
+                    output += f"{{\n"
+                    output += f"  # Enable {service_name} service\n"
+                    output += f"  services.{service_name} = {{\n"
+                    output += f"    enable = true;\n"
+                    output += f"    # Add other configuration options here\n"
+                    output += f"  }};\n"
+                    output += f"}}\n"
+                    output += f"```\n"
+                    
+                    output += f"\nTry searching for all options related to this service with:\n"
+                    output += f"`nixos_search(query=\"services.{service_name}\", type=\"options\", channel=\"{channel}\")`"
+                    
+                    return output
                 return f"Option '{name}' not found."
 
             output = f"# {info.get('name', name)}\n\n"
@@ -1341,10 +1536,57 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
                 output += f"**Type:** {info.get('type')}\n"
 
             if info.get("default") is not None:
-                output += f"**Default:** {info.get('default')}\n"
+                # Format default value nicely
+                default_val = info.get("default")
+                if isinstance(default_val, str) and len(default_val) > 80:
+                    output += f"**Default:**\n```nix\n{default_val}\n```\n"
+                else:
+                    output += f"**Default:** {default_val}\n"
 
             if info.get("example"):
                 output += f"\n**Example:**\n```nix\n{info.get('example')}\n```\n"
+                
+            # Add information about related options for service paths
+            if info.get("is_service_path", False) and info.get("related_options", []):
+                service_name = info.get("service_name", "")
+                related_options = info.get("related_options", [])
+                
+                output += f"\n## Related Options for {service_name} Service\n\n"
+                for opt in related_options:
+                    output += f"- `{opt.get('name', '')}`"
+                    if opt.get("type"):
+                        output += f" ({opt.get('type')})"
+                    output += "\n"
+                    if opt.get("description"):
+                        output += f"  {opt.get('description')}\n"
+                
+                # Add example NixOS configuration
+                output += f"\n## Example NixOS Configuration\n\n"
+                output += f"```nix\n"
+                output += f"# /etc/nixos/configuration.nix\n"
+                output += f"{{ config, pkgs, ... }}:\n"
+                output += f"{{\n"
+                output += f"  # Enable {service_name} service with options\n"
+                output += f"  services.{service_name} = {{\n"
+                output += f"    enable = true;\n"
+                if "services.{service_name}.package" in [opt.get('name', '') for opt in related_options]:
+                    output += f"    package = pkgs.{service_name};\n"
+                # Add current option to the example
+                current_name = info.get('name', name)
+                option_leaf = current_name.split('.')[-1]
+                
+                if info.get("type") == "boolean":
+                    output += f"    {option_leaf} = true;\n"
+                elif info.get("type") == "string":
+                    output += f"    {option_leaf} = \"value\";\n"
+                elif info.get("type") == "int" or info.get("type") == "integer":
+                    output += f"    {option_leaf} = 1234;\n"
+                else:
+                    output += f"    # Configure {option_leaf} here\n"
+                    
+                output += f"  }};\n"
+                output += f"}}\n"
+                output += f"```\n"
 
             return output
 

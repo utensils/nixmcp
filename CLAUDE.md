@@ -159,21 +159,31 @@ When searching for NixOS options, particularly for service configurations:
    - `services.nginx.virtualHosts` for specific nginx virtual host options
    - `services.postgresql.settings` for PostgreSQL configuration settings
 
-2. **Elasticsearch Implementation**:
+2. **Enhanced Service Option Handling**:
+   - Special query formats are used for services.* hierarchical paths
+   - Service paths get automatic helpful suggestions for common options
+   - The system provides guidance on typical service option patterns
+   - Related options are automatically shown to help with discoverability
+
+3. **Elasticsearch Implementation**:
    - We connect directly to the NixOS search Elasticsearch API
    - The search utilizes the same index as packages but filters for type="option"
    - Hierarchical paths use special query handling with wildcards (services.postgresql*)
+   - Specialized prefix and filter queries improve hierarchical path search accuracy
    - Queries follow the same format as the NixOS search site for maximum compatibility
+   - Service paths are detected and given specialized query treatment
+   - Multiple query strategies are used: exact match, prefix match, wildcard match
 
-3. **Avoid Mocking API Responses**: 
+4. **Avoid Mocking API Responses**: 
    - Tests should use real ElasticSearch API calls where possible
    - Do not create mock responses with hardcoded data
    - The test suite is designed to be resilient to API changes by checking response structure rather than exact content
 
-4. **Multiple Channel Support**:
+5. **Multiple Channel Support**:
    - Support searching across different NixOS channels (unstable, 24.11, etc.)
    - Channel selection is done via the channel parameter in search functions
    - Queries use the appropriate Elasticsearch index for the selected channel
+   - The same query structure works across all channels
 
 ## Tool Endpoints
 
