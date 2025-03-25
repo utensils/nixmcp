@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "nixmcp"
 version = "0.1.0"
@@ -28,6 +32,9 @@ dev = [
     "flake8>=6.0.0",
     "black>=23.0.0",
 ]
+
+[project.scripts]
+nixmcp = "nixmcp.__main__:mcp.run"
 
 [tool.black]
 line-length = 120

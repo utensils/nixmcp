@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/utensils/nixmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/nixmcp/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/utensils/nixmcp/graph/badge.svg?token=kdcbgvq4Bh)](https://codecov.io/gh/utensils/nixmcp)
+[![PyPI](https://img.shields.io/pypi/v/nixmcp.svg)](https://pypi.org/project/nixmcp/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/nixmcp.svg)](https://pypi.org/project/nixmcp/)
 
 > **⚠️ UNDER ACTIVE DEVELOPMENT**: NixMCP is being actively maintained and improved. I'm just a fool fumbling through the codebase like a raccoon in a dumpster, but having fun along the way!
 
@@ -60,7 +62,68 @@ nixos_info(name="services.postgresql.enable", type="option", channel="24.11")
 nixos_stats()
 ```
 
-## Quick Start
+## Installation
+
+### Using pip or uv
+
+```bash
+# Install with pip
+pip install nixmcp
+
+# Or install with uv
+uv pip install nixmcp
+```
+
+### Using uvx (Recommended)
+
+To use the package with uvx (uv execute), which runs Python packages directly without installing:
+
+```bash
+uvx nixmcp
+```
+
+## MCP Configuration
+
+Add the following to your MCP configuration file:
+
+```json
+{
+  "mcpServers": {
+    "nixos": {
+      "command": "uvx",
+      "args": ["nixmcp"],
+      "env": {
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+With this configuration:
+- Logs are written to stdout/stderr by default
+- Log level can be adjusted as needed (DEBUG, INFO, WARNING, ERROR)
+
+### Environment Variables
+
+You can customize the server behavior with these environment variables:
+
+```
+LOG_LEVEL=INFO              # Log level (DEBUG, INFO, WARNING, ERROR)
+LOG_FILE=nixmcp-server.log  # Optional log file (defaults to stdout/stderr)
+```
+
+## Elasticsearch Credentials
+
+The server requires access to the NixOS Elasticsearch API. By default, the credentials are hardcoded in the server implementation for simplicity, but you can override them with environment variables:
+
+```
+ELASTICSEARCH_URL=https://search.nixos.org/backend  # Base URL, channel/index will be added automatically
+ELASTICSEARCH_USER=your_username
+ELASTICSEARCH_PASSWORD=your_password
+```
+
+## Development
 
 ### Using Nix Develop (Recommended)
 
@@ -79,17 +142,6 @@ run-tests
 
 # Format code
 lint
-```
-
-### Prerequisites
-
-The server requires access to the NixOS Elasticsearch API. By default, the credentials are hardcoded in the server.py file for simplicity, but you can override them with environment variables:
-
-For custom credentials, create a `.env` file in the project root with:
-```
-ELASTICSEARCH_URL=https://search.nixos.org/backend/latest-42-nixos-unstable/_search
-ELASTICSEARCH_USER=your_username
-ELASTICSEARCH_PASSWORD=your_password
 ```
 
 ## Testing Approach
@@ -126,7 +178,44 @@ Current code coverage is tracked on [Codecov](https://codecov.io/gh/utensils/nix
 
 ## Using with Claude
 
-Once the server is running, you can use it with Claude by referencing NixOS resources in your prompts:
+### Setting up Claude Code with Nixmcp
+
+1. Install the package globally or use uvx:
+   ```bash
+   pip install nixmcp
+   # or
+   uv pip install nixmcp
+   ```
+
+2. Configure Claude Code to use the nixmcp server by adding to your `~/.config/claude/config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "nixos": {
+         "command": "uvx",
+         "args": ["nixmcp"],
+         "env": {
+           "LOG_LEVEL": "INFO"
+         }
+       }
+     }
+   }
+   ```
+
+3. If you prefer using pip-installed version:
+   ```json
+   {
+     "mcpServers": {
+       "nixos": {
+         "command": "nixmcp"
+       }
+     }
+   }
+   ```
+
+### Using Nixmcp with Claude
+
+Once the server is configured, you can use it with Claude by referencing NixOS resources in your prompts:
 
 ```
 Please provide information about the Python package in NixOS.

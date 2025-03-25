@@ -228,6 +228,59 @@ The project includes a comprehensive test suite:
 3. Tests are designed to be resilient to API changes and handle various response patterns
 4. Current code coverage is approximately 72%
 
+## Package Distribution
+
+NixMCP is available on PyPI and can be installed with pip or uv. The package provides both a Python library for integration and a command-line tool for running the MCP server.
+
+### Installation Methods
+
+1. **With pip**:
+   ```bash
+   pip install nixmcp
+   ```
+
+2. **With uv**:
+   ```bash
+   uv pip install nixmcp
+   ```
+
+3. **Direct execution with uvx** (recommended for Claude Code integration):
+   ```bash
+   uvx nixmcp
+   ```
+
+### Publishing New Versions
+
+To publish a new version:
+
+1. Update the version in `pyproject.toml`
+2. Build the package:
+   ```bash
+   python -m build
+   ```
+3. Upload to PyPI:
+   ```bash
+   twine upload --config-file ./.pypirc dist/*
+   ```
+
+### MCP Configuration
+
+To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "nixos": {
+      "command": "uvx",
+      "args": ["nixmcp"],
+      "env": {
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
 ## Build & Run Commands
 
 ### Using Nix Develop (Recommended)
