@@ -189,6 +189,16 @@
                   echo "Running tests..."
                   source .venv/bin/activate
                   
+                  # Ensure pytest is installed
+                  if ! python -c "import pytest" &>/dev/null; then
+                    echo "Installing pytest..."
+                    if command -v uv >/dev/null 2>&1; then
+                      uv pip install pytest
+                    else
+                      pip install pytest
+                    fi
+                  fi
+                  
                   # Run pytest with proper configuration
                   python -m pytest tests/ -v
                 '';
