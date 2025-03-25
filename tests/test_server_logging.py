@@ -22,7 +22,9 @@ class TestLogging(unittest.TestCase):
     @patch.dict(os.environ, {}, clear=True)
     def test_logging_default(self):
         """Test default logging setup with no environment variables."""
-        logger = setup_logging()
+        # Patch logging.info to avoid actual output during test
+        with patch.object(logging.Logger, 'info'):
+            logger = setup_logging()
         
         # Should have only one handler (console)
         self.assertEqual(len(logger.handlers), 1)
@@ -32,11 +34,14 @@ class TestLogging(unittest.TestCase):
     def test_logging_with_file(self):
         """Test logging setup with NIX_MCP_LOG environment variable."""
         with patch("logging.handlers.RotatingFileHandler") as mock_handler:
-            # Setup a mock for the file handler
+            # Setup a mock for the file handler with proper level attribute
             mock_instance = MagicMock()
+            mock_instance.level = logging.INFO
             mock_handler.return_value = mock_instance
             
-            logger = setup_logging()
+            # Ensure we don't actually try to log during the test
+            with patch.object(logging.Logger, 'info'):
+                logger = setup_logging()
             
             # Should have two handlers (console and file)
             self.assertEqual(len(logger.handlers), 2)
@@ -52,16 +57,21 @@ class TestLogging(unittest.TestCase):
         """Test that log levels are set correctly."""
         with patch("logging.handlers.RotatingFileHandler") as mock_handler:
             mock_instance = MagicMock()
+            mock_instance.level = logging.DEBUG
             mock_handler.return_value = mock_instance
             
-            logger = setup_logging()
+            # Ensure we don't actually try to log during the test
+            with patch.object(logging.Logger, 'info'):
+                logger = setup_logging()
             
             # Logger level should be DEBUG
             self.assertEqual(logger.level, logging.DEBUG)
             
-            # Both handlers should have DEBUG level
-            for handler in logger.handlers:
-                self.assertEqual(handler.level, logging.DEBUG)
+            # Console handler should have DEBUG level
+            self.assertEqual(logger.handlers[0].level, logging.DEBUG)
+            
+            # Verify mock file handler's level was set to DEBUG
+            mock_instance.setLevel.assert_called_with(logging.DEBUG)
 
     @patch.dict(os.environ, {"NIX_MCP_LOG": "/nonexistent/directory/test.log"}, clear=True)
     def test_logging_file_error(self):
@@ -70,7 +80,9 @@ class TestLogging(unittest.TestCase):
         with patch("logging.handlers.RotatingFileHandler") as mock_handler:
             mock_handler.side_effect = IOError("Failed to create log file")
             
-            logger = setup_logging()
+            # Patch error logging to avoid actual error output
+            with patch.object(logging.Logger, 'error'):
+                logger = setup_logging()
             
             # Should only have one handler (console) as file handler creation failed
             self.assertEqual(len(logger.handlers), 1)
