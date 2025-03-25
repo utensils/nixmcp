@@ -1172,36 +1172,95 @@ async def app_lifespan(mcp_server: FastMCP):
     mcp_server.prompt = """
     # NixOS MCP Guide
     
-    This MCP provides tools to search and retrieve information about NixOS packages and system options.
+    This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about NixOS packages, system options, and service configurations. It connects directly to the official NixOS Elasticsearch API to provide up-to-date results.
     
-    ## Available Tools
+    ## When to Use These Tools
     
-    - `nixos_search`: Search for packages, options, or programs
-      - Example: `nixos_search(query="python", type="packages")`
-      - Example: `nixos_search(query="services.postgresql", type="options", channel="24.11")`
-      
-    - `nixos_info`: Get detailed information about a package or option
-      - Example: `nixos_info(name="firefox", type="package")`
-      - Example: `nixos_info(name="services.postgresql.enable", type="option")`
-      - Example: `nixos_info(name="postgresql", type="package", channel="24.11")`
-      
-    - `nixos_stats`: Get statistics about available NixOS packages
-      - Example: `nixos_stats()`
+    - `nixos_search`: Use when you need to find NixOS packages, system options, or executable programs
+        - For packages: Finding software available in NixOS by name, function, or description
+        - For options: Finding system configuration options, especially service configurations
+        - For programs: Finding which packages provide specific executable programs
     
-    ## Search Tips
+    - `nixos_info`: Use when you need detailed information about a specific package or option
+        - For packages: Getting version, description, homepage, license, provided executables
+        - For options: Getting detailed descriptions, type information, default values, examples
+        - Especially useful for service configuration options with related options and examples
     
-    - Wildcards are automatically added to search terms
-    - For more specific searches, use explicit wildcards: `*term*`, `term*`, etc.
-    - When searching for options related to a service, you can use direct hierarchical paths:
-        - `services.postgresql` for all PostgreSQL options
-        - `services.nginx.virtualHosts` for specific nginx virtual host options
-        - `services.postgresql.settings` for PostgreSQL configuration settings
-        
-    ## Channel Selection
+    - `nixos_stats`: Use when you need statistics about NixOS packages
+        - Distribution by channel, license, platforms
+        - Overview of the NixOS package ecosystem
+    
+    ## Tool Parameters and Examples
+    
+    ### nixos_search
+    
+    ```python
+    nixos_search(
+        query: str,              # Required: Search term like "firefox" or "services.postgresql"
+        type: str = "packages",  # Optional: "packages", "options", or "programs"
+        limit: int = 20,         # Optional: Max number of results
+        channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
+    ) -> str
+    ```
+    
+    Examples:
+    - `nixos_search(query="python", type="packages")` - Find Python packages in the unstable channel
+    - `nixos_search(query="services.postgresql", type="options")` - Find PostgreSQL service options
+    - `nixos_search(query="firefox", type="programs", channel="24.11")` - Find packages that provide firefox executables in 24.11 channel
+    - `nixos_search(query="services.nginx.virtualHosts", type="options")` - Find nginx virtual host configuration options
+    
+    ### nixos_info
+    
+    ```python
+    nixos_info(
+        name: str,               # Required: Name of package or option
+        type: str = "package",   # Optional: "package" or "option"
+        channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
+    ) -> str
+    ```
+    
+    Examples:
+    - `nixos_info(name="firefox", type="package")` - Get detailed info about the firefox package
+    - `nixos_info(name="services.postgresql.enable", type="option")` - Get details about the PostgreSQL enable option
+    - `nixos_info(name="git", type="package", channel="24.11")` - Get package info from the 24.11 channel
+    
+    ### nixos_stats
+    
+    ```python
+    nixos_stats() -> str
+    ```
+    
+    Example:
+    - `nixos_stats()` - Get statistics about NixOS packages
+    
+    ## Advanced Usage Tips
+    
+    ### Hierarchical Path Searching
+    
+    This MCP has special handling for hierarchical service option paths:
+    
+    - Direct service paths like `services.postgresql` automatically use enhanced queries
+    - Wildcards are automatically added to hierarchical paths as needed
+    - The system provides suggestions for common options when a service is found
+    - For service options, the system provides related options and NixOS configuration examples
+    
+    Examples:
+    - `nixos_search(query="services.postgresql", type="options")` - Find all PostgreSQL service options
+    - `nixos_info(name="services.nginx.virtualHosts", type="option")` - Get detailed info about nginx's virtualHosts option with related options
+    
+    ### Wildcard Search
+    
+    - Wildcards (`*`) are automatically added to most queries
+    - For more specific searches, use explicit wildcards:
+        - `*term*` - Contains the term anywhere
+        - `term*` - Starts with the term
+        - `*term` - Ends with the term
+    
+    ### Version Selection
     
     - Use the `channel` parameter to specify which NixOS version to search:
-      - `unstable` (default): Latest development branch
-      - `24.11`: Latest stable release
+        - `unstable` (default): Latest development branch with newest packages
+        - `24.11`: Latest stable release with more stable packages
     """
 
     try:
