@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the server module
-from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext, SimpleCache
+from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -73,9 +73,8 @@ class TestErrorHandling(unittest.TestCase):
         # Get the search_nixos function from the mcp object
         from server import mcp
         
-        # Access the tool using the get_tool method
-        search_nixos = mcp.get_tool("search_nixos")
-        self.assertIsNotNone(search_nixos, "Tool 'search_nixos' not found")
+        # Import the search_nixos function directly
+        from server import search_nixos
         
         # Test with an invalid search_type
         result = search_nixos("python", "invalid_type", 5)

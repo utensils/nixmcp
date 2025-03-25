@@ -974,21 +974,7 @@ mcp = FastMCP(
     lifespan=app_lifespan,
 )
 
-# Add a helper method to get tools by name
-def get_tool(self, name):
-    """Get a tool function by name."""
-    if not hasattr(self, 'tools') or not self.tools:
-        logger.warning("No tools available")
-        return None
-        
-    for tool in self.tools:
-        if hasattr(tool, 'name') and tool.name == name:
-            return tool.func
-    logger.warning(f"Tool '{name}' not found")
-    return None
-
-# Add the method to the FastMCP class
-FastMCP.get_tool = get_tool
+# No need for a get_tool method as we're importing tools directly
 
 
 # Define MCP resources for packages
