@@ -3,14 +3,15 @@ import sys
 import os
 import json
 import logging
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import time
+import asyncio
 
 # Add the parent directory to the path so we can import the server module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the server module
-from server import ElasticsearchClient, NixOSContext, SimpleCache
+from server import ElasticsearchClient, NixOSContext, SimpleCache, mcp
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -298,6 +299,533 @@ class TestNixOSContext(unittest.TestCase):
         self.assertIn("name", result)
         self.assertIn("description", result)
         self.assertTrue(result.get("found", False))
+
+
+class TestMCPTools(unittest.TestCase):
+    """Test the MCP tools functionality."""
+
+    def setUp(self):
+        """Set up the test environment."""
+        # Create a mock context
+        self.context = NixOSContext()
+        
+        # Patch the ElasticsearchClient methods to avoid real API calls
+        patcher = patch.object(ElasticsearchClient, 'safe_elasticsearch_query')
+        self.mock_es_query = patcher.start()
+        self.addCleanup(patcher.stop)
+        
+        # Set up default mock responses
+        self.mock_es_query.return_value = {"hits": {"hits": [], "total": {"value": 0}}}
+
+    def test_search_nixos_packages(self):
+        """Test the search_nixos tool with packages."""
+        # Mock the search_packages method to return test data
+        with patch.object(NixOSContext, 'search_packages') as mock_search:
+            mock_search.return_value = {
+                "count": 2,
+                "packages": [
+                    {
+                        "name": "python3",
+                        "version": "3.10.12",
+                        "description": "A high-level dynamically-typed programming language",
+                        "channel": "nixos-unstable"
+                    },
+                    {
+                        "name": "python39",
+                        "version": "3.9.18",
+                        "description": "Python programming language",
+                        "channel": "nixos-unstable"
+                    }
+                ]
+            }
+            
+            # Call the tool function directly
+            from server import search_nixos
+            result = search_nixos("python", "packages", 5)
+            
+            # Verify the result
+            self.assertIn("Found 2 packages for 'python'", result)
+            self.assertIn("python3", result)
+            self.assertIn("3.10.12", result)
+            self.assertIn("python39", result)
+            
+            # Verify the mock was called correctly
+            mock_search.assert_called_once_with("python", 5)
+
+    def test_search_nixos_options(self):
+        """Test the search_nixos tool with options."""
+        # Mock the search_options method to return test data
+        with patch.object(NixOSContext, 'search_options') as mock_search:
+            mock_search.return_value = {
+                "count": 2,
+                "options": [
+                    {
+                        "name": "services.nginx.enable",
+                        "description": "Whether to enable nginx.",
+                        "type": "boolean",
+                        "default": "false"
+                    },
+                    {
+                        "name": "services.nginx.virtualHosts",
+                        "description": "Declarative vhost config",
+                        "type": "attribute set",
+                        "default": "{}"
+                    }
+                ]
+            }
+            
+            # Call the tool function directly
+            from server import search_nixos
+            result = search_nixos("nginx", "options", 5)
+            
+            # Verify the result
+            self.assertIn("Found 2 options for 'nginx'", result)
+            self.assertIn("services.nginx.enable", result)
+            self.assertIn("Whether to enable nginx", result)
+            self.assertIn("services.nginx.virtualHosts", result)
+            
+            # Verify the mock was called correctly
+            mock_search.assert_called_once_with("nginx", 5)
+
+    def test_search_nixos_programs(self):
+        """Test the search_nixos tool with programs."""
+        # Mock the search_programs method to return test data
+        with patch.object(NixOSContext, 'search_programs') as mock_search:
+            mock_search.return_value = {
+                "count": 2,
+                "packages": [
+                    {
+                        "name": "python3",
+                        "version": "3.10.12",
+                        "description": "Python programming language",
+                        "programs": ["python3", "python3.10"]
+                    },
+                    {
+                        "name": "python39",
+                        "version": "3.9.18",
+                        "description": "Python programming language",
+                        "programs": ["python3.9", "python39"]
+                    }
+                ]
+            }
+            
+            # Call the tool function directly
+            from server import search_nixos
+            result = search_nixos("python", "programs", 5)
+            
+            # Verify the result
+            self.assertIn("Found 2 packages providing programs matching 'python'", result)
+            self.assertIn("python3", result)
+            self.assertIn("python3.10", result)
+            self.assertIn("python39", result)
+            
+            # Verify the mock was called correctly
+            mock_search.assert_called_once_with("python", 5)
+
+    def test_get_nixos_package(self):
+        """Test the get_nixos_package tool."""
+        # Mock the get_package method to return test data
+        with patch.object(NixOSContext, 'get_package') as mock_get:
+            mock_get.return_value = {
+                "name": "python3",
+                "version": "3.10.12",
+                "description": "A high-level dynamically-typed programming language",
+                "longDescription": "Python is a remarkably powerful dynamic programming language...",
+                "license": "MIT",
+                "homepage": "https://www.python.org",
+                "maintainers": ["Alice", "Bob"],
+                "platforms": ["x86_64-linux", "aarch64-linux"],
+                "channel": "nixos-unstable",
+                "programs": ["python3", "python3.10"],
+                "found": True
+            }
+            
+            # Call the tool function directly
+            from server import get_nixos_package
+            result = get_nixos_package("python3")
+            
+            # Verify the result
+            self.assertIn("# python3", result)
+            self.assertIn("**Version:** 3.10.12", result)
+            self.assertIn("**Description:**", result)
+            self.assertIn("**License:** MIT", result)
+            self.assertIn("**Homepage:** https://www.python.org", result)
+            self.assertIn("**Maintainers:** Alice, Bob", result)
+            self.assertIn("**Platforms:** x86_64-linux, aarch64-linux", result)
+            self.assertIn("**Provided Programs:** python3, python3.10", result)
+            
+            # Verify the mock was called correctly
+            mock_get.assert_called_once_with("python3")
+
+    def test_get_nixos_option(self):
+        """Test the get_nixos_option tool."""
+        # Mock the get_option method to return test data
+        with patch.object(NixOSContext, 'get_option') as mock_get:
+            mock_get.return_value = {
+                "name": "services.nginx.enable",
+                "description": "Whether to enable nginx.",
+                "type": "boolean",
+                "default": "false",
+                "example": "true",
+                "declarations": ["/nix/store/...-nixos/modules/services/web-servers/nginx/default.nix"],
+                "readOnly": False,
+                "found": True
+            }
+            
+            # Call the tool function directly
+            from server import get_nixos_option
+            result = get_nixos_option("services.nginx.enable")
+            
+            # Verify the result
+            self.assertIn("# services.nginx.enable", result)
+            self.assertIn("**Description:** Whether to enable nginx.", result)
+            self.assertIn("**Type:** boolean", result)
+            self.assertIn("**Default:** false", result)
+            self.assertIn("**Example:**", result)
+            self.assertIn("**Declared in:**", result)
+            
+            # Verify the mock was called correctly
+            mock_get.assert_called_once_with("services.nginx.enable")
+
+    def test_advanced_search(self):
+        """Test the advanced_search tool."""
+        # Mock the advanced_query method to return test data
+        with patch.object(NixOSContext, 'advanced_query') as mock_query:
+            mock_query.return_value = {
+                "hits": {
+                    "total": {"value": 2},
+                    "hits": [
+                        {
+                            "_score": 10.5,
+                            "_source": {
+                                "package_attr_name": "python3",
+                                "package_version": "3.10.12",
+                                "package_description": "Python programming language"
+                            }
+                        },
+                        {
+                            "_score": 8.2,
+                            "_source": {
+                                "package_attr_name": "python39",
+                                "package_version": "3.9.18",
+                                "package_description": "Python programming language"
+                            }
+                        }
+                    ]
+                }
+            }
+            
+            # Call the tool function directly
+            from server import advanced_search
+            result = advanced_search("package_programs:python*", "packages", 5)
+            
+            # Verify the result
+            self.assertIn("Found 2 results for query 'package_programs:python*'", result)
+            self.assertIn("python3", result)
+            self.assertIn("3.10.12", result)
+            self.assertIn("python39", result)
+            self.assertIn("score: 10.50", result)
+            
+            # Verify the mock was called correctly
+            mock_query.assert_called_once_with("packages", "package_programs:python*", 5)
+
+    def test_package_statistics(self):
+        """Test the package_statistics tool."""
+        # Mock the get_package_stats method to return test data
+        with patch.object(NixOSContext, 'get_package_stats') as mock_stats:
+            mock_stats.return_value = {
+                "aggregations": {
+                    "channels": {
+                        "buckets": [
+                            {"key": "nixos-unstable", "doc_count": 80000},
+                            {"key": "nixos-23.11", "doc_count": 75000}
+                        ]
+                    },
+                    "licenses": {
+                        "buckets": [
+                            {"key": "MIT", "doc_count": 20000},
+                            {"key": "GPL", "doc_count": 15000}
+                        ]
+                    },
+                    "platforms": {
+                        "buckets": [
+                            {"key": "x86_64-linux", "doc_count": 70000},
+                            {"key": "aarch64-linux", "doc_count": 60000}
+                        ]
+                    }
+                }
+            }
+            
+            # Mock the cache stats
+            with patch.object(SimpleCache, 'get_stats') as mock_cache_stats:
+                mock_cache_stats.return_value = {
+                    "size": 100,
+                    "max_size": 500,
+                    "ttl": 600,
+                    "hits": 800,
+                    "misses": 200,
+                    "hit_ratio": 0.8
+                }
+                
+                # Call the tool function directly
+                from server import package_statistics
+                result = package_statistics("*")
+                
+                # Verify the result
+                self.assertIn("# NixOS Package Statistics", result)
+                self.assertIn("## Distribution by Channel", result)
+                self.assertIn("nixos-unstable: 80000 packages", result)
+                self.assertIn("## Distribution by License", result)
+                self.assertIn("MIT: 20000 packages", result)
+                self.assertIn("## Distribution by Platform", result)
+                self.assertIn("x86_64-linux: 70000 packages", result)
+                self.assertIn("## Cache Statistics", result)
+                self.assertIn("Cache size: 100/500 entries", result)
+                self.assertIn("Hit ratio: 80.0%", result)
+                
+                # Verify the mocks were called correctly
+                mock_stats.assert_called_once_with("*")
+                mock_cache_stats.assert_called_once()
+
+    def test_version_search(self):
+        """Test the version_search tool."""
+        # Mock the search_packages_with_version method to return test data
+        with patch.object(NixOSContext, 'search_packages_with_version') as mock_search:
+            mock_search.return_value = {
+                "count": 2,
+                "packages": [
+                    {
+                        "name": "python310",
+                        "version": "3.10.12",
+                        "description": "Python 3.10",
+                        "channel": "nixos-unstable"
+                    },
+                    {
+                        "name": "python311",
+                        "version": "3.11.6",
+                        "description": "Python 3.11",
+                        "channel": "nixos-unstable"
+                    }
+                ]
+            }
+            
+            # Call the tool function directly
+            from server import version_search
+            result = version_search("python", "3.1*", 5)
+            
+            # Verify the result
+            self.assertIn("Found 2 packages matching 'python' with version pattern '3.1*'", result)
+            self.assertIn("python310 (3.10.12)", result)
+            self.assertIn("Python 3.10", result)
+            self.assertIn("python311 (3.11.6)", result)
+            
+            # Verify the mock was called correctly
+            mock_search.assert_called_once_with("python", "3.1*", 5)
+
+
+class TestMCPResources(unittest.TestCase):
+    """Test the MCP resources functionality."""
+    
+    def setUp(self):
+        """Set up the test environment."""
+        # Create a mock context
+        self.context = NixOSContext()
+        
+        # Patch the ElasticsearchClient methods to avoid real API calls
+        patcher = patch.object(ElasticsearchClient, 'safe_elasticsearch_query')
+        self.mock_es_query = patcher.start()
+        self.addCleanup(patcher.stop)
+        
+        # Set up default mock responses
+        self.mock_es_query.return_value = {"hits": {"hits": [], "total": {"value": 0}}}
+
+    def test_status_resource(self):
+        """Test the status resource."""
+        # Mock the get_status method
+        with patch.object(NixOSContext, 'get_status') as mock_status:
+            mock_status.return_value = {
+                "status": "ok",
+                "version": "1.0.0",
+                "name": "NixMCP",
+                "description": "NixOS HTTP-based Model Context Protocol Server",
+                "cache_stats": {
+                    "size": 100,
+                    "max_size": 500,
+                    "ttl": 600,
+                    "hits": 800,
+                    "misses": 200,
+                    "hit_ratio": 0.8
+                }
+            }
+            
+            # Import the resource function
+            from server import status_resource
+            
+            # Call the resource function
+            result = status_resource()
+            
+            # Verify the result
+            self.assertEqual(result["status"], "ok")
+            self.assertEqual(result["version"], "1.0.0")
+            self.assertEqual(result["name"], "NixMCP")
+            self.assertIn("cache_stats", result)
+            
+            # Verify the mock was called
+            mock_status.assert_called_once()
+
+    def test_package_resource(self):
+        """Test the package resource."""
+        # Mock the get_package method
+        with patch.object(NixOSContext, 'get_package') as mock_get:
+            mock_get.return_value = {
+                "name": "python3",
+                "version": "3.10.12",
+                "description": "Python programming language",
+                "found": True
+            }
+            
+            # Import the resource function
+            from server import package_resource
+            
+            # Call the resource function
+            result = package_resource("python3")
+            
+            # Verify the result
+            self.assertEqual(result["name"], "python3")
+            self.assertEqual(result["version"], "3.10.12")
+            self.assertTrue(result["found"])
+            
+            # Verify the mock was called correctly
+            mock_get.assert_called_once_with("python3")
+
+    def test_search_packages_resource(self):
+        """Test the search_packages resource."""
+        # Mock the search_packages method
+        with patch.object(NixOSContext, 'search_packages') as mock_search:
+            mock_search.return_value = {
+                "count": 2,
+                "packages": [
+                    {"name": "python3", "description": "Python 3"},
+                    {"name": "python39", "description": "Python 3.9"}
+                ]
+            }
+            
+            # Import the resource function
+            from server import search_packages_resource
+            
+            # Call the resource function
+            result = search_packages_resource("python")
+            
+            # Verify the result
+            self.assertEqual(result["count"], 2)
+            self.assertEqual(len(result["packages"]), 2)
+            self.assertEqual(result["packages"][0]["name"], "python3")
+            
+            # Verify the mock was called correctly
+            mock_search.assert_called_once_with("python")
+
+    def test_search_options_resource(self):
+        """Test the search_options resource."""
+        # Mock the search_options method
+        with patch.object(NixOSContext, 'search_options') as mock_search:
+            mock_search.return_value = {
+                "count": 2,
+                "options": [
+                    {"name": "services.nginx.enable", "description": "Enable nginx"},
+                    {"name": "services.nginx.virtualHosts", "description": "Virtual hosts"}
+                ]
+            }
+            
+            # Import the resource function
+            from server import search_options_resource
+            
+            # Call the resource function
+            result = search_options_resource("nginx")
+            
+            # Verify the result
+            self.assertEqual(result["count"], 2)
+            self.assertEqual(len(result["options"]), 2)
+            self.assertEqual(result["options"][0]["name"], "services.nginx.enable")
+            
+            # Verify the mock was called correctly
+            mock_search.assert_called_once_with("nginx")
+
+    def test_option_resource(self):
+        """Test the option resource."""
+        # Mock the get_option method
+        with patch.object(NixOSContext, 'get_option') as mock_get:
+            mock_get.return_value = {
+                "name": "services.nginx.enable",
+                "description": "Whether to enable nginx.",
+                "type": "boolean",
+                "default": "false",
+                "found": True
+            }
+            
+            # Import the resource function
+            from server import option_resource
+            
+            # Call the resource function
+            result = option_resource("services.nginx.enable")
+            
+            # Verify the result
+            self.assertEqual(result["name"], "services.nginx.enable")
+            self.assertEqual(result["type"], "boolean")
+            self.assertTrue(result["found"])
+            
+            # Verify the mock was called correctly
+            mock_get.assert_called_once_with("services.nginx.enable")
+
+    def test_search_programs_resource(self):
+        """Test the search_programs resource."""
+        # Mock the search_programs method
+        with patch.object(NixOSContext, 'search_programs') as mock_search:
+            mock_search.return_value = {
+                "count": 2,
+                "packages": [
+                    {"name": "python3", "programs": ["python3", "python3.10"]},
+                    {"name": "python39", "programs": ["python3.9"]}
+                ]
+            }
+            
+            # Import the resource function
+            from server import search_programs_resource
+            
+            # Call the resource function
+            result = search_programs_resource("python")
+            
+            # Verify the result
+            self.assertEqual(result["count"], 2)
+            self.assertEqual(len(result["packages"]), 2)
+            self.assertEqual(result["packages"][0]["name"], "python3")
+            
+            # Verify the mock was called correctly
+            mock_search.assert_called_once_with("python")
+
+    def test_package_stats_resource(self):
+        """Test the package_stats resource."""
+        # Mock the get_package_stats method
+        with patch.object(NixOSContext, 'get_package_stats') as mock_stats:
+            mock_stats.return_value = {
+                "aggregations": {
+                    "channels": {"buckets": [{"key": "nixos-unstable", "doc_count": 80000}]},
+                    "licenses": {"buckets": [{"key": "MIT", "doc_count": 20000}]},
+                    "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]}
+                }
+            }
+            
+            # Import the resource function
+            from server import package_stats_resource
+            
+            # Call the resource function
+            result = package_stats_resource()
+            
+            # Verify the result
+            self.assertIn("aggregations", result)
+            self.assertIn("channels", result["aggregations"])
+            
+            # Verify the mock was called
+            mock_stats.assert_called_once()
 
 
 if __name__ == "__main__":
