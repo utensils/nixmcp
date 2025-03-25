@@ -273,6 +273,7 @@ The project supports [uv](https://github.com/astral-sh/uv), a faster alternative
 ## Code Style Guidelines
 - Python 3.11+ with type hints required
 - Use consistent 4-space indentation
+- Line length: 120 characters maximum
 - Follow PEP 8 naming conventions:
   - snake_case for functions and variables
   - CamelCase for classes
@@ -282,7 +283,8 @@ The project supports [uv](https://github.com/astral-sh/uv), a faster alternative
 - Cache expensive operations where appropriate
 - Types: Use static typing with Optional, Dict, List, etc.
 - Code quality tools:
-  - Use Black for code formatting 
+  - Use Black for code formatting with line-length=120
   - Use Flake8 for linting to catch issues like unused imports
+  - Flake8 configuration: max-line-length=120, ignore=E402 (for test files with path manipulation)
   - Run full test suite with coverage to monitor test quality
   - Extract common logic into helper functions to reduce duplication

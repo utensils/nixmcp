@@ -54,9 +54,7 @@ def setup_logging():
         logger.setLevel(getattr(logging, log_level))
 
         # Create file handler with rotation
-        file_handler = logging.handlers.RotatingFileHandler(
-            log_file, maxBytes=10 * 1024 * 1024, backupCount=5
-        )
+        file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
         file_handler.setLevel(getattr(logging, log_level))
 
         # Create console handler
@@ -64,9 +62,7 @@ def setup_logging():
         console_handler.setLevel(getattr(logging, log_level))
 
         # Create formatter
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         file_handler.setFormatter(formatter)
         console_handler.setFormatter(formatter)
 
@@ -133,11 +129,7 @@ class SimpleCache:
             "ttl": self.ttl,
             "hits": self.hits,
             "misses": self.misses,
-            "hit_ratio": (
-                self.hits / (self.hits + self.misses)
-                if (self.hits + self.misses) > 0
-                else 0
-            ),
+            "hit_ratio": (self.hits / (self.hits + self.misses) if (self.hits + self.misses) > 0 else 0),
         }
 
 
@@ -150,7 +142,7 @@ class ElasticsearchClient:
         # Elasticsearch endpoints - use the correct endpoints for NixOS search
         # Use the real NixOS search URLs
         self.es_base_url = "https://search.nixos.org/backend"
-        
+
         # Authentication
         self.es_user = "aWVSALXpZv"
         self.es_password = "X8gPHnzL52wFEekuxsfQ9cSh"
@@ -159,9 +151,9 @@ class ElasticsearchClient:
         # Available channels - updated with proper index names from nixos-search
         self.available_channels = {
             "unstable": "latest-42-nixos-unstable",
-            "24.11": "latest-42-nixos-24.11"  # This is a guess, real implementation would need to verify
+            "24.11": "latest-42-nixos-24.11",  # This is a guess, real implementation would need to verify
         }
-        
+
         # Default to unstable channel
         self.set_channel("unstable")
 
@@ -178,9 +170,7 @@ class ElasticsearchClient:
 
         logger.info("Elasticsearch client initialized with caching")
 
-    def safe_elasticsearch_query(
-        self, endpoint: str, query_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def safe_elasticsearch_query(self, endpoint: str, query_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute an Elasticsearch query with robust error handling and retries."""
         cache_key = f"{endpoint}:{json.dumps(query_data)}"
         cached_result = self.cache.get(cache_key)
@@ -211,9 +201,7 @@ class ElasticsearchClient:
                 elif response.status_code >= 500:
                     logger.error(f"Elasticsearch server error: {response.status_code}")
                     if attempt < self.max_retries - 1:
-                        wait_time = self.retry_delay * (
-                            2**attempt
-                        )  # Exponential backoff
+                        wait_time = self.retry_delay * (2**attempt)  # Exponential backoff
                         logger.info(f"Retrying in {wait_time} seconds...")
                         time.sleep(wait_time)
                         continue
@@ -239,9 +227,7 @@ class ElasticsearchClient:
                 logger.error(f"Error executing query: {str(e)}")
                 return {"error": f"Query error: {str(e)}"}
 
-    def search_packages(
-        self, query: str, limit: int = 50, offset: int = 0
-    ) -> Dict[str, Any]:
+    def search_packages(self, query: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
         """
         Search for NixOS packages with enhanced query handling and field boosting.
 
@@ -294,11 +280,7 @@ class ElasticsearchClient:
                                         }
                                     }
                                 },
-                                {
-                                    "match": {
-                                        "package_programs": {"query": term, "boost": 6}
-                                    }
-                                },
+                                {"match": {"package_programs": {"query": term, "boost": 6}}},
                             ],
                             "minimum_should_match": 1,
                         }
@@ -331,18 +313,10 @@ class ElasticsearchClient:
                     "bool": {
                         "should": [
                             # Exact match with highest boost
-                            {
-                                "term": {
-                                    "package_attr_name": {"value": query, "boost": 10}
-                                }
-                            },
+                            {"term": {"package_attr_name": {"value": query, "boost": 10}}},
                             {"term": {"package_pname": {"value": query, "boost": 8}}},
                             # Prefix match (starts with)
-                            {
-                                "prefix": {
-                                    "package_attr_name": {"value": query, "boost": 7}
-                                }
-                            },
+                            {"prefix": {"package_attr_name": {"value": query, "boost": 7}}},
                             {"prefix": {"package_pname": {"value": query, "boost": 6}}},
                             # Contains match
                             {
@@ -353,17 +327,9 @@ class ElasticsearchClient:
                                     }
                                 }
                             },
-                            {
-                                "wildcard": {
-                                    "package_pname": {"value": f"*{query}*", "boost": 4}
-                                }
-                            },
+                            {"wildcard": {"package_pname": {"value": f"*{query}*", "boost": 4}}},
                             # Full-text search in description fields
-                            {
-                                "match": {
-                                    "package_description": {"query": query, "boost": 3}
-                                }
-                            },
+                            {"match": {"package_description": {"query": query, "boost": 3}}},
                             {
                                 "match": {
                                     "package_longDescription": {
@@ -373,11 +339,7 @@ class ElasticsearchClient:
                                 }
                             },
                             # Program search
-                            {
-                                "match": {
-                                    "package_programs": {"query": query, "boost": 6}
-                                }
-                            },
+                            {"match": {"package_programs": {"query": query, "boost": 6}}},
                         ],
                         "minimum_should_match": 1,
                     }
@@ -415,9 +377,7 @@ class ElasticsearchClient:
             "packages": packages,
         }
 
-    def search_options(
-        self, query: str, limit: int = 50, offset: int = 0
-    ) -> Dict[str, Any]:
+    def search_options(self, query: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
         """
         Search for NixOS options with enhanced query handling.
 
@@ -434,42 +394,45 @@ class ElasticsearchClient:
             # Build a query with wildcards
             wildcard_value = query
             logger.info(f"Using wildcard query for option search: {wildcard_value}")
-            
+
             search_query = {
                 "bool": {
                     "must": [
-                        {"wildcard": {"option_name": {"value": wildcard_value, "case_insensitive": True}}}
+                        {
+                            "wildcard": {
+                                "option_name": {
+                                    "value": wildcard_value,
+                                    "case_insensitive": True,
+                                }
+                            }
+                        }
                     ],
-                    "filter": [
-                        {"term": {"type": {"value": "option"}}}
-                    ]
+                    "filter": [{"term": {"type": {"value": "option"}}}],
                 }
             }
-            
+
         else:
             # Check if the query contains dots, which likely indicates a hierarchical path
             if "." in query:
-                # For hierarchical paths like services.postgresql, add a wildcard 
+                # For hierarchical paths like services.postgresql, add a wildcard
                 logger.info(f"Detected hierarchical path in option search: {query}")
-                
+
                 # Add wildcards for hierarchical paths by default
                 if not query.endswith("*"):
                     hierarchical_query = f"{query}*"
                     logger.info(f"Adding wildcard to hierarchical path: {hierarchical_query}")
                 else:
                     hierarchical_query = query
-                
+
                 # Special handling for service modules
                 if query.startswith("services."):
                     logger.info(f"Special handling for service module path: {query}")
                     service_name = query.split(".", 2)[1] if len(query.split(".", 2)) > 1 else ""
-                    
+
                     # Build a more specific query for service modules
                     search_query = {
                         "bool": {
-                            "filter": [
-                                {"term": {"type": {"value": "option"}}}
-                            ],
+                            "filter": [{"term": {"type": {"value": "option"}}}],
                             "must": [
                                 {
                                     "bool": {
@@ -479,7 +442,7 @@ class ElasticsearchClient:
                                                 "prefix": {
                                                     "option_name": {
                                                         "value": query,
-                                                        "boost": 10.0
+                                                        "boost": 10.0,
                                                     }
                                                 }
                                             },
@@ -489,7 +452,7 @@ class ElasticsearchClient:
                                                     "option_name": {
                                                         "value": hierarchical_query,
                                                         "case_insensitive": True,
-                                                        "boost": 8.0
+                                                        "boost": 8.0,
                                                     }
                                                 }
                                             },
@@ -498,15 +461,15 @@ class ElasticsearchClient:
                                                 "match": {
                                                     "option_description": {
                                                         "query": service_name,
-                                                        "boost": 2.0
+                                                        "boost": 2.0,
                                                     }
                                                 }
-                                            }
+                                            },
                                         ],
-                                        "minimum_should_match": 1
+                                        "minimum_should_match": 1,
                                     }
                                 }
-                            ]
+                            ],
                         }
                     }
                 else:
@@ -514,7 +477,14 @@ class ElasticsearchClient:
                     search_query = {
                         "bool": {
                             "filter": [
-                                {"term": {"type": {"value": "option", "_name": "filter_options"}}}
+                                {
+                                    "term": {
+                                        "type": {
+                                            "value": "option",
+                                            "_name": "filter_options",
+                                        }
+                                    }
+                                }
                             ],
                             "must": [
                                 {
@@ -534,21 +504,21 @@ class ElasticsearchClient:
                                                         "option_name.*^3.6",
                                                         "option_description^1",
                                                         "option_description.*^0.6",
-                                                    ]
+                                                    ],
                                                 }
                                             },
                                             {
                                                 "wildcard": {
                                                     "option_name": {
                                                         "value": hierarchical_query,
-                                                        "case_insensitive": True
+                                                        "case_insensitive": True,
                                                     }
                                                 }
-                                            }
-                                        ]
+                                            },
+                                        ],
                                     }
                                 }
-                            ]
+                            ],
                         }
                     }
             else:
@@ -556,7 +526,14 @@ class ElasticsearchClient:
                 search_query = {
                     "bool": {
                         "filter": [
-                            {"term": {"type": {"value": "option", "_name": "filter_options"}}}
+                            {
+                                "term": {
+                                    "type": {
+                                        "value": "option",
+                                        "_name": "filter_options",
+                                    }
+                                }
+                            }
                         ],
                         "must": [
                             {
@@ -576,31 +553,31 @@ class ElasticsearchClient:
                                                     "option_name.*^3.6",
                                                     "option_description^1",
                                                     "option_description.*^0.6",
-                                                ]
+                                                ],
                                             }
                                         },
                                         {
                                             "wildcard": {
                                                 "option_name": {
                                                     "value": f"*{query}*",
-                                                    "case_insensitive": True
+                                                    "case_insensitive": True,
                                                 }
                                             }
-                                        }
-                                    ]
+                                        },
+                                    ],
                                 }
                             }
-                        ]
+                        ],
                     }
                 }
-        
+
         # Build the full request
         request_data = {
             "from": offset,
             "size": limit,
             "sort": [{"_score": "desc", "option_name": "desc"}],
             "aggs": {"all": {"global": {}, "aggregations": {}}},
-            "query": search_query
+            "query": search_query,
         }
 
         # Execute the query
@@ -634,9 +611,7 @@ class ElasticsearchClient:
             "options": options,
         }
 
-    def search_programs(
-        self, program: str, limit: int = 50, offset: int = 0
-    ) -> Dict[str, Any]:
+    def search_programs(self, program: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
         """
         Search for packages that provide specific programs.
 
@@ -664,16 +639,8 @@ class ElasticsearchClient:
                 "query": {
                     "bool": {
                         "should": [
-                            {
-                                "term": {
-                                    "package_programs": {"value": program, "boost": 10}
-                                }
-                            },
-                            {
-                                "prefix": {
-                                    "package_programs": {"value": program, "boost": 5}
-                                }
-                            },
+                            {"term": {"package_programs": {"value": program, "boost": 10}}},
+                            {"prefix": {"package_programs": {"value": program, "boost": 5}}},
                             {
                                 "wildcard": {
                                     "package_programs": {
@@ -713,9 +680,7 @@ class ElasticsearchClient:
                     matching_programs = [p for p in programs if wild_pattern in p]
                 else:
                     # For exact searches, look for exact/partial matches
-                    matching_programs = [
-                        p for p in programs if program == p or program in p
-                    ]
+                    matching_programs = [p for p in programs if program == p or program in p]
 
             packages.append(
                 {
@@ -748,9 +713,7 @@ class ElasticsearchClient:
         Returns:
             Dict containing search results and metadata
         """
-        logger.info(
-            f"Searching for packages matching '{query}' with version '{version_pattern}'"
-        )
+        logger.info(f"Searching for packages matching '{query}' with version '{version_pattern}'")
 
         request_data = {
             "from": offset,
@@ -826,9 +789,7 @@ class ElasticsearchClient:
             "packages": packages,
         }
 
-    def advanced_query(
-        self, index_type: str, query_string: str, limit: int = 50, offset: int = 0
-    ) -> Dict[str, Any]:
+    def advanced_query(self, index_type: str, query_string: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
         """
         Execute an advanced query using Elasticsearch's query string syntax.
 
@@ -852,9 +813,7 @@ class ElasticsearchClient:
         request_data = {
             "from": offset,
             "size": limit,
-            "query": {
-                "query_string": {"query": query_string, "default_operator": "AND"}
-            },
+            "query": {"query_string": {"query": query_string, "default_operator": "AND"}},
         }
 
         # Execute the query
@@ -863,7 +822,7 @@ class ElasticsearchClient:
     def set_channel(self, channel: str) -> None:
         """
         Set the NixOS channel to use for queries.
-        
+
         Args:
             channel: The channel name ('unstable', '24.11', etc.)
         """
@@ -871,16 +830,16 @@ class ElasticsearchClient:
         # In a real implementation, we would have better channel detection logic
         channel_id = self.available_channels.get(channel, self.available_channels["unstable"])
         logger.info(f"Setting channel to {channel} ({channel_id})")
-        
+
         if channel.lower() != "unstable" and channel.lower() != "24.11":
             logger.warning(f"Unknown channel: {channel}, falling back to unstable")
             channel_id = self.available_channels["unstable"]
-        
+
         # Update the Elasticsearch URLs - use the correct NixOS API endpoints
         # Note: For options, we use the same index as packages, but filter by type
         self.es_packages_url = f"{self.es_base_url}/{channel_id}/_search"
         self.es_options_url = f"{self.es_base_url}/{channel_id}/_search"
-        
+
     def get_package_stats(self, query: str = "*") -> Dict[str, Any]:
         """
         Get statistics about NixOS packages.
@@ -921,9 +880,7 @@ class ElasticsearchClient:
         # Build a query to find the exact package by name
         request_data = {
             "size": 1,  # We only need one result
-            "query": {
-                "bool": {"must": [{"term": {"package_attr_name": package_name}}]}
-            },
+            "query": {"bool": {"must": [{"term": {"package_attr_name": package_name}}]}},
         }
 
         # Execute the query
@@ -972,27 +929,23 @@ class ElasticsearchClient:
             Dict containing option details
         """
         logger.info(f"Getting detailed information for option: {option_name}")
-        
+
         # Check if this is a service option path
         is_service_path = option_name.startswith("services.") if not option_name.startswith("*") else False
         if is_service_path:
             service_parts = option_name.split(".", 2)
             service_name = service_parts[1] if len(service_parts) > 1 else ""
             logger.info(f"Detected service module option: {service_name}")
-            
+
         # Build a query to find the exact option by name
         request_data = {
             "size": 1,  # We only need one result
             "query": {
                 "bool": {
-                    "filter": [
-                        {"term": {"type": {"value": "option"}}}
-                    ],
-                    "must": [
-                        {"term": {"option_name": option_name}}
-                    ]
+                    "filter": [{"term": {"type": {"value": "option"}}}],
+                    "must": [{"term": {"option_name": option_name}}],
                 }
-            }
+            },
         }
 
         # Execute the query
@@ -1007,44 +960,47 @@ class ElasticsearchClient:
 
         if not hits:
             logger.warning(f"Option {option_name} not found with exact match, trying prefix search")
-            
+
             # Try a prefix search for hierarchical paths
             request_data = {
                 "size": 1,
                 "query": {
                     "bool": {
-                        "filter": [
-                            {"term": {"type": {"value": "option"}}}
-                        ],
-                        "must": [
-                            {"prefix": {"option_name": option_name}}
-                        ]
+                        "filter": [{"term": {"type": {"value": "option"}}}],
+                        "must": [{"prefix": {"option_name": option_name}}],
                     }
-                }
+                },
             }
-            
+
             data = self.safe_elasticsearch_query(self.es_options_url, request_data)
             hits = data.get("hits", {}).get("hits", [])
-            
+
             if not hits:
                 logger.warning(f"Option {option_name} not found with prefix search")
-                
+
                 # For service paths, provide context about common pattern structure
                 if is_service_path:
                     service_name = option_name.split(".", 2)[1] if len(option_name.split(".", 2)) > 1 else ""
                     return {
                         "name": option_name,
-                        "error": f"Option not found. Try common patterns like services.{service_name}.enable or services.{service_name}.package",
+                        "error": (
+                            f"Option not found. Try common patterns like services.{service_name}.enable or "
+                            f"services.{service_name}.package"
+                        ),
                         "found": False,
                         "is_service_path": True,
-                        "service_name": service_name
+                        "service_name": service_name,
                     }
-                
-                return {"name": option_name, "error": "Option not found", "found": False}
+
+                return {
+                    "name": option_name,
+                    "error": "Option not found",
+                    "found": False,
+                }
 
         # Extract option details from the first hit
         source = hits[0].get("_source", {})
-        
+
         # Get related options for service paths
         related_options = []
         if is_service_path:
@@ -1052,34 +1008,30 @@ class ElasticsearchClient:
             service_path_parts = option_name.split(".")
             if len(service_path_parts) >= 2:
                 service_prefix = ".".join(service_path_parts[:2])  # e.g., "services.postgresql"
-                
+
                 related_request = {
                     "size": 5,  # Get top 5 related options
                     "query": {
                         "bool": {
-                            "filter": [
-                                {"term": {"type": {"value": "option"}}}
-                            ],
-                            "must": [
-                                {"prefix": {"option_name": f"{service_prefix}."}}
-                            ],
-                            "must_not": [
-                                {"term": {"option_name": option_name}}  # Exclude the current option
-                            ]
+                            "filter": [{"term": {"type": {"value": "option"}}}],
+                            "must": [{"prefix": {"option_name": f"{service_prefix}."}}],
+                            "must_not": [{"term": {"option_name": option_name}}],  # Exclude the current option
                         }
-                    }
+                    },
                 }
-                
+
                 related_data = self.safe_elasticsearch_query(self.es_options_url, related_request)
                 related_hits = related_data.get("hits", {}).get("hits", [])
-                
+
                 for hit in related_hits:
                     rel_source = hit.get("_source", {})
-                    related_options.append({
-                        "name": rel_source.get("option_name", ""),
-                        "description": rel_source.get("option_description", ""),
-                        "type": rel_source.get("option_type", "")
-                    })
+                    related_options.append(
+                        {
+                            "name": rel_source.get("option_name", ""),
+                            "description": rel_source.get("option_description", ""),
+                            "type": rel_source.get("option_type", ""),
+                        }
+                    )
 
         # Return comprehensive option information
         result = {
@@ -1090,15 +1042,15 @@ class ElasticsearchClient:
             "example": source.get("option_example", ""),
             "declarations": source.get("option_declarations", []),
             "readOnly": source.get("option_readOnly", False),
-            "found": True
+            "found": True,
         }
-        
+
         # Add related options for service paths
         if is_service_path and related_options:
             result["related_options"] = related_options
             result["is_service_path"] = True
             result["service_name"] = option_name.split(".", 2)[1] if len(option_name.split(".", 2)) > 1 else ""
-            
+
         return result
 
 
@@ -1142,17 +1094,11 @@ class NixOSContext:
         """Search for packages that provide specific programs."""
         return self.es_client.search_programs(program, limit)
 
-    def search_packages_with_version(
-        self, query: str, version_pattern: str, limit: int = 10
-    ) -> Dict[str, Any]:
+    def search_packages_with_version(self, query: str, version_pattern: str, limit: int = 10) -> Dict[str, Any]:
         """Search for packages with a specific version pattern."""
-        return self.es_client.search_packages_with_version(
-            query, version_pattern, limit
-        )
+        return self.es_client.search_packages_with_version(query, version_pattern, limit)
 
-    def advanced_query(
-        self, index_type: str, query_string: str, limit: int = 10
-    ) -> Dict[str, Any]:
+    def advanced_query(self, index_type: str, query_string: str, limit: int = 10) -> Dict[str, Any]:
         """Execute an advanced query using Elasticsearch's query string syntax."""
         return self.es_client.advanced_query(index_type, query_string, limit)
 
@@ -1171,29 +1117,30 @@ async def app_lifespan(mcp_server: FastMCP):
     # Add prompt to guide assistants on using the MCP tools
     mcp_server.prompt = """
     # NixOS MCP Guide
-    
-    This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about NixOS packages, system options, and service configurations. It connects directly to the official NixOS Elasticsearch API to provide up-to-date results.
-    
+
+    This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about NixOS packages,
+    system options, and service configurations. It connects to the official NixOS Elasticsearch API for current results.
+
     ## When to Use These Tools
-    
+
     - `nixos_search`: Use when you need to find NixOS packages, system options, or executable programs
         - For packages: Finding software available in NixOS by name, function, or description
         - For options: Finding system configuration options, especially service configurations
         - For programs: Finding which packages provide specific executable programs
-    
+
     - `nixos_info`: Use when you need detailed information about a specific package or option
         - For packages: Getting version, description, homepage, license, provided executables
         - For options: Getting detailed descriptions, type information, default values, examples
         - Especially useful for service configuration options with related options and examples
-    
+
     - `nixos_stats`: Use when you need statistics about NixOS packages
         - Distribution by channel, license, platforms
         - Overview of the NixOS package ecosystem
-    
+
     ## Tool Parameters and Examples
-    
+
     ### nixos_search
-    
+
     ```python
     nixos_search(
         query: str,              # Required: Search term like "firefox" or "services.postgresql"
@@ -1202,15 +1149,15 @@ async def app_lifespan(mcp_server: FastMCP):
         channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
     ) -> str
     ```
-    
+
     Examples:
     - `nixos_search(query="python", type="packages")` - Find Python packages in the unstable channel
     - `nixos_search(query="services.postgresql", type="options")` - Find PostgreSQL service options
-    - `nixos_search(query="firefox", type="programs", channel="24.11")` - Find packages that provide firefox executables in 24.11 channel
-    - `nixos_search(query="services.nginx.virtualHosts", type="options")` - Find nginx virtual host configuration options
-    
+    - `nixos_search(query="firefox", type="programs", channel="24.11")` - Find packages with firefox executables
+    - `nixos_search(query="services.nginx.virtualHosts", type="options")` - Find nginx virtual host options
+
     ### nixos_info
-    
+
     ```python
     nixos_info(
         name: str,               # Required: Name of package or option
@@ -1218,46 +1165,46 @@ async def app_lifespan(mcp_server: FastMCP):
         channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
     ) -> str
     ```
-    
+
     Examples:
     - `nixos_info(name="firefox", type="package")` - Get detailed info about the firefox package
     - `nixos_info(name="services.postgresql.enable", type="option")` - Get details about the PostgreSQL enable option
     - `nixos_info(name="git", type="package", channel="24.11")` - Get package info from the 24.11 channel
-    
+
     ### nixos_stats
-    
+
     ```python
     nixos_stats() -> str
     ```
-    
+
     Example:
     - `nixos_stats()` - Get statistics about NixOS packages
-    
+
     ## Advanced Usage Tips
-    
+
     ### Hierarchical Path Searching
-    
+
     This MCP has special handling for hierarchical service option paths:
-    
+
     - Direct service paths like `services.postgresql` automatically use enhanced queries
     - Wildcards are automatically added to hierarchical paths as needed
     - The system provides suggestions for common options when a service is found
     - For service options, the system provides related options and NixOS configuration examples
-    
+
     Examples:
     - `nixos_search(query="services.postgresql", type="options")` - Find all PostgreSQL service options
-    - `nixos_info(name="services.nginx.virtualHosts", type="option")` - Get detailed info about nginx's virtualHosts option with related options
-    
+    - `nixos_info(name="services.nginx.virtualHosts", type="option")` - Get detailed info for nginx's virtualHosts
+
     ### Wildcard Search
-    
+
     - Wildcards (`*`) are automatically added to most queries
     - For more specific searches, use explicit wildcards:
         - `*term*` - Contains the term anywhere
         - `term*` - Starts with the term
         - `*term` - Ends with the term
-    
+
     ### Version Selection
-    
+
     - Use the `channel` parameter to specify which NixOS version to search:
         - `unstable` (default): Latest development branch with newest packages
         - `24.11`: Latest stable release with more stable packages
@@ -1385,7 +1332,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
     valid_types = ["packages", "options", "programs"]
     if type.lower() not in valid_types:
         return f"Error: Invalid type. Must be one of: {', '.join(valid_types)}"
-        
+
     # Set the channel for the search
     model_context.es_client.set_channel(channel)
     logger.info(f"Using channel: {channel}")
@@ -1428,21 +1375,30 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
                 service_parts = query.split(".", 2)
                 service_name = service_parts[1] if len(service_parts) > 1 else ""
                 logger.info(f"Detected services module path, service name: {service_name}")
-            
+
             results = model_context.search_options(query, limit)
             options = results.get("options", [])
 
             if not options:
                 if is_service_path:
                     suggestion_msg = f"\nTo find options for the '{service_name}' service, try these searches:\n"
-                    suggestion_msg += f"- `nixos_search(query=\"services.{service_name}.enable\", type=\"options\")`\n"
-                    suggestion_msg += f"- `nixos_search(query=\"services.{service_name}.package\", type=\"options\")`\n"
-                    
+                    suggestion_msg += f'- `nixos_search(query="services.{service_name}.enable", type="options")`\n'
+                    suggestion_msg += f'- `nixos_search(query="services.{service_name}.package", type="options")`\n'
+
                     # Add common option patterns for services
-                    common_options = ["enable", "package", "settings", "port", "user", "group", "dataDir", "configFile"]
+                    common_options = [
+                        "enable",
+                        "package",
+                        "settings",
+                        "port",
+                        "user",
+                        "group",
+                        "dataDir",
+                        "configFile",
+                    ]
                     sample_options = [f"services.{service_name}.{opt}" for opt in common_options[:3]]
                     suggestion_msg += f"\nOr try a more specific option path like: {', '.join(sample_options)}"
-                    
+
                     return f"No options found for '{query}'.\n{suggestion_msg}"
                 return f"No options found for '{query}'."
 
@@ -1461,7 +1417,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
                 output += "Services typically include these standard options:\n"
                 output += "- `enable`: Boolean to enable/disable the service\n"
                 output += "- `package`: The package to use for the service\n"
-                output += "- `settings`: Configuration settings for the service\n" 
+                output += "- `settings`: Configuration settings for the service\n"
                 output += "- `user`/`group`: User/group the service runs as\n"
                 output += "- `dataDir`: Data directory for the service\n"
 
@@ -1513,7 +1469,7 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
 
     if type.lower() not in ["package", "option"]:
         return "Error: 'type' must be 'package' or 'option'"
-    
+
     # Set the channel for the search
     model_context.es_client.set_channel(channel)
     logger.info(f"Using channel: {channel}")
@@ -1558,31 +1514,31 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
                     service_name = info.get("service_name", "")
                     output = f"# Option '{name}' not found\n\n"
                     output += f"The option '{name}' doesn't exist or couldn't be found in the {channel} channel.\n\n"
-                    
-                    output += f"## Common Options for Services\n\n"
+
+                    output += "## Common Options for Services\n\n"
                     output += f"For service '{service_name}', try these common options:\n\n"
                     output += f"- `services.{service_name}.enable` - Enable the service (boolean)\n"
                     output += f"- `services.{service_name}.package` - The package to use for the service\n"
                     output += f"- `services.{service_name}.user` - The user account to run the service\n"
                     output += f"- `services.{service_name}.group` - The group to run the service\n"
                     output += f"- `services.{service_name}.settings` - Configuration settings for the service\n\n"
-                    
-                    output += f"## Example NixOS Configuration\n\n"
-                    output += f"```nix\n"
-                    output += f"# /etc/nixos/configuration.nix\n"
-                    output += f"{{ config, pkgs, ... }}:\n"
-                    output += f"{{\n"
+
+                    output += "## Example NixOS Configuration\n\n"
+                    output += "```nix\n"
+                    output += "# /etc/nixos/configuration.nix\n"
+                    output += "{ config, pkgs, ... }:\n"
+                    output += "{\n"
                     output += f"  # Enable {service_name} service\n"
                     output += f"  services.{service_name} = {{\n"
-                    output += f"    enable = true;\n"
-                    output += f"    # Add other configuration options here\n"
-                    output += f"  }};\n"
-                    output += f"}}\n"
-                    output += f"```\n"
-                    
-                    output += f"\nTry searching for all options related to this service with:\n"
-                    output += f"`nixos_search(query=\"services.{service_name}\", type=\"options\", channel=\"{channel}\")`"
-                    
+                    output += "    enable = true;\n"
+                    output += "    # Add other configuration options here\n"
+                    output += "  };\n"
+                    output += "}\n"
+                    output += "```\n"
+
+                    output += "\nTry searching for all options related to this service with:\n"
+                    output += f'`nixos_search(query="services.{service_name}", type="options", channel="{channel}")`'
+
                     return output
                 return f"Option '{name}' not found."
 
@@ -1604,12 +1560,12 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
 
             if info.get("example"):
                 output += f"\n**Example:**\n```nix\n{info.get('example')}\n```\n"
-                
+
             # Add information about related options for service paths
             if info.get("is_service_path", False) and info.get("related_options", []):
                 service_name = info.get("service_name", "")
                 related_options = info.get("related_options", [])
-                
+
                 output += f"\n## Related Options for {service_name} Service\n\n"
                 for opt in related_options:
                     output += f"- `{opt.get('name', '')}`"
@@ -1618,34 +1574,34 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
                     output += "\n"
                     if opt.get("description"):
                         output += f"  {opt.get('description')}\n"
-                
+
                 # Add example NixOS configuration
-                output += f"\n## Example NixOS Configuration\n\n"
-                output += f"```nix\n"
-                output += f"# /etc/nixos/configuration.nix\n"
-                output += f"{{ config, pkgs, ... }}:\n"
-                output += f"{{\n"
+                output += "\n## Example NixOS Configuration\n\n"
+                output += "```nix\n"
+                output += "# /etc/nixos/configuration.nix\n"
+                output += "{ config, pkgs, ... }:\n"
+                output += "{\n"
                 output += f"  # Enable {service_name} service with options\n"
                 output += f"  services.{service_name} = {{\n"
-                output += f"    enable = true;\n"
-                if "services.{service_name}.package" in [opt.get('name', '') for opt in related_options]:
+                output += "    enable = true;\n"
+                if "services.{service_name}.package" in [opt.get("name", "") for opt in related_options]:
                     output += f"    package = pkgs.{service_name};\n"
                 # Add current option to the example
-                current_name = info.get('name', name)
-                option_leaf = current_name.split('.')[-1]
-                
+                current_name = info.get("name", name)
+                option_leaf = current_name.split(".")[-1]
+
                 if info.get("type") == "boolean":
                     output += f"    {option_leaf} = true;\n"
                 elif info.get("type") == "string":
-                    output += f"    {option_leaf} = \"value\";\n"
+                    output += f'    {option_leaf} = "value";\n'
                 elif info.get("type") == "int" or info.get("type") == "integer":
                     output += f"    {option_leaf} = 1234;\n"
                 else:
                     output += f"    # Configure {option_leaf} here\n"
-                    
-                output += f"  }};\n"
-                output += f"}}\n"
-                output += f"```\n"
+
+                output += "  };\n"
+                output += "}\n"
+                output += "```\n"
 
             return output
 

@@ -1,18 +1,14 @@
 """Tests for suggestion and error handling in NixMCP."""
 
 import unittest
-import sys
-import os
-import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-# Add the parent directory to the path so we can import the server module
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-# Import the server module
-from server import ElasticsearchClient, NixOSContext, nixos_search, nixos_info
+# Import the server module functions and classes
+from server import nixos_search, nixos_info, ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
+import logging
+
 logging.disable(logging.CRITICAL)
 
 
@@ -23,33 +19,37 @@ class TestNotFoundSuggestions(unittest.TestCase):
         """Set up the test environment."""
         # We'll simulate the tool behavior but patch the NixOSContext methods
         self.context = NixOSContext()
-        
+
         # These patches allow us to test the logic in the tools without real API calls
         patcher1 = patch.object(NixOSContext, "search_options")
         self.mock_search_options = patcher1.start()
         self.addCleanup(patcher1.stop)
-        
+
         patcher2 = patch.object(NixOSContext, "get_option")
         self.mock_get_option = patcher2.start()
         self.addCleanup(patcher2.stop)
-        
+
         # Set up default mock responses for "not found" scenarios
         self.mock_search_options.return_value = {"options": [], "count": 0}
-        self.mock_get_option.return_value = {"name": "test", "found": False, "error": "Not found"}
+        self.mock_get_option.return_value = {
+            "name": "test",
+            "found": False,
+            "error": "Not found",
+        }
 
     def test_service_not_found_suggestions(self):
         """Test suggestions when a service path returns no options."""
         # Mock an empty result for a service search
         self.mock_search_options.return_value = {"options": [], "count": 0}
-        
+
         # Call nixos_search with a service path
         result = nixos_search("services.nonexistent", "options", 10)
-        
+
         # Verify it contains helpful suggestions
         self.assertIn("No options found", result)
         self.assertIn("services.nonexistent.enable", result)
         self.assertIn("services.nonexistent.package", result)
-        
+
         # Check for specific suggestions for common option patterns
         self.assertTrue(any("enable" in line for line in result.split("\n")))
         self.assertTrue(any("package" in line for line in result.split("\n")))
@@ -63,16 +63,16 @@ class TestNotFoundSuggestions(unittest.TestCase):
             "error": "Option not found",
             "found": False,
             "is_service_path": True,
-            "service_name": "redis"
+            "service_name": "redis",
         }
-        
+
         # Call nixos_info for the non-existent option
         result = nixos_info("services.redis.nonexistent", "option")
-        
+
         # Verify redis-specific suggestions
         self.assertIn("services.redis.enable", result)
         self.assertIn("services.redis.package", result)
-        
+
         # Check for NixOS configuration example
         self.assertIn("configuration.nix", result)
         self.assertIn("services.redis = {", result)
@@ -83,15 +83,15 @@ class TestNotFoundSuggestions(unittest.TestCase):
         self.mock_search_options.return_value = {"options": [], "count": 0}
         postgresql_result = nixos_search("services.postgresql", "options", 10)
         self.assertIn("services.postgresql.enable", postgresql_result)
-        
+
         # Test with Nginx
         nginx_result = nixos_search("services.nginx", "options", 10)
         self.assertIn("services.nginx.enable", nginx_result)
-        
+
         # Test with systemd
         systemd_result = nixos_search("services.systemd", "options", 10)
         self.assertIn("services.systemd", systemd_result)
-        
+
         # Ensure each contains the appropriate service name
         self.assertIn("postgresql", postgresql_result)
         self.assertIn("nginx", nginx_result)
@@ -104,7 +104,7 @@ class TestConfigurationExamples(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         self.context = NixOSContext()
-        
+
         # Patch get_option to avoid real API calls
         patcher = patch.object(NixOSContext, "get_option")
         self.mock_get_option = patcher.start()
@@ -123,13 +123,13 @@ class TestConfigurationExamples(unittest.TestCase):
             "service_name": "postgresql",
             "related_options": [
                 {"name": "services.postgresql.package", "type": "package"},
-                {"name": "services.postgresql.dataDir", "type": "string"}
-            ]
+                {"name": "services.postgresql.dataDir", "type": "string"},
+            ],
         }
-        
+
         # Call nixos_info
         result = nixos_info("services.postgresql.enable", "option")
-        
+
         # Verify the example shows proper boolean setting
         self.assertIn("enable = true;", result)
 
@@ -140,22 +140,22 @@ class TestConfigurationExamples(unittest.TestCase):
             "name": "services.postgresql.dataDir",
             "description": "Data directory for PostgreSQL.",
             "type": "string",
-            "default": "\"/var/lib/postgresql\"",
+            "default": '"/var/lib/postgresql"',
             "found": True,
             "is_service_path": True,
             "service_name": "postgresql",
             "related_options": [
                 {"name": "services.postgresql.enable", "type": "boolean"},
-                {"name": "services.postgresql.package", "type": "package"}
-            ]
+                {"name": "services.postgresql.package", "type": "package"},
+            ],
         }
-        
+
         # Call nixos_info
         result = nixos_info("services.postgresql.dataDir", "option")
-        
+
         # Verify the example shows proper string setting
         self.assertIn("dataDir = ", result)
-        self.assertIn("\"", result)  # Should have quotes for string values
+        self.assertIn('"', result)  # Should have quotes for string values
 
     def test_int_option_example(self):
         """Test example generation for integer options."""
@@ -170,20 +170,19 @@ class TestConfigurationExamples(unittest.TestCase):
             "service_name": "postgresql",
             "related_options": [
                 {"name": "services.postgresql.enable", "type": "boolean"},
-                {"name": "services.postgresql.package", "type": "package"}
-            ]
+                {"name": "services.postgresql.package", "type": "package"},
+            ],
         }
-        
+
         # Call nixos_info
         result = nixos_info("services.postgresql.port", "option")
-        
+
         # Verify the example shows proper int setting (no quotes)
         self.assertIn("port = ", result)
-        line_with_port = [l for l in result.split("\n") if "port = " in l][0]
+        line_with_port = [line for line in result.split("\n") if "port = " in line][0]
         self.assertTrue(
-            "port = 1234;" in line_with_port or 
-            "port = 5432;" in line_with_port, 
-            f"Expected numeric port value, got: {line_with_port}"
+            "port = 1234;" in line_with_port or "port = 5432;" in line_with_port,
+            f"Expected numeric port value, got: {line_with_port}",
         )
 
 
@@ -193,7 +192,7 @@ class TestHelpfulErrorMessages(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         self.client = ElasticsearchClient()
-        
+
         # Patch safe_elasticsearch_query to return errors
         patcher = patch.object(ElasticsearchClient, "safe_elasticsearch_query")
         self.mock_query = patcher.start()
@@ -203,10 +202,10 @@ class TestHelpfulErrorMessages(unittest.TestCase):
         """Test that connection errors provide helpful guidance."""
         # Mock a connection error
         self.mock_query.return_value = {"error": "Failed to connect to Elasticsearch"}
-        
+
         # Try searching
         result = self.client.search_options("services.postgresql")
-        
+
         # Check error message
         self.assertIn("error", result)
         self.assertEqual(result["error"], "Failed to connect to Elasticsearch")
@@ -215,14 +214,14 @@ class TestHelpfulErrorMessages(unittest.TestCase):
         """Test that option not found messages are informative."""
         # First set up the mock to return empty hits
         self.mock_query.return_value = {"hits": {"hits": [], "total": {"value": 0}}}
-        
+
         # Try getting an option
         result = self.client.get_option("services.nonexistent.option")
-        
+
         # Check error message
         self.assertIn("error", result)
         self.assertFalse(result["found"])
-        
+
         # If it's a service path, should contain info about that
         if "is_service_path" in result and result["is_service_path"]:
             self.assertIn("service_name", result)
@@ -235,7 +234,7 @@ class TestRelatedOptionsDiscovery(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         self.client = ElasticsearchClient()
-        
+
         # Patch safe_elasticsearch_query to control the response
         patcher = patch.object(ElasticsearchClient, "safe_elasticsearch_query")
         self.mock_query = patcher.start()
@@ -254,37 +253,37 @@ class TestRelatedOptionsDiscovery(unittest.TestCase):
                             "_source": {
                                 "option_name": "services.postgresql.enable",
                                 "option_description": "Enable PostgreSQL",
-                                "type": "option"
+                                "type": "option",
                             }
                         }
-                    ]
+                    ],
                 }
             },
             # Second call - would be for related options
-            {"hits": {"hits": [], "total": {"value": 0}}}
+            {"hits": {"hits": [], "total": {"value": 0}}},
         ]
-        
+
         # Get the option
         self.client.get_option("services.postgresql.enable")
-        
+
         # Check that a second query was made for related options
         self.assertEqual(self.mock_query.call_count, 2)
-        
+
         # Get the second query (for related options)
         args, kwargs = self.mock_query.call_args_list[1]
-        query_data = kwargs.get('query_data', args[1] if len(args) > 1 else None)
-        
+        query_data = kwargs.get("query_data", args[1] if len(args) > 1 else None)
+
         # Verify correct query structure for related options
         self.assertIsNotNone(query_data)
         self.assertIn("query", query_data)
         self.assertIn("bool", query_data["query"])
         self.assertIn("must", query_data["query"]["bool"])
-        
+
         # Should have a prefix query for the service path
         must_clauses = query_data["query"]["bool"]["must"]
         has_prefix = any("prefix" in str(clause) for clause in must_clauses)
         self.assertTrue(has_prefix, "Related options query should use prefix matching")
-        
+
         # Should also have a must_not to exclude the current option
         self.assertIn("must_not", query_data["query"]["bool"])
 

@@ -29,6 +29,13 @@ dev = [
     "black>=23.0.0",
 ]
 
+[tool.black]
+line-length = 120
+
+[tool.flake8]
+max-line-length = 120
+ignore = ["E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"

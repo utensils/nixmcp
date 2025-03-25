@@ -3,13 +3,10 @@
 import unittest
 import sys
 import os
-import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-# Add the parent directory to the path so we can import the server module
+# Configure import path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-# Import the server module
 from server import ElasticsearchClient, NixOSContext, SimpleCache
 
 
@@ -41,9 +38,7 @@ class NixMCPRealAPITestBase(unittest.TestCase):
         self.context = NixOSContext()
 
         # Ensure we're using the correct endpoints
-        self.context.es_client.es_packages_url = (
-            "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
-        )
+        self.context.es_client.es_packages_url = "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
         self.context.es_client.es_options_url = (
             "https://search.nixos.org/backend/latest-42-nixos-unstable-options/_search"
         )

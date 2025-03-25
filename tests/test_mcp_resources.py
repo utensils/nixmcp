@@ -164,9 +164,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             self.assertEqual(result["count"], 2)
             self.assertEqual(len(result["options"]), 2)
             self.assertEqual(result["options"][0]["name"], "services.nginx.enable")
-            self.assertEqual(
-                result["options"][1]["name"], "services.nginx.virtualHosts"
-            )
+            self.assertEqual(result["options"][1]["name"], "services.nginx.virtualHosts")
 
             # Verify the mock was called correctly
             mock_search.assert_called_once_with("nginx")
@@ -181,9 +179,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
                 "type": "boolean",
                 "default": "false",
                 "example": "true",
-                "declarations": [
-                    "/nix/store/...-nixos/modules/services/web-servers/nginx/default.nix"
-                ],
+                "declarations": ["/nix/store/...-nixos/modules/services/web-servers/nginx/default.nix"],
                 "readOnly": False,
                 "found": True,
             }
@@ -230,9 +226,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             self.assertEqual(result["count"], 2)
             self.assertEqual(len(result["packages"]), 2)
             self.assertEqual(result["packages"][0]["name"], "python3")
-            self.assertEqual(
-                result["packages"][0]["programs"], ["python3", "python3.10"]
-            )
+            self.assertEqual(result["packages"][0]["programs"], ["python3", "python3.10"])
 
             # Verify the mock was called correctly
             mock_search.assert_called_once_with("python")
@@ -278,4 +272,6 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
 
 
 if __name__ == "__main__":
+    import unittest
+
     unittest.main()

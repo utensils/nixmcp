@@ -1,16 +1,10 @@
 import unittest
-import sys
-import os
-import json
 import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import time
 
-# Add the parent directory to the path so we can import the server module
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 # Import the server module
-from server import ElasticsearchClient, NixOSContext, SimpleCache, mcp
+from server import ElasticsearchClient, NixOSContext, SimpleCache
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -33,7 +27,7 @@ The approach is more useful than mocking because:
 - Verifies error handling against actual API behaviors
 - Maintains coverage even when API responses change
 
-Note: Tests run against the actual Elasticsearch API with credentials hard-coded 
+Note: Tests run against the actual Elasticsearch API with credentials hard-coded
 in the server.py file.
 """
 
@@ -54,13 +48,9 @@ class TestElasticsearchClient(unittest.TestCase):
         # Use a smaller cache for testing
         self.client.cache = SimpleCache(max_size=10, ttl=60)
         # Default base endpoint for packages index
-        self.client.es_packages_url = (
-            "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
-        )
+        self.client.es_packages_url = "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
         # Default base endpoint for options index
-        self.client.es_options_url = (
-            "https://search.nixos.org/backend/latest-42-nixos-unstable-options/_search"
-        )
+        self.client.es_options_url = "https://search.nixos.org/backend/latest-42-nixos-unstable-options/_search"
 
     def test_search_packages(self):
         """Test searching for packages."""
@@ -83,9 +73,7 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertGreater(len(result["packages"]), 0)
 
         # Test with a non-existent package
-        result = self.client.search_packages(
-            "thisshouldnotexistasapackage12345", limit=5
-        )
+        result = self.client.search_packages("thisshouldnotexistasapackage12345", limit=5)
         self.assertEqual(len(result["packages"]), 0)
 
     def test_search_options(self):
@@ -110,12 +98,10 @@ class TestElasticsearchClient(unittest.TestCase):
 
         # Test with a non-existent option
         try:
-            result = self.client.search_options(
-                "thisshouldnotexistasanoption12345", limit=5
-            )
+            result = self.client.search_options("thisshouldnotexistasanoption12345", limit=5)
             if "error" not in result:
                 self.assertEqual(len(result["options"]), 0)
-        except Exception as e:
+        except Exception:
             # If an exception is raised, it's acceptable for this specific case
             # since we're testing with a non-existent option
             pass
@@ -174,9 +160,7 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertGreater(len(result["packages"]), 0)
 
         # Test with a non-existent program
-        result = self.client.search_programs(
-            "thisshouldnotexistasaprogram12345", limit=5
-        )
+        result = self.client.search_programs("thisshouldnotexistasaprogram12345", limit=5)
         self.assertEqual(len(result["packages"]), 0)
 
     def test_advanced_query(self):
@@ -315,9 +299,7 @@ class TestNixOSContext(unittest.TestCase):
         """Set up the test environment."""
         self.context = NixOSContext()
         # Ensure we're using the correct endpoints
-        self.context.es_client.es_packages_url = (
-            "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
-        )
+        self.context.es_client.es_packages_url = "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
         self.context.es_client.es_options_url = (
             "https://search.nixos.org/backend/latest-42-nixos-unstable-options/_search"
         )
@@ -811,13 +793,9 @@ class TestMCPResources(unittest.TestCase):
         with patch.object(NixOSContext, "get_package_stats") as mock_stats:
             mock_stats.return_value = {
                 "aggregations": {
-                    "channels": {
-                        "buckets": [{"key": "nixos-unstable", "doc_count": 80000}]
-                    },
+                    "channels": {"buckets": [{"key": "nixos-unstable", "doc_count": 80000}]},
                     "licenses": {"buckets": [{"key": "MIT", "doc_count": 20000}]},
-                    "platforms": {
-                        "buckets": [{"key": "x86_64-linux", "doc_count": 70000}]
-                    },
+                    "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]},
                 }
             }
 

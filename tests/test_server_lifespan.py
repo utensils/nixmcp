@@ -3,10 +3,10 @@ import logging
 from unittest.mock import patch, MagicMock
 
 # Import base test class from __init__.py
-from tests import NixMCPTestBase, NixMCPRealAPITestBase
+from tests import NixMCPTestBase
 
 # Import the server module
-from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext, SimpleCache
+from server import app_lifespan, ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -36,44 +36,45 @@ class TestServerLifespan(unittest.TestCase):
 
         # Verify that the ElasticsearchClient is initialized
         self.assertIsInstance(mock_context["context"].es_client, ElasticsearchClient)
-        
+
     def test_system_prompt_configuration(self):
         """Test that the server configures the system prompt correctly for LLMs."""
         # Create a mock FastMCP server
         mock_server = MagicMock()
-        
+
         # Call the lifespan function with our mock
         async def run_lifespan():
             async with app_lifespan(mock_server) as _:
                 pass
-                
+
         # Use unittest to run the async function
         import asyncio
+
         asyncio.run(run_lifespan())
-        
+
         # Verify the prompt was set on the server
         self.assertTrue(mock_server.prompt is not None)
-        
+
         # Verify prompt contains key sections
         prompt_text = mock_server.prompt
         self.assertIn("NixOS MCP Guide", prompt_text)
         self.assertIn("When to Use These Tools", prompt_text)
         self.assertIn("Tool Parameters and Examples", prompt_text)
         self.assertIn("Advanced Usage Tips", prompt_text)
-        
+
         # Verify tool documentation
         self.assertIn("nixos_search", prompt_text)
         self.assertIn("nixos_info", prompt_text)
         self.assertIn("nixos_stats", prompt_text)
-        
+
         # Verify hierarchical path searching is documented
         self.assertIn("Hierarchical Path Searching", prompt_text)
         self.assertIn("services.postgresql", prompt_text)
-        
+
         # Verify wildcard search documentation
         self.assertIn("Wildcard Search", prompt_text)
         self.assertIn("*term*", prompt_text)
-        
+
         # Verify channel selection documentation
         self.assertIn("Version Selection", prompt_text)
         self.assertIn("unstable", prompt_text)
@@ -98,9 +99,7 @@ class TestErrorHandling(NixMCPTestBase):
         """
         # Use a real but invalid endpoint to generate an actual connection error
         invalid_client = ElasticsearchClient()
-        invalid_client.es_packages_url = (
-            "https://nonexistent-server.nixos.invalid/_search"
-        )
+        invalid_client.es_packages_url = "https://nonexistent-server.nixos.invalid/_search"
 
         # Replace the context's client with our invalid one
         original_client = self.context.es_client
