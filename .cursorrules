@@ -299,6 +299,8 @@ To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
       "args": ["nixmcp"],
       "env": {
         "LOG_LEVEL": "INFO"
+        // Optionally add NIX_MCP_LOG if you want file logging:
+        // "NIX_MCP_LOG": "/path/to/nixmcp.log"
       }
     }
   }

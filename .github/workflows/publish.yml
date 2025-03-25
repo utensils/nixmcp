@@ -67,6 +67,11 @@ jobs:
       - name: Build package
         run: |
           python -m build
+          
+      - name: Run tests with coverage
+        run: |
+          pip install pytest pytest-cov
+          python -m pytest
       
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

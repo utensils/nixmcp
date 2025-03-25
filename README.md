@@ -94,6 +94,8 @@ Add the following to your MCP configuration file:
       "args": ["nixmcp"],
       "env": {
         "LOG_LEVEL": "INFO"
+        // Optionally add NIX_MCP_LOG if you want file logging:
+        // "NIX_MCP_LOG": "/path/to/nixmcp.log"
       }
     }
   }
@@ -101,16 +103,17 @@ Add the following to your MCP configuration file:
 ```
 
 With this configuration:
-- Logs are written to stdout/stderr by default
-- Log level can be adjusted as needed (DEBUG, INFO, WARNING, ERROR)
+- Logs are written to stdout/stderr only (captured by the Claude Code interface)
+- No log files are created by default
+- You can enable file logging by adding the NIX_MCP_LOG environment variable
 
 ### Environment Variables
 
 You can customize the server behavior with these environment variables:
 
 ```
-LOG_LEVEL=INFO              # Log level (DEBUG, INFO, WARNING, ERROR)
-LOG_FILE=nixmcp-server.log  # Optional log file (defaults to stdout/stderr)
+LOG_LEVEL=INFO        # Log level (DEBUG, INFO, WARNING, ERROR)
+NIX_MCP_LOG=/path/log # Optional: If set, logs to this file; otherwise logs only to console
 ```
 
 ### Releasing New Versions
