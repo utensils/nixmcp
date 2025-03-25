@@ -254,12 +254,21 @@ NixMCP is available on PyPI and can be installed with pip or uv. The package pro
 To publish a new version:
 
 1. Update the version in `pyproject.toml`
-2. Build the package:
+2. Use the publish command (if using Nix Develop):
    ```bash
-   python -m build
+   nix develop
+   publish
    ```
-3. Upload to PyPI:
+
+3. Or manually publish with:
    ```bash
+   # Install build tools
+   pip install build twine
+   
+   # Build the package
+   python -m build
+   
+   # Upload to PyPI
    twine upload --config-file ./.pypirc dist/*
    ```
 

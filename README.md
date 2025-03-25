@@ -142,6 +142,9 @@ run-tests
 
 # Format code
 lint
+
+# Build and publish to PyPI
+publish
 ```
 
 ## Testing Approach
