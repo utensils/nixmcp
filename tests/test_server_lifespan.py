@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the server module
-from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext
+from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext, SimpleCache
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
