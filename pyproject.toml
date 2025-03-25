@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nixmcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "Model Context Protocol server for NixOS resources"
 readme = "README.md"
 authors = [

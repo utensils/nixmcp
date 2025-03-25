@@ -1077,7 +1077,7 @@ class NixOSContext:
         """Get the status of the NixMCP server."""
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.1.1",
             "name": "NixMCP",
             "description": "NixOS HTTP-based Model Context Protocol Server",
             "server_type": "http",
@@ -1264,7 +1264,7 @@ model_context = NixOSContext()
 logger.info("Creating FastMCP server instance")
 mcp = FastMCP(
     "NixMCP",
-    version="0.1.0",
+    version="0.1.1",
     description="NixOS HTTP-based Model Context Protocol Server",
     lifespan=app_lifespan,
 )
