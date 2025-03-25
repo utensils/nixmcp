@@ -341,13 +341,8 @@ class TestMCPTools(unittest.TestCase):
             # Get the tool function from mcp
             from server import mcp
             
-            # Access the tool directly from the tools list
-            search_nixos = None
-            for tool in mcp.tools:
-                if tool.name == "search_nixos":
-                    search_nixos = tool.func
-                    break
-                    
+            # Access the tool using the get_tool method
+            search_nixos = mcp.get_tool("search_nixos")
             self.assertIsNotNone(search_nixos, "Tool 'search_nixos' not found")
             result = search_nixos("python", "packages", 5)
             
@@ -385,13 +380,8 @@ class TestMCPTools(unittest.TestCase):
             # Get the tool function from mcp
             from server import mcp
             
-            # Access the tool directly from the tools list
-            search_nixos = None
-            for tool in mcp.tools:
-                if tool.name == "search_nixos":
-                    search_nixos = tool.func
-                    break
-                    
+            # Access the tool using the get_tool method
+            search_nixos = mcp.get_tool("search_nixos")
             self.assertIsNotNone(search_nixos, "Tool 'search_nixos' not found")
             result = search_nixos("nginx", "options", 5)
             
@@ -469,13 +459,8 @@ class TestMCPTools(unittest.TestCase):
             # Get the tool function from mcp
             from server import mcp
             
-            # Access the tool directly from the tools list
-            get_nixos_package = None
-            for tool in mcp.tools:
-                if tool.name == "get_nixos_package":
-                    get_nixos_package = tool.func
-                    break
-                    
+            # Access the tool using the get_tool method
+            get_nixos_package = mcp.get_tool("get_nixos_package")
             self.assertIsNotNone(get_nixos_package, "Tool 'get_nixos_package' not found")
             result = get_nixos_package("python3")
             
@@ -510,13 +495,8 @@ class TestMCPTools(unittest.TestCase):
             # Get the tool function from mcp
             from server import mcp
             
-            # Access the tool directly from the tools list
-            get_nixos_option = None
-            for tool in mcp.tools:
-                if tool.name == "get_nixos_option":
-                    get_nixos_option = tool.func
-                    break
-                    
+            # Access the tool using the get_tool method
+            get_nixos_option = mcp.get_tool("get_nixos_option")
             self.assertIsNotNone(get_nixos_option, "Tool 'get_nixos_option' not found")
             result = get_nixos_option("services.nginx.enable")
             
@@ -562,13 +542,8 @@ class TestMCPTools(unittest.TestCase):
             # Get the tool function from mcp
             from server import mcp
             
-            # Access the tool directly from the tools list
-            advanced_search = None
-            for tool in mcp.tools:
-                if tool.name == "advanced_search":
-                    advanced_search = tool.func
-                    break
-                    
+            # Access the tool using the get_tool method
+            advanced_search = mcp.get_tool("advanced_search")
             self.assertIsNotNone(advanced_search, "Tool 'advanced_search' not found")
             result = advanced_search("package_programs:python*", "packages", 5)
             
@@ -623,13 +598,8 @@ class TestMCPTools(unittest.TestCase):
                 # Get the tool function from mcp
                 from server import mcp
                 
-                # Access the tool directly from the tools list
-                package_statistics = None
-                for tool in mcp.tools:
-                    if tool.name == "package_statistics":
-                        package_statistics = tool.func
-                        break
-                        
+                # Access the tool using the get_tool method
+                package_statistics = mcp.get_tool("package_statistics")
                 self.assertIsNotNone(package_statistics, "Tool 'package_statistics' not found")
                 result = package_statistics("*")
                 
@@ -674,13 +644,8 @@ class TestMCPTools(unittest.TestCase):
             # Get the tool function from mcp
             from server import mcp
             
-            # Access the tool directly from the tools list
-            version_search = None
-            for tool in mcp.tools:
-                if tool.name == "version_search":
-                    version_search = tool.func
-                    break
-                    
+            # Access the tool using the get_tool method
+            version_search = mcp.get_tool("version_search")
             self.assertIsNotNone(version_search, "Tool 'version_search' not found")
             result = version_search("python", "3.1*", 5)
             

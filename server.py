@@ -980,6 +980,7 @@ def get_tool(self, name):
     for tool in self.tools:
         if hasattr(tool, 'name') and tool.name == name:
             return tool.func
+    logger.warning(f"Tool '{name}' not found")
     return None
 
 # Add the method to the FastMCP class

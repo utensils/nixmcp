@@ -73,13 +73,8 @@ class TestErrorHandling(unittest.TestCase):
         # Get the search_nixos function from the mcp object
         from server import mcp
         
-        # Access the tool directly from the tools list
-        search_nixos = None
-        for tool in mcp.tools:
-            if tool.name == "search_nixos":
-                search_nixos = tool.func
-                break
-                
+        # Access the tool using the get_tool method
+        search_nixos = mcp.get_tool("search_nixos")
         self.assertIsNotNone(search_nixos, "Tool 'search_nixos' not found")
         
         # Test with an invalid search_type
