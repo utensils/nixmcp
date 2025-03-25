@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the server module
-from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext
+from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext, SimpleCache
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -70,9 +70,6 @@ class TestErrorHandling(unittest.TestCase):
         
     def test_search_with_invalid_parameters(self):
         """Test search with invalid parameters."""
-        # Get the search_nixos function from the mcp object
-        from server import mcp
-        
         # Import the search_nixos function directly
         from server import search_nixos
         

@@ -1070,12 +1070,15 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
                 logger.info(
                     f"No results with original query, trying wildcard search: {wildcard_query}"
                 )
-                results = model_context.search_packages(wildcard_query, limit)
-                packages = results.get("packages", [])
+                try:
+                    results = model_context.search_packages(wildcard_query, limit)
+                    packages = results.get("packages", [])
 
-                # If we got results with wildcards, note this in the output
-                if packages:
-                    logger.info(f"Found {len(packages)} results using wildcard search")
+                    # If we got results with wildcards, note this in the output
+                    if packages:
+                        logger.info(f"Found {len(packages)} results using wildcard search")
+                except Exception as e:
+                    logger.error(f"Error in wildcard search: {e}", exc_info=True)
 
             if not packages:
                 return f"No packages found for query: '{query}'\n\nTry using wildcards like *{query}* for broader results."
@@ -1129,12 +1132,15 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
                 logger.info(
                     f"No results with original query, trying wildcard search: {wildcard_query}"
                 )
-                results = model_context.search_options(wildcard_query, limit)
-                options = results.get("options", [])
+                try:
+                    results = model_context.search_options(wildcard_query, limit)
+                    options = results.get("options", [])
 
-                # If we got results with wildcards, note this in the output
-                if options:
-                    logger.info(f"Found {len(options)} results using wildcard search")
+                    # If we got results with wildcards, note this in the output
+                    if options:
+                        logger.info(f"Found {len(options)} results using wildcard search")
+                except Exception as e:
+                    logger.error(f"Error in wildcard search: {e}", exc_info=True)
 
             if not options:
                 return f"No options found for query: '{query}'\n\nTry using wildcards like *{query}* for broader results."
