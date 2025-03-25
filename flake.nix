@@ -159,7 +159,18 @@
                     export PATH="$PWD/.venv/bin:$PATH"
                   fi
                   
-                  python server.py
+                  # Install the package in development mode if needed
+                  if ! python -c "import nixmcp" &>/dev/null; then
+                    echo "Installing nixmcp in development mode..."
+                    pip install -e .
+                  fi
+                  
+                  # Run either directly or using the installed package
+                  if [ -f "server.py" ]; then
+                    python server.py
+                  else
+                    python -m nixmcp
+                  fi
                 '';
               }
               {
@@ -206,8 +217,18 @@
                     esac
                   done
                   
+                  # Install the package in development mode if needed
+                  if ! python -c "import nixmcp" &>/dev/null; then
+                    echo "Installing nixmcp in development mode..."
+                    pip install -e .
+                  fi
+                  
                   # Run pytest with proper configuration
-                  python -m pytest tests/ -v $COVERAGE_ARG
+                  if [ -d "nixmcp" ]; then
+                    python -m pytest tests/ -v $COVERAGE_ARG --cov=nixmcp
+                  else
+                    python -m pytest tests/ -v $COVERAGE_ARG --cov=server
+                  fi
                   
                   # Show coverage message if enabled
                   if [ -n "$COVERAGE_ARG" ]; then
@@ -235,11 +256,19 @@
                   
                   # Format with Black
                   echo "Running Black formatter..."
-                  black *.py tests/
+                  if [ -d "nixmcp" ]; then
+                    black nixmcp/ tests/
+                  else
+                    black *.py tests/
+                  fi
                   
                   # Run flake8 to check for issues
                   echo "Running Flake8 linter..."
-                  flake8 server.py tests/
+                  if [ -d "nixmcp" ]; then
+                    flake8 nixmcp/ tests/
+                  else
+                    flake8 server.py tests/
+                  fi
                 '';
               }
               {
@@ -249,8 +278,55 @@
                 command = ''
                   echo "Formatting Python code..."
                   source .venv/bin/activate
-                  black *.py tests/
+                  if [ -d "nixmcp" ]; then
+                    black nixmcp/ tests/
+                  else
+                    black *.py tests/
+                  fi
                   echo "✅ Code formatted"
+                '';
+              }
+              {
+                name = "publish";
+                category = "distribution";
+                help = "Build and publish package to PyPI";
+                command = ''
+                  echo "Building and publishing package to PyPI..."
+                  source .venv/bin/activate
+                  
+                  # Install build and twine if needed
+                  NEED_INSTALL=0
+                  if ! python -c "import build" &>/dev/null; then
+                    echo "Need to install build..."
+                    NEED_INSTALL=1
+                  fi
+                  
+                  if ! python -c "import twine" &>/dev/null; then
+                    echo "Need to install twine..."
+                    NEED_INSTALL=1
+                  fi
+                  
+                  if [ $NEED_INSTALL -eq 1 ]; then
+                    echo "Installing publishing dependencies..."
+                    if command -v uv >/dev/null 2>&1; then
+                      uv pip install build twine
+                    else
+                      pip install build twine
+                    fi
+                  fi
+                  
+                  # Clean previous builds
+                  rm -rf dist/
+                  
+                  # Build the package
+                  echo "Building package distribution..."
+                  python -m build
+                  
+                  # Upload to PyPI
+                  echo "Uploading to PyPI..."
+                  twine upload --config-file ./.pypirc dist/*
+                  
+                  echo "✅ Package published to PyPI"
                 '';
               }
             ];
@@ -279,6 +355,7 @@
               echo "  ✨ format       - Format code with Black"
               echo "  🔧 setup        - Set up Python environment"
               echo "  🚀 setup-uv     - Install uv for faster dependency management"
+              echo "  📦 publish      - Build and publish package to PyPI"
               echo ""
               echo "Use 'menu' to see all available commands."
               echo "─────────────────────────────────────────────────────"
