@@ -194,59 +194,27 @@ menu
 
 Current code coverage is tracked on [Codecov](https://codecov.io/gh/utensils/nixmcp).
 
-## Using with Claude
+## Using with LLMs
 
-### Setting up Claude Code with Nixmcp
-
-1. Install the package globally or use uvx:
-   ```bash
-   pip install nixmcp
-   # or
-   uv pip install nixmcp
-   ```
-
-2. Configure Claude Code to use the nixmcp server by adding to your `~/.config/claude/config.json`:
-   ```json
-   {
-     "mcpServers": {
-       "nixos": {
-         "command": "uvx",
-         "args": ["nixmcp"],
-         "env": {
-           "LOG_LEVEL": "INFO"
-         }
-       }
-     }
-   }
-   ```
-
-3. If you prefer using pip-installed version:
-   ```json
-   {
-     "mcpServers": {
-       "nixos": {
-         "command": "nixmcp"
-       }
-     }
-   }
-   ```
-
-### Using Nixmcp with Claude
-
-Once the server is configured, you can use it with Claude by referencing NixOS resources in your prompts:
+Once configured, you can use NixMCP in your prompts with MCP-compatible models:
 
 ```
+# Direct resource references
 Please provide information about the Python package in NixOS.
 ~nixos://package/python
 
 What configuration options are available for NGINX in NixOS?
 ~nixos://option/services.nginx
 
-How do I set up PostgreSQL in NixOS?
-~nixos://search/options/postgresql
+# Tool usage
+Search for PostgreSQL options in NixOS:
+~nixos_search(query="postgresql", type="options")
+
+Get details about the Firefox package:
+~nixos_info(name="firefox", type="package")
 ```
 
-Claude will automatically fetch the requested information through the MCP server.
+The LLM will automatically fetch the requested information through the MCP server.
 
 ## What is Model Context Protocol?
 
