@@ -299,13 +299,13 @@ To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
       "args": ["nixmcp"],
       "env": {
         "LOG_LEVEL": "INFO"
-        // Optionally add NIX_MCP_LOG if you want file logging:
-        // "NIX_MCP_LOG": "/path/to/nixmcp.log"
       }
     }
   }
 }
 ```
+
+By default, nixmcp logs only to the console (stdout/stderr), which is captured by Claude Code. If you need file logging, add `"NIX_MCP_LOG": "/path/to/log/file.log"` to the env object.
 
 ## Build & Run Commands
 

@@ -166,11 +166,8 @@
                   fi
                   
                   # Run either directly or using the installed package
-                  # In development mode, create a log file unless explicitly set otherwise
-                  if [ -z "${NIX_MCP_LOG:-}" ]; then
-                    export NIX_MCP_LOG="$PWD/nixmcp-server.log"
-                    echo "Setting NIX_MCP_LOG to $NIX_MCP_LOG for development"
-                  fi
+                  # Do not set NIX_MCP_LOG by default - only log to console
+                  # Users can explicitly set NIX_MCP_LOG if they want file logging
                   
                   if [ -f "server.py" ]; then
                     python server.py
