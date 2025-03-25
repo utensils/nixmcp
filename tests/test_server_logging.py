@@ -29,6 +29,17 @@ class TestLogging(unittest.TestCase):
         # Should have only one handler (console)
         self.assertEqual(len(logger.handlers), 1)
         self.assertIsInstance(logger.handlers[0], logging.StreamHandler)
+        
+    @patch.dict(os.environ, {"NIX_MCP_LOG": ""}, clear=True)
+    def test_logging_empty_log_path(self):
+        """Test logging setup with NIX_MCP_LOG explicitly set to empty string."""
+        # Patch logging.info to avoid actual output during test
+        with patch.object(logging.Logger, 'info'):
+            logger = setup_logging()
+        
+        # Should still have only one handler (console), as empty path should be ignored
+        self.assertEqual(len(logger.handlers), 1)
+        self.assertIsInstance(logger.handlers[0], logging.StreamHandler)
 
     @patch.dict(os.environ, {"NIX_MCP_LOG": "/tmp/test.log"}, clear=True)
     def test_logging_with_file(self):

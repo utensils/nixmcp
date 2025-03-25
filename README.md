@@ -113,7 +113,7 @@ You can customize the server behavior with these environment variables:
 
 ```
 LOG_LEVEL=INFO        # Log level (DEBUG, INFO, WARNING, ERROR)
-NIX_MCP_LOG=/path/log # Optional: If set, logs to this file; otherwise logs only to console
+NIX_MCP_LOG=/path/log # Optional: If set to a non-empty value, logs to this file; otherwise logs only to console
 ```
 
 ### Releasing New Versions

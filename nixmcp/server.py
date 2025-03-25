@@ -67,8 +67,8 @@ def setup_logging():
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
 
-        # Add file handler only if NIX_MCP_LOG is set
-        if log_file:
+        # Add file handler only if NIX_MCP_LOG is set and not empty
+        if log_file and log_file.strip():
             try:
                 file_handler = logging.handlers.RotatingFileHandler(
                     log_file, maxBytes=10 * 1024 * 1024, backupCount=5
