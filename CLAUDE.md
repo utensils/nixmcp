@@ -251,16 +251,31 @@ NixMCP is available on PyPI and can be installed with pip or uv. The package pro
 
 ### Publishing New Versions
 
-To publish a new version:
+#### Automatic Publishing with GitHub Actions
+
+The repository is configured to automatically publish to PyPI when a new tag is pushed:
 
 1. Update the version in `pyproject.toml`
-2. Use the publish command (if using Nix Develop):
+2. Commit the changes
+3. Create and push a new tag:
+   ```bash
+   git tag v0.1.1  # Use semantic versioning
+   git push origin v0.1.1
+   ```
+
+GitHub Actions will run tests and then publish to PyPI automatically using trusted publishing.
+
+#### Manual Publishing
+
+You can also publish manually:
+
+1. Use the publish command (if using Nix Develop):
    ```bash
    nix develop
    publish
    ```
 
-3. Or manually publish with:
+2. Or manually publish with:
    ```bash
    # Install build tools
    pip install build twine

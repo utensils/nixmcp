@@ -113,6 +113,20 @@ LOG_LEVEL=INFO              # Log level (DEBUG, INFO, WARNING, ERROR)
 LOG_FILE=nixmcp-server.log  # Optional log file (defaults to stdout/stderr)
 ```
 
+### Releasing New Versions
+
+To release a new version:
+
+1. Update the version in `pyproject.toml`
+2. Commit the changes
+3. Tag the release:
+   ```bash
+   git tag v0.1.1  # Use semantic versioning
+   git push origin v0.1.1
+   ```
+
+The GitHub Actions workflow will automatically test and publish the new version to PyPI.
+
 ## Elasticsearch Credentials
 
 The server requires access to the NixOS Elasticsearch API. By default, the credentials are hardcoded in the server implementation for simplicity, but you can override them with environment variables:
