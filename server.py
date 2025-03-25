@@ -978,7 +978,7 @@ mcp = FastMCP(
 def get_tool(self, name):
     """Get a tool function by name."""
     for tool in self.tools:
-        if tool.name == name:
+        if hasattr(tool, 'name') and tool.name == name:
             return tool.func
     return None
 
