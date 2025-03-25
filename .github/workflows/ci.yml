@@ -95,3 +95,17 @@ jobs:
           # Use nix develop to set up environment and run tests
           nix develop --command setup
           nix develop --command run-tests
+          
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: |
+            ./htmlcov
+            ./coverage.xml
