@@ -33,12 +33,31 @@ The server implements both MCP resources and tools for accessing NixOS informati
 
 ### MCP Tools
 
-- `search_nixos` - Search for packages, options, or programs with automatic wildcard fallback
-- `get_nixos_package` - Get detailed information about a specific package
-- `get_nixos_option` - Get detailed information about a specific NixOS option
-- `advanced_search` - Perform complex queries using Elasticsearch query syntax
-- `package_statistics` - Get statistical information about NixOS packages
-- `version_search` - Search for packages with specific version patterns
+- `nixos_search` - Search for packages, options, or programs with automatic wildcard handling
+- `nixos_info` - Get detailed information about a specific package or option
+- `nixos_stats` - Get statistical information about NixOS packages
+
+#### Tool Usage Examples
+
+```python
+# Search for packages
+nixos_search(query="firefox", type="packages", limit=10)
+
+# Search for system options
+nixos_search(query="postgresql", type="options")
+
+# Search for programs
+nixos_search(query="python", type="programs")
+
+# Get package details
+nixos_info(name="nixos.firefox", type="package")
+
+# Get option details
+nixos_info(name="services.postgresql.enable", type="option")
+
+# Get package statistics
+nixos_stats()
+```
 
 ## Quick Start
 

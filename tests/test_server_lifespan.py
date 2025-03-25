@@ -77,14 +77,14 @@ class TestErrorHandling(NixMCPTestBase):
 
     def test_search_with_invalid_parameters(self):
         """Test search with invalid parameters."""
-        # Import the search_nixos function directly
-        from server import search_nixos
+        # Import the nixos_search function directly
+        from server import nixos_search
 
-        # Test with an invalid search_type
-        result = search_nixos("python", "invalid_type", 5)
+        # Test with an invalid type
+        result = nixos_search("python", "invalid_type", 5)
 
         # Verify the result contains an error message
-        self.assertIn("Error: Invalid search_type", result)
+        self.assertIn("Error: Invalid type", result)
         self.assertIn("Must be one of", result)
 
 

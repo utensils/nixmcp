@@ -943,6 +943,31 @@ async def app_lifespan(mcp_server: FastMCP):
     # Set up resources
     context = NixOSContext()
 
+    # Add prompt to guide assistants on using the MCP tools
+    mcp_server.prompt = """
+    # NixOS MCP Guide
+    
+    This MCP provides tools to search and retrieve information about NixOS packages and system options.
+    
+    ## Available Tools
+    
+    - `nixos_search`: Search for packages, options, or programs
+      - Example: `nixos_search(query="python", type="packages")`
+      
+    - `nixos_info`: Get detailed information about a package or option
+      - Example: `nixos_info(name="firefox", type="package")`
+      - Example: `nixos_info(name="services.postgresql.enable", type="option")`
+      
+    - `nixos_stats`: Get statistics about available NixOS packages
+      - Example: `nixos_stats()`
+    
+    ## Search Tips
+    
+    - Wildcards are automatically added to search terms
+    - For more specific searches, use explicit wildcards: `*term*`, `term*`, etc.
+    - When searching for options related to a service, try patterns like `services.*name*`
+    """
+
     try:
         # We yield our context that will be accessible in all handlers
         yield {"context": context}
@@ -1047,68 +1072,39 @@ def package_stats_resource():
 
 # Add MCP tools for searching and retrieving information
 @mcp.tool()
-def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> str:
+def nixos_search(query: str, type: str = "packages", limit: int = 20) -> str:
     """
-    Search for NixOS packages or options.
+    Search for NixOS packages, options, or programs.
 
     Args:
         query: The search term
-        search_type: Type of search - either "packages", "options", or "programs"
-        limit: Maximum number of results to return (default: 10)
+        type: What to search for - "packages", "options", or "programs"
+        limit: Maximum number of results to return (default: 20)
 
     Returns:
         Results formatted as text
     """
-    logger.info(f"Searching for {search_type} with query '{query}'")
+    logger.info(f"Searching for {type} with query '{query}'")
 
     valid_types = ["packages", "options", "programs"]
-    if search_type.lower() not in valid_types:
-        return f"Error: Invalid search_type. Must be one of: {', '.join(valid_types)}"
+    if type.lower() not in valid_types:
+        return f"Error: Invalid type. Must be one of: {', '.join(valid_types)}"
 
     try:
-        # First try the original query as-is
-        if search_type.lower() == "packages":
-            logger.info(f"Trying original query first: {query}")
+        # Add wildcards if not present and not a special query
+        if "*" not in query and ":" not in query:
+            wildcard_query = create_wildcard_query(query)
+            logger.info(f"Adding wildcards to query: {wildcard_query}")
+            query = wildcard_query
+
+        if type.lower() == "packages":
             results = model_context.search_packages(query, limit)
             packages = results.get("packages", [])
 
-            # If no results with original query and it doesn't already have wildcards,
-            # try with wildcards using the helper function
-            if not packages and "*" not in query:
-                wildcard_query = create_wildcard_query(query)
-                logger.info(
-                    f"No results with original query, trying wildcard search: {wildcard_query}"
-                )
-
-                try:
-                    results = model_context.search_packages(wildcard_query, limit)
-                    packages = results.get("packages", [])
-
-                    # If we got results with wildcards, note this in the output
-                    if packages:
-                        logger.info(
-                            f"Found {len(packages)} results using wildcard search"
-                        )
-                except Exception as e:
-                    logger.error(f"Error in wildcard search: {e}", exc_info=True)
-
             if not packages:
-                return f"No packages found for query: '{query}'\n\nTry using wildcards like *{query}* for broader results."
+                return f"No packages found for '{query}'."
 
-            # Create a flag to track if wildcards were automatically used
-            used_wildcards = False
-            if packages and "*" not in query and "wildcard_query" in locals():
-                used_wildcards = True
-
-            # Indicate if wildcards were used to find results
-            if "*" in query:
-                output = (
-                    f"Found {len(packages)} packages for wildcard query '{query}':\n\n"
-                )
-            elif used_wildcards:
-                output = f"Found {len(packages)} packages using automatic wildcard search for '{query}':\n\nNote: No exact matches were found, so wildcards were automatically added.\n\n"
-            else:
-                output = f"Found {len(packages)} packages for '{query}':\n\n"
+            output = f"Found {len(packages)} packages for '{query}':\n\n"
             for pkg in packages:
                 output += f"- {pkg.get('name', 'Unknown')}"
                 if pkg.get("version"):
@@ -1116,63 +1112,24 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
                 output += "\n"
                 if pkg.get("description"):
                     output += f"  {pkg.get('description')}\n"
-                if pkg.get("channel"):
-                    output += f"  Channel: {pkg.get('channel')}\n"
                 output += "\n"
 
             return output
 
-        elif search_type.lower() == "options":
-            # First try the original query as-is
-            logger.info(f"Trying original query first: {query}")
+        elif type.lower() == "options":
             results = model_context.search_options(query, limit)
             options = results.get("options", [])
 
-            # If no results with original query and it doesn't already have wildcards,
-            # try with wildcards using the helper function
-            if not options and "*" not in query:
-                wildcard_query = create_wildcard_query(query)
-                logger.info(
-                    f"No results with original query, trying wildcard search: {wildcard_query}"
-                )
-
-                try:
-                    results = model_context.search_options(wildcard_query, limit)
-                    options = results.get("options", [])
-
-                    # If we got results with wildcards, note this in the output
-                    if options:
-                        logger.info(
-                            f"Found {len(options)} results using wildcard search"
-                        )
-                except Exception as e:
-                    logger.error(f"Error in wildcard search: {e}", exc_info=True)
-
             if not options:
-                return f"No options found for query: '{query}'\n\nTry using wildcards like *{query}* for broader results."
+                return f"No options found for '{query}'."
 
-            # Create a flag to track if wildcards were automatically used
-            used_wildcards = False
-            if options and "*" not in query and "wildcard_query" in locals():
-                used_wildcards = True
-
-            # Indicate if wildcards were used to find results
-            if "*" in query:
-                output = (
-                    f"Found {len(options)} options for wildcard query '{query}':\n\n"
-                )
-            elif used_wildcards:
-                output = f"Found {len(options)} options using automatic wildcard search for '{query}':\n\nNote: No exact matches were found, so wildcards were automatically added.\n\n"
-            else:
-                output = f"Found {len(options)} options for '{query}':\n\n"
+            output = f"Found {len(options)} options for '{query}':\n\n"
             for opt in options:
                 output += f"- {opt.get('name', 'Unknown')}\n"
                 if opt.get("description"):
                     output += f"  {opt.get('description')}\n"
                 if opt.get("type"):
                     output += f"  Type: {opt.get('type')}\n"
-                if "default" in opt:
-                    output += f"  Default: {opt.get('default')}\n"
                 output += "\n"
 
             return output
@@ -1182,20 +1139,18 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
             packages = results.get("packages", [])
 
             if not packages:
-                return f"No packages found providing programs matching: '{query}'\n\nTry using wildcards like *{query}* for broader results."
+                return f"No packages found providing programs matching '{query}'."
 
             output = f"Found {len(packages)} packages providing programs matching '{query}':\n\n"
-
             for pkg in packages:
                 output += f"- {pkg.get('name', 'Unknown')}"
                 if pkg.get("version"):
                     output += f" ({pkg.get('version')})"
                 output += "\n"
 
-                # List matching programs
-                matching_programs = pkg.get("programs", [])
-                if matching_programs:
-                    output += f"  Programs: {', '.join(matching_programs)}\n"
+                programs = pkg.get("programs", [])
+                if programs:
+                    output += f"  Programs: {', '.join(programs)}\n"
 
                 if pkg.get("description"):
                     output += f"  {pkg.get('description')}\n"
@@ -1204,246 +1159,107 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
             return output
 
     except Exception as e:
-        logger.error(f"Error in search_nixos: {e}", exc_info=True)
-        error_message = f"Error performing search for '{query}': {str(e)}"
-
-        # Add helpful suggestions based on the error
-        if "ConnectionError" in str(e) or "ConnectionTimeout" in str(e):
-            error_message += "\n\nThere seems to be a connection issue with the Elasticsearch server. Please try again later."
-        elif "AuthenticationException" in str(e):
-            error_message += "\n\nAuthentication failed. Please check your Elasticsearch credentials."
-        else:
-            error_message += "\n\nTry simplifying your query or using wildcards like *term* for broader results."
-
-        return error_message
+        logger.error(f"Error in nixos_search: {e}", exc_info=True)
+        return f"Error performing search: {str(e)}"
 
 
 @mcp.tool()
-def get_nixos_package(package_name: str) -> str:
+def nixos_info(name: str, type: str = "package") -> str:
     """
-    Get detailed information about a NixOS package.
+    Get detailed information about a NixOS package or option.
 
     Args:
-        package_name: The name of the package
+        name: The name of the package or option
+        type: Either "package" or "option"
 
     Returns:
-        Detailed package information formatted as text
+        Detailed information formatted as text
     """
-    logger.info(f"Getting detailed information for package: {package_name}")
+    logger.info(f"Getting {type} information for: {name}")
+
+    if type.lower() not in ["package", "option"]:
+        return "Error: 'type' must be 'package' or 'option'"
 
     try:
-        package_info = model_context.get_package(package_name)
+        if type.lower() == "package":
+            info = model_context.get_package(name)
 
-        if not package_info.get("found", False):
-            return f"Package '{package_name}' not found."
+            if not info.get("found", False):
+                return f"Package '{name}' not found."
 
-        # Format the package information
-        output = f"# {package_info.get('name', package_name)}\n\n"
+            output = f"# {info.get('name', name)}\n\n"
 
-        if package_info.get("version"):
-            output += f"**Version:** {package_info.get('version')}\n"
+            if info.get("version"):
+                output += f"**Version:** {info.get('version')}\n"
 
-        if package_info.get("description"):
-            output += f"\n**Description:** {package_info.get('description')}\n"
+            if info.get("description"):
+                output += f"\n**Description:** {info.get('description')}\n"
 
-        if package_info.get("longDescription"):
-            output += (
-                f"\n**Long Description:**\n{package_info.get('longDescription')}\n"
-            )
+            if info.get("longDescription"):
+                output += f"\n**Long Description:**\n{info.get('longDescription')}\n"
 
-        if package_info.get("license"):
-            output += f"\n**License:** {package_info.get('license')}\n"
+            if info.get("homepage"):
+                output += f"\n**Homepage:** {info.get('homepage')}\n"
 
-        if package_info.get("homepage"):
-            output += f"\n**Homepage:** {package_info.get('homepage')}\n"
+            if info.get("license"):
+                output += f"\n**License:** {info.get('license')}\n"
 
-        if package_info.get("maintainers"):
-            maintainers = package_info.get("maintainers")
-            if isinstance(maintainers, list) and maintainers:
-                # Convert any dictionary items to strings
-                maintainer_strings = []
-                for m in maintainers:
-                    if isinstance(m, dict):
-                        if "name" in m:
-                            maintainer_strings.append(m["name"])
-                        elif "email" in m:
-                            maintainer_strings.append(m["email"])
-                        else:
-                            maintainer_strings.append(str(m))
-                    else:
-                        maintainer_strings.append(str(m))
-                output += f"\n**Maintainers:** {', '.join(maintainer_strings)}\n"
+            if info.get("programs") and isinstance(info.get("programs"), list):
+                programs = info.get("programs")
+                if programs:
+                    output += f"\n**Provided Programs:** {', '.join(programs)}\n"
 
-        if package_info.get("platforms"):
-            platforms = package_info.get("platforms")
-            if isinstance(platforms, list) and platforms:
-                # Convert any dictionary or complex items to strings
-                platform_strings = [str(p) for p in platforms]
-                output += f"\n**Platforms:** {', '.join(platform_strings)}\n"
+            return output
 
-        if package_info.get("channel"):
-            output += f"\n**Channel:** {package_info.get('channel')}\n"
+        else:  # option
+            info = model_context.get_option(name)
 
-        # Add programs if available
-        if package_info.get("programs"):
-            programs = package_info.get("programs")
-            if isinstance(programs, list) and programs:
-                output += f"\n**Provided Programs:** {', '.join(programs)}\n"
+            if not info.get("found", False):
+                return f"Option '{name}' not found."
 
-        return output
+            output = f"# {info.get('name', name)}\n\n"
+
+            if info.get("description"):
+                output += f"**Description:** {info.get('description')}\n\n"
+
+            if info.get("type"):
+                output += f"**Type:** {info.get('type')}\n"
+
+            if info.get("default") is not None:
+                output += f"**Default:** {info.get('default')}\n"
+
+            if info.get("example"):
+                output += f"\n**Example:**\n```nix\n{info.get('example')}\n```\n"
+
+            return output
 
     except Exception as e:
-        logger.error(f"Error getting package information: {e}")
-        return f"Error getting information for package '{package_name}': {str(e)}"
+        logger.error(f"Error getting {type} information: {e}", exc_info=True)
+        return f"Error retrieving information: {str(e)}"
 
 
 @mcp.tool()
-def get_nixos_option(option_name: str) -> str:
+def nixos_stats() -> str:
     """
-    Get detailed information about a NixOS option.
-
-    Args:
-        option_name: The name of the option
+    Get statistics about available NixOS packages.
 
     Returns:
-        Detailed option information formatted as text
+        Statistics about NixOS packages
     """
-    logger.info(f"Getting detailed information for option: {option_name}")
+    logger.info("Getting package statistics")
 
     try:
-        option_info = model_context.get_option(option_name)
+        results = model_context.get_package_stats()
 
-        if not option_info.get("found", False):
-            return f"Option '{option_name}' not found."
-
-        # Format the option information
-        output = f"# {option_info.get('name', option_name)}\n\n"
-
-        if option_info.get("description"):
-            output += f"**Description:** {option_info.get('description')}\n\n"
-
-        if option_info.get("type"):
-            output += f"**Type:** {option_info.get('type')}\n"
-
-        if option_info.get("default") is not None:
-            output += f"**Default:** {option_info.get('default')}\n"
-
-        if option_info.get("example"):
-            output += f"\n**Example:**\n```nix\n{option_info.get('example')}\n```\n"
-
-        if option_info.get("declarations"):
-            declarations = option_info.get("declarations")
-            if isinstance(declarations, list) and declarations:
-                output += f"\n**Declared in:**\n"
-                for decl in declarations:
-                    output += f"- {decl}\n"
-
-        if option_info.get("readOnly"):
-            output += f"\n**Read Only:** Yes\n"
-
-        return output
-
-    except Exception as e:
-        logger.error(f"Error getting option information: {e}")
-        return f"Error getting information for option '{option_name}': {str(e)}"
-
-
-@mcp.tool()
-def advanced_search(
-    query_string: str, index_type: str = "packages", limit: int = 20
-) -> str:
-    """
-    Perform an advanced search using Elasticsearch's query string syntax.
-
-    Args:
-        query_string: Elasticsearch query string (e.g. "package_programs:(python OR ruby)")
-        index_type: Type of index to search ("packages" or "options")
-        limit: Maximum number of results to return
-
-    Returns:
-        Search results formatted as text
-    """
-    logger.info(f"Performing advanced query string search: {query_string}")
-
-    if index_type.lower() not in ["packages", "options"]:
-        return f"Error: Invalid index_type. Must be 'packages' or 'options'."
-
-    try:
-        results = model_context.advanced_query(index_type, query_string, limit)
-
-        # Check for errors
-        if "error" in results:
-            return f"Error executing query: {results['error']}"
-
-        hits = results.get("hits", {}).get("hits", [])
-        total = results.get("hits", {}).get("total", {}).get("value", 0)
-
-        if not hits:
-            return f"No results found for query: '{query_string}'"
-
-        output = f"Found {total} results for query '{query_string}' (showing top {len(hits)}):\n\n"
-
-        for hit in hits:
-            source = hit.get("_source", {})
-            score = hit.get("_score", 0)
-
-            if index_type.lower() == "packages":
-                # Format package result
-                name = source.get("package_attr_name", "Unknown")
-                version = source.get("package_version", "")
-                description = source.get("package_description", "")
-
-                output += f"- {name}"
-                if version:
-                    output += f" ({version})"
-                output += f" [score: {score:.2f}]\n"
-                if description:
-                    output += f"  {description}\n"
-            else:
-                # Format option result
-                name = source.get("option_name", "Unknown")
-                description = source.get("option_description", "")
-
-                output += f"- {name} [score: {score:.2f}]\n"
-                if description:
-                    output += f"  {description}\n"
-
-            output += "\n"
-
-        return output
-
-    except Exception as e:
-        logger.error(f"Error in advanced_search: {e}", exc_info=True)
-        return f"Error performing advanced search: {str(e)}"
-
-
-@mcp.tool()
-def package_statistics(query: str = "*") -> str:
-    """
-    Get statistics about NixOS packages matching the query.
-
-    Args:
-        query: Search query (default: all packages)
-
-    Returns:
-        Statistics about matching packages
-    """
-    logger.info(f"Getting package statistics for query: {query}")
-
-    try:
-        results = model_context.get_package_stats(query)
-
-        # Check for errors
         if "error" in results:
             return f"Error getting statistics: {results['error']}"
 
-        # Extract aggregations
         aggregations = results.get("aggregations", {})
 
         if not aggregations:
             return "No statistics available"
 
-        output = f"# NixOS Package Statistics\n\n"
+        output = "# NixOS Package Statistics\n\n"
 
         # Channel distribution
         channels = aggregations.get("channels", {}).get("buckets", [])
@@ -1456,7 +1272,7 @@ def package_statistics(query: str = "*") -> str:
         # License distribution
         licenses = aggregations.get("licenses", {}).get("buckets", [])
         if licenses:
-            output += "## Distribution by License\n\n"
+            output += "## Top 10 Licenses\n\n"
             for license in licenses:
                 output += f"- {license.get('key', 'Unknown')}: {license.get('doc_count', 0)} packages\n"
             output += "\n"
@@ -1464,75 +1280,15 @@ def package_statistics(query: str = "*") -> str:
         # Platform distribution
         platforms = aggregations.get("platforms", {}).get("buckets", [])
         if platforms:
-            output += "## Distribution by Platform\n\n"
+            output += "## Top 10 Platforms\n\n"
             for platform in platforms:
                 output += f"- {platform.get('key', 'Unknown')}: {platform.get('doc_count', 0)} packages\n"
-            output += "\n"
-
-        # Add cache statistics
-        cache_stats = model_context.es_client.cache.get_stats()
-        output += "## Cache Statistics\n\n"
-        output += (
-            f"- Cache size: {cache_stats['size']}/{cache_stats['max_size']} entries\n"
-        )
-        output += f"- Hit ratio: {cache_stats['hit_ratio']*100:.1f}% ({cache_stats['hits']} hits, {cache_stats['misses']} misses)\n"
 
         return output
 
     except Exception as e:
         logger.error(f"Error getting package statistics: {e}", exc_info=True)
-        return f"Error getting package statistics: {str(e)}"
-
-
-@mcp.tool()
-def version_search(package_query: str, version_pattern: str, limit: int = 10) -> str:
-    """
-    Search for packages matching a specific version pattern.
-
-    Args:
-        package_query: Package search term
-        version_pattern: Version pattern to filter by (e.g., "1.*")
-        limit: Maximum number of results to return
-
-    Returns:
-        Search results formatted as text
-    """
-    logger.info(
-        f"Searching for packages matching '{package_query}' with version '{version_pattern}'"
-    )
-
-    try:
-        results = model_context.search_packages_with_version(
-            package_query, version_pattern, limit
-        )
-
-        # Check for errors
-        if "error" in results:
-            return f"Error searching packages: {results['error']}"
-
-        packages = results.get("packages", [])
-        total = results.get("count", 0)
-
-        if not packages:
-            return f"No packages found matching '{package_query}' with version pattern '{version_pattern}'"
-
-        output = f"Found {total} packages matching '{package_query}' with version pattern '{version_pattern}' (showing top {len(packages)}):\n\n"
-
-        for pkg in packages:
-            output += (
-                f"- {pkg.get('name', 'Unknown')} ({pkg.get('version', 'Unknown')})\n"
-            )
-            if pkg.get("description"):
-                output += f"  {pkg.get('description')}\n"
-            if pkg.get("channel"):
-                output += f"  Channel: {pkg.get('channel')}\n"
-            output += "\n"
-
-        return output
-
-    except Exception as e:
-        logger.error(f"Error in version_search: {e}", exc_info=True)
-        return f"Error searching packages with version pattern: {str(e)}"
+        return f"Error retrieving statistics: {str(e)}"
 
 
 if __name__ == "__main__":

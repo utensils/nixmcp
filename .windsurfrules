@@ -152,14 +152,11 @@ The server implements the following MCP resource endpoints:
 
 ## Tool Endpoints
 
-The server implements the following MCP tools:
+The server implements the following simplified MCP tools:
 
-- `search_nixos`: Search for packages, options, or programs with automatic wildcard fallback
-- `get_nixos_package`: Get detailed information about a specific package
-- `get_nixos_option`: Get detailed information about a specific NixOS option
-- `advanced_search`: Perform complex queries using Elasticsearch query syntax
-- `package_statistics`: Get statistical information about NixOS packages
-- `version_search`: Search for packages with specific version patterns
+- `nixos_search`: Search for packages, options, or programs with automatic wildcard handling
+- `nixos_info`: Get detailed information about a specific package or option
+- `nixos_stats`: Get statistical information about NixOS packages
 
 ## System Requirements
 
