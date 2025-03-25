@@ -64,3 +64,4 @@ temp
 tmp
 nixmcp-server.log
 uv-*.lock
+.aider*

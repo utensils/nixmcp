@@ -12,7 +12,7 @@ When updating rules:
    ```
 
 ## Project Overview
-NixMCP is a Model Context Protocol (MCP) server for NixOS resources. It provides MCP-compatible endpoints that allow AI assistants to search and retrieve information about NixOS packages and system options.
+NixMCP is a Model Context Protocol (MCP) server for NixOS resources. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages and system options. Communication happens over standard input/output streams using a JSON-based message format.
 
 ## MCP Implementation Guidelines
 
@@ -115,8 +115,8 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
 ### Best Practices
 
 1. **Resource vs. Tool Selection**:
-   - Use resources for retrieving data (similar to GET requests)
-   - Use tools for actions, processing, or complex queries (similar to POST)
+   - Use resources for retrieving data
+   - Use tools for actions, processing, or complex queries
    - Resources should be directly accessible by URI
    - Tools should provide user-friendly formatted output
 
@@ -140,20 +140,33 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
 
 ## Resource Endpoints
 
-The server implements standard MCP resource endpoints:
+The server implements the following MCP resource endpoints:
 
 - `nixos://status`: Server status information
 - `nixos://package/{package_name}`: Package information
 - `nixos://search/packages/{query}`: Package search
 - `nixos://search/options/{query}`: Options search
 - `nixos://option/{option_name}`: Option information
+- `nixos://search/programs/{program}`: Search for packages providing specific programs
+- `nixos://packages/stats`: Package statistics
+
+## Tool Endpoints
+
+The server implements the following MCP tools:
+
+- `search_nixos`: Search for packages, options, or programs with automatic wildcard fallback
+- `get_nixos_package`: Get detailed information about a specific package
+- `get_nixos_option`: Get detailed information about a specific NixOS option
+- `advanced_search`: Perform complex queries using Elasticsearch query syntax
+- `package_statistics`: Get statistical information about NixOS packages
+- `version_search`: Search for packages with specific version patterns
 
 ## System Requirements
 
 ### Elasticsearch API Access (Required)
 The server requires access to the NixOS Elasticsearch API to function:
 
-1. Create a `.env` file with your NixOS Elasticsearch credentials:
+1. Credentials are hardcoded in server.py for simplicity, but can be overridden with environment variables:
 ```
 ELASTICSEARCH_URL=https://search.nixos.org/backend/latest-42-nixos-unstable/_search
 ELASTICSEARCH_USER=your_username
@@ -162,19 +175,28 @@ ELASTICSEARCH_PASSWORD=your_password
 
 2. The server will authenticate with the Elasticsearch API using these credentials.
 
-Without valid Elasticsearch credentials, the server will start but will not be able to search packages or provide metadata.
+The server requires these credentials to access the NixOS package and option data.
+
+### Testing
+The project includes a comprehensive test suite:
+
+1. Tests are written using pytest and include code coverage reporting
+2. Tests make real API calls to the Elasticsearch endpoints rather than using mocks
+3. Tests are designed to be resilient to API changes and handle various response patterns
+4. Current code coverage is approximately 72%
 
 ## Build & Run Commands
 
 ### Using Nix Develop (Recommended)
 - Development environment: `nix develop`
 - Run server: `run [--port=PORT]`
-- Run tests: `run-tests`
+- Run tests: `run-tests [--no-coverage]` (includes coverage report by default)
 - List all commands: `menu`
 - Development commands:
   - `setup`: Set up Python environment (automatically uses uv if available)
   - `setup-uv`: Install uv for faster Python package management
-  - `lint`: Run Black formatter on Python code
+  - `lint`: Run Black formatter and Flake8 linter on Python code
+  - `format`: Format code with Black (without linting)
 
 ### Package Management with UV (Recommended)
 The project supports [uv](https://github.com/astral-sh/uv), a faster alternative to pip:
@@ -216,3 +238,8 @@ The project supports [uv](https://github.com/astral-sh/uv), a faster alternative
 - Prefer explicit error handling over bare except clauses
 - Cache expensive operations where appropriate
 - Types: Use static typing with Optional, Dict, List, etc.
+- Code quality tools:
+  - Use Black for code formatting 
+  - Use Flake8 for linting to catch issues like unused imports
+  - Run full test suite with coverage to monitor test quality
+  - Extract common logic into helper functions to reduce duplication

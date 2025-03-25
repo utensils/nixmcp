@@ -184,33 +184,92 @@
               {
                 name = "run-tests";
                 category = "testing";
-                help = "Run tests";
+                help = "Run tests with coverage report";
                 command = ''
-                  echo "Running tests..."
+                  echo "Running tests with coverage..."
                   source .venv/bin/activate
                   
-                  # Ensure pytest is installed
+                  # Ensure pytest and pytest-cov are installed
+                  NEED_INSTALL=0
                   if ! python -c "import pytest" &>/dev/null; then
-                    echo "Installing pytest..."
+                    echo "Need to install pytest..."
+                    NEED_INSTALL=1
+                  fi
+                  
+                  if ! python -c "import pytest_cov" &>/dev/null; then
+                    echo "Need to install pytest-cov..."
+                    NEED_INSTALL=1
+                  fi
+                  
+                  if [ $NEED_INSTALL -eq 1 ]; then
+                    echo "Installing test dependencies..."
                     if command -v uv >/dev/null 2>&1; then
-                      uv pip install pytest
+                      uv pip install pytest pytest-cov
                     else
-                      pip install pytest
+                      pip install pytest pytest-cov
                     fi
                   fi
                   
+                  # Parse arguments to see if we should include coverage
+                  COVERAGE_ARG="--cov=server --cov-report=term --cov-report=html"
+                  for arg in "$@"; do
+                    case $arg in
+                      --no-coverage)
+                        COVERAGE_ARG=""
+                        echo "Running without coverage reporting..."
+                        shift
+                        ;;
+                      *)
+                        # Unknown option
+                        ;;
+                    esac
+                  done
+                  
                   # Run pytest with proper configuration
-                  python -m pytest tests/ -v
+                  python -m pytest tests/ -v $COVERAGE_ARG
+                  
+                  # Show coverage message if enabled
+                  if [ -n "$COVERAGE_ARG" ]; then
+                    echo "✅ Coverage report generated. HTML report available in htmlcov/"
+                  fi
                 '';
               }
               {
                 name = "lint";
                 category = "development";
-                help = "Lint Python code with Black";
+                help = "Lint Python code with Black and Flake8";
                 command = ''
                   echo "Linting Python code..."
                   source .venv/bin/activate
-                  black *.py
+                  
+                  # Ensure flake8 is installed
+                  if ! python -c "import flake8" &>/dev/null; then
+                    echo "Installing flake8..."
+                    if command -v uv >/dev/null 2>&1; then
+                      uv pip install flake8
+                    else
+                      pip install flake8
+                    fi
+                  fi
+                  
+                  # Format with Black
+                  echo "Running Black formatter..."
+                  black *.py tests/
+                  
+                  # Run flake8 to check for issues
+                  echo "Running Flake8 linter..."
+                  flake8 server.py tests/
+                '';
+              }
+              {
+                name = "format";
+                category = "development";
+                help = "Format Python code with Black";
+                command = ''
+                  echo "Formatting Python code..."
+                  source .venv/bin/activate
+                  black *.py tests/
+                  echo "✅ Code formatted"
                 '';
               }
             ];
@@ -233,11 +292,12 @@
               echo "│                 Quick Commands                   │"
               echo "└─────────────────────────────────────────────────┘"
               echo ""
-              echo "  ⚡ run        - Start the NixMCP server"
-              echo "  🧪 run-tests  - Run tests"
-              echo "  🧹 lint       - Format code with Black"
-              echo "  🔧 setup      - Set up Python environment"
-              echo "  🚀 setup-uv   - Install uv for faster dependency management"
+              echo "  ⚡ run          - Start the NixMCP server"
+              echo "  🧪 run-tests    - Run tests with coverage (--no-coverage to disable)"
+              echo "  🧹 lint         - Run linters (Black + Flake8)"
+              echo "  ✨ format       - Format code with Black"
+              echo "  🔧 setup        - Set up Python environment"
+              echo "  🚀 setup-uv     - Install uv for faster dependency management"
               echo ""
               echo "Use 'menu' to see all available commands."
               echo "─────────────────────────────────────────────────────"

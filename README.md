@@ -66,14 +66,46 @@ lint
 
 ### Prerequisites
 
-The server requires access to the NixOS Elasticsearch API:
+The server requires access to the NixOS Elasticsearch API. By default, the credentials are hardcoded in the server.py file for simplicity, but you can override them with environment variables:
 
-Create a `.env` file in the project root with the following configuration:
+For custom credentials, create a `.env` file in the project root with:
 ```
 ELASTICSEARCH_URL=https://search.nixos.org/backend/latest-42-nixos-unstable/_search
 ELASTICSEARCH_USER=your_username
 ELASTICSEARCH_PASSWORD=your_password
 ```
+
+## Testing Approach
+
+The tests use real Elasticsearch API calls instead of mocks to ensure actual API compatibility. This approach:
+
+- Tests actual API behavior rather than simplified mocks
+- Validates error handling with real-world responses
+- Detects changes in the API endpoints or structure
+- Remains resilient to API changes by testing response structure
+
+The project provides Nix-based development commands:
+```bash
+# Enter the development environment
+nix develop
+
+# Run tests with coverage report (default)
+run-tests
+
+# Run tests without coverage
+run-tests --no-coverage
+
+# Lint and format code
+lint
+
+# Format code only
+format
+
+# Show all available commands
+menu
+```
+
+Current code coverage is approximately 72%.
 
 ## Using with Claude
 

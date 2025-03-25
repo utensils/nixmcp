@@ -166,7 +166,7 @@ The server implements the following MCP tools:
 ### Elasticsearch API Access (Required)
 The server requires access to the NixOS Elasticsearch API to function:
 
-1. Create a `.env` file with your NixOS Elasticsearch credentials:
+1. Credentials are hardcoded in server.py for simplicity, but can be overridden with environment variables:
 ```
 ELASTICSEARCH_URL=https://search.nixos.org/backend/latest-42-nixos-unstable/_search
 ELASTICSEARCH_USER=your_username
@@ -177,17 +177,26 @@ ELASTICSEARCH_PASSWORD=your_password
 
 The server requires these credentials to access the NixOS package and option data.
 
+### Testing
+The project includes a comprehensive test suite:
+
+1. Tests are written using pytest and include code coverage reporting
+2. Tests make real API calls to the Elasticsearch endpoints rather than using mocks
+3. Tests are designed to be resilient to API changes and handle various response patterns
+4. Current code coverage is approximately 72%
+
 ## Build & Run Commands
 
 ### Using Nix Develop (Recommended)
 - Development environment: `nix develop`
 - Run server: `run [--port=PORT]`
-- Run tests: `run-tests`
+- Run tests: `run-tests [--no-coverage]` (includes coverage report by default)
 - List all commands: `menu`
 - Development commands:
   - `setup`: Set up Python environment (automatically uses uv if available)
   - `setup-uv`: Install uv for faster Python package management
-  - `lint`: Run Black formatter on Python code
+  - `lint`: Run Black formatter and Flake8 linter on Python code
+  - `format`: Format code with Black (without linting)
 
 ### Package Management with UV (Recommended)
 The project supports [uv](https://github.com/astral-sh/uv), a faster alternative to pip:
@@ -229,3 +238,8 @@ The project supports [uv](https://github.com/astral-sh/uv), a faster alternative
 - Prefer explicit error handling over bare except clauses
 - Cache expensive operations where appropriate
 - Types: Use static typing with Optional, Dict, List, etc.
+- Code quality tools:
+  - Use Black for code formatting 
+  - Use Flake8 for linting to catch issues like unused imports
+  - Run full test suite with coverage to monitor test quality
+  - Extract common logic into helper functions to reduce duplication

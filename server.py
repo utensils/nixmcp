@@ -9,16 +9,14 @@ message format, allowing seamless integration with MCP-compatible AI models.
 """
 
 import os
-import sys
 import logging
 import logging.handlers
 import json
 import time
-import functools
-from typing import Dict, List, Optional, Any, Union, Tuple
+from typing import Dict, Any
 import requests
 from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.fastmcp import FastMCP
 from contextlib import asynccontextmanager
 
 # Load environment variables from .env file
@@ -962,6 +960,26 @@ async def app_lifespan(mcp_server: FastMCP):
             logger.error(f"Error during server shutdown cleanup: {e}")
 
 
+# Helper functions
+def create_wildcard_query(query: str) -> str:
+    """Create a wildcard query from a regular query string.
+
+    Args:
+        query: The original query string
+
+    Returns:
+        A query string with wildcards added
+    """
+    if " " in query:
+        # For multi-word queries, add wildcards around each word
+        words = query.split()
+        wildcard_terms = [f"*{word}*" for word in words]
+        return " ".join(wildcard_terms)
+    else:
+        # For single word queries, just wrap with wildcards
+        return f"*{query}*"
+
+
 # Initialize the model context before creating server
 model_context = NixOSContext()
 
@@ -1055,28 +1073,22 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
             packages = results.get("packages", [])
 
             # If no results with original query and it doesn't already have wildcards,
-            # try with wildcards
+            # try with wildcards using the helper function
             if not packages and "*" not in query:
-                # Create wildcard query
-                if " " in query:
-                    # For multi-word queries, add wildcards around each word
-                    words = query.split()
-                    wildcard_terms = [f"*{word}*" for word in words]
-                    wildcard_query = " ".join(wildcard_terms)
-                else:
-                    # For single word queries, just wrap with wildcards
-                    wildcard_query = f"*{query}*"
-
+                wildcard_query = create_wildcard_query(query)
                 logger.info(
                     f"No results with original query, trying wildcard search: {wildcard_query}"
                 )
+
                 try:
                     results = model_context.search_packages(wildcard_query, limit)
                     packages = results.get("packages", [])
 
                     # If we got results with wildcards, note this in the output
                     if packages:
-                        logger.info(f"Found {len(packages)} results using wildcard search")
+                        logger.info(
+                            f"Found {len(packages)} results using wildcard search"
+                        )
                 except Exception as e:
                     logger.error(f"Error in wildcard search: {e}", exc_info=True)
 
@@ -1117,28 +1129,22 @@ def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> 
             options = results.get("options", [])
 
             # If no results with original query and it doesn't already have wildcards,
-            # try with wildcards
+            # try with wildcards using the helper function
             if not options and "*" not in query:
-                # Create wildcard query
-                if " " in query:
-                    # For multi-word queries, add wildcards around each word
-                    words = query.split()
-                    wildcard_terms = [f"*{word}*" for word in words]
-                    wildcard_query = " ".join(wildcard_terms)
-                else:
-                    # For single word queries, just wrap with wildcards
-                    wildcard_query = f"*{query}*"
-
+                wildcard_query = create_wildcard_query(query)
                 logger.info(
                     f"No results with original query, trying wildcard search: {wildcard_query}"
                 )
+
                 try:
                     results = model_context.search_options(wildcard_query, limit)
                     options = results.get("options", [])
 
                     # If we got results with wildcards, note this in the output
                     if options:
-                        logger.info(f"Found {len(options)} results using wildcard search")
+                        logger.info(
+                            f"Found {len(options)} results using wildcard search"
+                        )
                 except Exception as e:
                     logger.error(f"Error in wildcard search: {e}", exc_info=True)
 
