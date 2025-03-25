@@ -56,16 +56,27 @@
             ${pythonEnv}/bin/python -m venv .venv
             source .venv/bin/activate
             
+            # Ensure pip is installed and up-to-date in the venv
+            echo "Ensuring pip is installed and up-to-date..."
+            python -m ensurepip --upgrade
+            python -m pip install --upgrade pip setuptools wheel
+            
             # Check if uv is available and use it, otherwise fall back to pip
             if command -v uv >/dev/null 2>&1; then
               echo "Using uv to install dependencies..."
               uv pip install -r requirements.txt
             else
               echo "Using pip to install dependencies..."
-              pip install -r requirements.txt
+              python -m pip install -r requirements.txt
             fi
           else
             source .venv/bin/activate
+            # Verify pip is using the venv version
+            VENV_PIP="$(which pip)"
+            if [[ "$VENV_PIP" != *".venv/bin/pip"* ]]; then
+              echo "Warning: Not using virtual environment pip. Fixing PATH..."
+              export PATH="$PWD/.venv/bin:$PATH"
+            fi
           fi
         '';
 
@@ -87,6 +98,9 @@
               { name = "NIXMCP_ENV"; value = "development"; }
               { name = "PS1"; value = "\\[\\e[1;36m\\][nixmcp]\\[\\e[0m\\]$ "; }
               { name = "DEFAULT_PORT"; value = "${defaultPort}"; }
+              # Ensure Python uses the virtual environment
+              { name = "VIRTUAL_ENV"; eval = "$PWD/.venv"; }
+              { name = "PATH"; eval = "$PWD/.venv/bin:$PATH"; }
             ];
             
             packages = with pkgs; [
@@ -139,6 +153,13 @@
                 command = ''
                   echo "Starting NixMCP server..."
                   source .venv/bin/activate
+                  
+                  # Verify pip is using the venv version
+                  VENV_PIP="$(which pip)"
+                  if [[ "$VENV_PIP" != *".venv/bin/pip"* ]]; then
+                    echo "Warning: Not using virtual environment pip. Fixing PATH..."
+                    export PATH="$PWD/.venv/bin:$PATH"
+                  fi
                   
                   # Default port from environment
                   PORT=$DEFAULT_PORT
