@@ -18,7 +18,7 @@ class TestServerLifespan(unittest.TestCase):
     """Test the server lifespan context manager."""
 
     @patch('server.app_lifespan')
-    async def test_lifespan_initialization(self, mock_lifespan):
+    def test_lifespan_initialization(self, mock_lifespan):
         """Test that the lifespan context manager initializes correctly."""
         # Create a mock context
         mock_context = {"context": NixOSContext()}

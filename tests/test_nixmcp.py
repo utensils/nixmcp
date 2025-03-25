@@ -5,7 +5,6 @@ import json
 import logging
 from unittest.mock import patch, MagicMock
 import time
-import asyncio
 
 # Add the parent directory to the path so we can import the server module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
