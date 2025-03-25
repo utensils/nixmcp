@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the server module
-from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext
+from server import app_lifespan, mcp, ElasticsearchClient, NixOSContext, SimpleCache
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -18,7 +18,7 @@ class TestServerLifespan(unittest.TestCase):
     """Test the server lifespan context manager."""
 
     @patch('server.app_lifespan')
-    def test_lifespan_initialization(self, mock_lifespan):
+    async def test_lifespan_initialization(self, mock_lifespan):
         """Test that the lifespan context manager initializes correctly."""
         # Create a mock context
         mock_context = {"context": NixOSContext()}
@@ -70,8 +70,9 @@ class TestErrorHandling(unittest.TestCase):
         
     def test_search_with_invalid_parameters(self):
         """Test search with invalid parameters."""
-        # Import the search_nixos function
-        from server import search_nixos
+        # Get the search_nixos function from the mcp object
+        from server import mcp
+        search_nixos = mcp.get_tool("search_nixos")
         
         # Test with an invalid search_type
         result = search_nixos("python", "invalid_type", 5)

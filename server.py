@@ -974,6 +974,17 @@ mcp = FastMCP(
     lifespan=app_lifespan,
 )
 
+# Add a helper method to get tools by name
+def get_tool(self, name):
+    """Get a tool function by name."""
+    for tool in self.tools:
+        if tool.name == name:
+            return tool.func
+    return None
+
+# Add the method to the FastMCP class
+FastMCP.get_tool = get_tool
+
 
 # Define MCP resources for packages
 @mcp.resource("nixos://status")

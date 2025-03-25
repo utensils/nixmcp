@@ -339,8 +339,9 @@ class TestMCPTools(unittest.TestCase):
                 ]
             }
             
-            # Call the tool function directly
-            from server import search_nixos
+            # Get the tool function from mcp
+            from server import mcp
+            search_nixos = mcp.get_tool("search_nixos")
             result = search_nixos("python", "packages", 5)
             
             # Verify the result
@@ -374,8 +375,9 @@ class TestMCPTools(unittest.TestCase):
                 ]
             }
             
-            # Call the tool function directly
-            from server import search_nixos
+            # Get the tool function from mcp
+            from server import mcp
+            search_nixos = mcp.get_tool("search_nixos")
             result = search_nixos("nginx", "options", 5)
             
             # Verify the result
@@ -409,8 +411,9 @@ class TestMCPTools(unittest.TestCase):
                 ]
             }
             
-            # Call the tool function directly
-            from server import search_nixos
+            # Get the tool function from mcp
+            from server import mcp
+            search_nixos = mcp.get_tool("search_nixos")
             result = search_nixos("python", "programs", 5)
             
             # Verify the result
@@ -440,8 +443,9 @@ class TestMCPTools(unittest.TestCase):
                 "found": True
             }
             
-            # Call the tool function directly
-            from server import get_nixos_package
+            # Get the tool function from mcp
+            from server import mcp
+            get_nixos_package = mcp.get_tool("get_nixos_package")
             result = get_nixos_package("python3")
             
             # Verify the result
@@ -472,8 +476,9 @@ class TestMCPTools(unittest.TestCase):
                 "found": True
             }
             
-            # Call the tool function directly
-            from server import get_nixos_option
+            # Get the tool function from mcp
+            from server import mcp
+            get_nixos_option = mcp.get_tool("get_nixos_option")
             result = get_nixos_option("services.nginx.enable")
             
             # Verify the result
@@ -515,8 +520,9 @@ class TestMCPTools(unittest.TestCase):
                 }
             }
             
-            # Call the tool function directly
-            from server import advanced_search
+            # Get the tool function from mcp
+            from server import mcp
+            advanced_search = mcp.get_tool("advanced_search")
             result = advanced_search("package_programs:python*", "packages", 5)
             
             # Verify the result
@@ -567,8 +573,9 @@ class TestMCPTools(unittest.TestCase):
                     "hit_ratio": 0.8
                 }
                 
-                # Call the tool function directly
-                from server import package_statistics
+                # Get the tool function from mcp
+                from server import mcp
+                package_statistics = mcp.get_tool("package_statistics")
                 result = package_statistics("*")
                 
                 # Verify the result
@@ -609,8 +616,9 @@ class TestMCPTools(unittest.TestCase):
                 ]
             }
             
-            # Call the tool function directly
-            from server import version_search
+            # Get the tool function from mcp
+            from server import mcp
+            version_search = mcp.get_tool("version_search")
             result = version_search("python", "3.1*", 5)
             
             # Verify the result
