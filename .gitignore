@@ -67,3 +67,4 @@ uv-*.lock
 .aider*
 .pypirc
 mcp-completion-docs.md
+TODO.md

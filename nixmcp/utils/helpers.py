@@ -36,6 +36,85 @@ def create_wildcard_query(query: str) -> str:
         return f"*{query}*"
 
 
+def extract_hierarchical_paths(query: str) -> tuple[list[str], list[str]]:
+    """Extract hierarchical paths (containing dots) from a multi-word query.
+
+    Args:
+        query: The original multi-word query string
+
+    Returns:
+        A tuple containing (hierarchical_parts, non_hierarchical_parts)
+    """
+    words = query.split()
+    hierarchical_parts = [word for word in words if "." in word]
+    non_hierarchical_parts = [word for word in words if "." not in word]
+
+    return hierarchical_parts, non_hierarchical_parts
+
+
+def parse_multi_word_query(query: str) -> dict:
+    """Parse a multi-word query into structured components for better search.
+
+    This function handles complex queries with:
+    - Hierarchical paths (dot-notation)
+    - Space-separated terms
+    - Quoted phrases
+
+    Args:
+        query: The original query string
+
+    Returns:
+        A dictionary with:
+        - main_path: The primary hierarchical path (if any)
+        - additional_paths: Other hierarchical paths
+        - terms: Regular search terms
+        - quoted_terms: Terms that should be searched exactly as provided
+        - original: The original query
+    """
+    # Initialize result
+    result = {"main_path": None, "additional_paths": [], "terms": [], "quoted_terms": [], "original": query}
+
+    # Extract quoted terms first
+    quoted_terms = []
+    unquoted_query = query
+
+    # Simple quote handling (doesn't handle escaped quotes yet)
+    quote_positions = []
+    in_quote = False
+    start_pos = -1
+
+    for i, char in enumerate(query):
+        if char == '"' and (i == 0 or query[i - 1] != "\\"):
+            if not in_quote:
+                start_pos = i
+                in_quote = True
+            else:
+                quote_positions.append((start_pos, i))
+                in_quote = False
+
+    # Extract quoted sections
+    for start, end in sorted(quote_positions, reverse=True):
+        quoted_term = query[start + 1 : end]  # Remove the quotes
+        quoted_terms.append(quoted_term)
+        # Remove the quoted section from the unquoted query
+        unquoted_query = unquoted_query[:start] + " " + unquoted_query[end + 1 :]
+
+    result["quoted_terms"] = quoted_terms
+
+    # Process the remaining unquoted parts
+    hierarchical_parts, non_hierarchical_parts = extract_hierarchical_paths(unquoted_query)
+
+    # Set the main hierarchical path if exists
+    if hierarchical_parts:
+        result["main_path"] = hierarchical_parts[0]
+        result["additional_paths"] = hierarchical_parts[1:]
+
+    # Add regular terms
+    result["terms"] = non_hierarchical_parts
+
+    return result
+
+
 def get_context_or_fallback(context: Optional[T], context_name: str) -> T:
     """Get the provided context or fall back to global context.
 

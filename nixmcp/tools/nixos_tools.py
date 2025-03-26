@@ -8,7 +8,11 @@ import logging
 logger = logging.getLogger("nixmcp")
 
 # Import utility functions
-from nixmcp.utils.helpers import create_wildcard_query, get_context_or_fallback
+from nixmcp.utils.helpers import (
+    create_wildcard_query,
+    get_context_or_fallback,
+    parse_multi_word_query,
+)
 
 
 def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable", context=None) -> str:
@@ -39,11 +43,90 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
     logger.info(f"Using channel: {channel}")
 
     try:
-        # Special handling for hierarchical paths in options
-        if type.lower() == "options" and "." in query and "*" not in query:
-            # Don't add wildcards yet - the search_options method will handle it
-            logger.info(f"Detected hierarchical path in options search: {query}")
-        # Add wildcards if not present and not a special query
+        # Enhanced multi-word query handling for options
+        if type.lower() == "options":
+            # Parse the query if it's a multi-word query
+            if " " in query:
+                query_components = parse_multi_word_query(query)
+                logger.info(f"Parsed multi-word query: {query_components}")
+
+                # If we have a hierarchical path (dot notation) in a multi-word query
+                if query_components["main_path"]:
+                    main_path = query_components["main_path"]
+                    terms = query_components["terms"]
+                    quoted_terms = query_components["quoted_terms"]
+
+                    logger.info(
+                        f"Multi-word hierarchical query detected: path={main_path}, "
+                        f"terms={terms}, quoted={quoted_terms}"
+                    )
+
+                    # Use the main hierarchical path for searching, and use terms for additional filtering
+                    # Pass the structured query to the search_options method
+                    results = context.search_options(
+                        main_path, limit=limit, additional_terms=terms, quoted_terms=quoted_terms
+                    )
+
+                    # Handle the results
+                    options = results.get("options", [])
+
+                    if not options:
+                        # Check if this is a service path for better suggestions
+                        is_service_path = main_path.startswith("services.")
+                        service_name = ""
+                        if is_service_path:
+                            service_parts = main_path.split(".", 2)
+                            service_name = service_parts[1] if len(service_parts) > 1 else ""
+
+                            # Provide suggestions based on parsed components
+                            original_parts = " ".join([main_path] + terms + quoted_terms)
+                            suggestion_msg = f"\nYour search '{original_parts}' returned no results.\n\n"
+                            suggestion_msg += "Try these approaches instead:\n"
+
+                            if service_name:
+                                suggestion_msg += (
+                                    f"1. Search for the exact option: "
+                                    f'`nixos_info(name="{main_path}.{terms[0] if terms else "acceptTerms"}", '
+                                    f'type="option")`\n'
+                                )
+                                suggestion_msg += (
+                                    f"2. Search for all options in this path: "
+                                    f'`nixos_search(query="{main_path}", type="options")`\n'
+                                )
+                                if terms:
+                                    suggestion_msg += (
+                                        f'3. Search for "{terms[0]}" within the service: '
+                                        f'`nixos_search(query="services.{service_name} {terms[0]}", type="options")`\n'
+                                    )
+
+                            return f"No options found for '{query}'.\n{suggestion_msg}"
+
+                        return f"No options found for '{query}'."
+
+                    # Custom formatting of results for multi-word hierarchical queries
+                    output = f"Found {len(options)} options for '{query}':\n\n"
+                    for opt in options:
+                        output += f"- {opt.get('name', 'Unknown')}\n"
+                        if opt.get("description"):
+                            output += f"  {opt.get('description')}\n"
+                        if opt.get("type"):
+                            output += f"  Type: {opt.get('type')}\n"
+                        output += "\n"
+
+                    return output
+
+            # Handle simple hierarchical paths (no spaces)
+            elif "." in query and "*" not in query:
+                # Don't add wildcards yet - the search_options method will handle it
+                logger.info(f"Detected hierarchical path in options search: {query}")
+
+            # Add wildcards if not present and not a special query
+            elif "*" not in query and ":" not in query:
+                wildcard_query = create_wildcard_query(query)
+                logger.info(f"Adding wildcards to query: {wildcard_query}")
+                query = wildcard_query
+
+        # For non-options searches (packages, programs), use standard wildcard handling
         elif "*" not in query and ":" not in query:
             wildcard_query = create_wildcard_query(query)
             logger.info(f"Adding wildcards to query: {wildcard_query}")

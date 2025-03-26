@@ -230,18 +230,30 @@ class ElasticsearchClient:
             "packages": packages,
         }
 
-    def search_options(self, query: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
+    def search_options(
+        self, query: str, limit: int = 50, offset: int = 0, additional_terms: list = None, quoted_terms: list = None
+    ) -> Dict[str, Any]:
         """
-        Search for NixOS options with enhanced query handling.
+        Search for NixOS options with enhanced multi-word query handling.
 
         Args:
-            query: Search term
+            query: Search term (main query or hierarchical path)
             limit: Maximum number of results to return
             offset: Offset for pagination
+            additional_terms: Additional terms to filter results
+            quoted_terms: Phrases that should be matched exactly
 
         Returns:
             Dict containing search results and metadata
         """
+        # Initialize optional parameters
+        additional_terms = additional_terms or []
+        quoted_terms = quoted_terms or []
+
+        logger.info(
+            f"Search options with: query='{query}', additional_terms={additional_terms}, "
+            f"quoted_terms={quoted_terms}, limit={limit}"
+        )
         # Check if query contains wildcards
         if "*" in query:
             # Build a query with wildcards
@@ -282,6 +294,86 @@ class ElasticsearchClient:
                     logger.info(f"Special handling for service module path: {query}")
                     service_name = query.split(".", 2)[1] if len(query.split(".", 2)) > 1 else ""
 
+                    # Prepare additional filters for multi-word queries
+                    additional_shoulds = []
+
+                    # Add filters for additional terms if provided
+                    if additional_terms:
+                        for term in additional_terms:
+                            # Look for the term in description field with good boost
+                            additional_shoulds.append(
+                                {
+                                    "match": {
+                                        "option_description": {
+                                            "query": term,
+                                            "boost": 4.0,
+                                        }
+                                    }
+                                }
+                            )
+
+                            # Also look for term in option name (for combined path+term matches)
+                            additional_shoulds.append(
+                                {
+                                    "wildcard": {
+                                        "option_name": {
+                                            "value": f"*{term}*",
+                                            "case_insensitive": True,
+                                            "boost": 3.0,
+                                        }
+                                    }
+                                }
+                            )
+
+                    # Add filters for quoted phrases if provided
+                    if quoted_terms:
+                        for phrase in quoted_terms:
+                            additional_shoulds.append(
+                                {
+                                    "match_phrase": {
+                                        "option_description": {
+                                            "query": phrase,
+                                            "boost": 6.0,
+                                        }
+                                    }
+                                }
+                            )
+
+                    # Generate base shoulds which are always included
+                    base_shoulds = [
+                        # Exact prefix match for the hierarchical path
+                        {
+                            "prefix": {
+                                "option_name": {
+                                    "value": query,
+                                    "boost": 10.0,
+                                }
+                            }
+                        },
+                        # Wildcard match
+                        {
+                            "wildcard": {
+                                "option_name": {
+                                    "value": hierarchical_query,
+                                    "case_insensitive": True,
+                                    "boost": 8.0,
+                                }
+                            }
+                        },
+                        # Match against specific service name in description
+                        {
+                            "match": {
+                                "option_description": {
+                                    "query": service_name,
+                                    "boost": 2.0,
+                                }
+                            }
+                        },
+                    ]
+
+                    # Combine base shoulds with additional terms
+                    all_shoulds = base_shoulds + additional_shoulds
+
                     # Build a more specific query for service modules
                     search_query = {
                         "bool": {
@@ -289,36 +381,7 @@ class ElasticsearchClient:
                             "must": [
                                 {
                                     "bool": {
-                                        "should": [
-                                            # Exact prefix match for the hierarchical path
-                                            {
-                                                "prefix": {
-                                                    "option_name": {
-                                                        "value": query,
-                                                        "boost": 10.0,
-                                                    }
-                                                }
-                                            },
-                                            # Wildcard match
-                                            {
-                                                "wildcard": {
-                                                    "option_name": {
-                                                        "value": hierarchical_query,
-                                                        "case_insensitive": True,
-                                                        "boost": 8.0,
-                                                    }
-                                                }
-                                            },
-                                            # Match against specific service name in description
-                                            {
-                                                "match": {
-                                                    "option_description": {
-                                                        "query": service_name,
-                                                        "boost": 2.0,
-                                                    }
-                                                }
-                                            },
-                                        ],
+                                        "should": all_shoulds,
                                         "minimum_should_match": 1,
                                     }
                                 }
@@ -326,6 +389,69 @@ class ElasticsearchClient:
                         }
                     }
                 else:
+                    # Prepare additional filters for multi-word queries
+                    additional_queries = []
+
+                    # Add filters for additional terms if provided
+                    if additional_terms:
+                        for term in additional_terms:
+                            # Look for the term in description field with good boost
+                            additional_queries.append(
+                                {
+                                    "match": {
+                                        "option_description": {
+                                            "query": term,
+                                            "boost": 4.0,
+                                        }
+                                    }
+                                }
+                            )
+
+                    # Add filters for quoted phrases if provided
+                    if quoted_terms:
+                        for phrase in quoted_terms:
+                            additional_queries.append(
+                                {
+                                    "match_phrase": {
+                                        "option_description": {
+                                            "query": phrase,
+                                            "boost": 6.0,
+                                        }
+                                    }
+                                }
+                            )
+
+                    # Generate base queries which are always included
+                    base_queries = [
+                        {
+                            "multi_match": {
+                                "type": "cross_fields",
+                                "query": query,
+                                "analyzer": "whitespace",
+                                "auto_generate_synonyms_phrase_query": False,
+                                "operator": "and",
+                                "_name": f"multi_match_{query}",
+                                "fields": [
+                                    "option_name^6",
+                                    "option_name.*^3.6",
+                                    "option_description^1",
+                                    "option_description.*^0.6",
+                                ],
+                            }
+                        },
+                        {
+                            "wildcard": {
+                                "option_name": {
+                                    "value": hierarchical_query,
+                                    "case_insensitive": True,
+                                }
+                            }
+                        },
+                    ]
+
+                    # Combine base queries with additional terms
+                    all_queries = base_queries + additional_queries
+
                     # Build a more sophisticated query for other hierarchical paths
                     search_query = {
                         "bool": {
@@ -343,39 +469,77 @@ class ElasticsearchClient:
                                 {
                                     "dis_max": {
                                         "tie_breaker": 0.7,
-                                        "queries": [
-                                            {
-                                                "multi_match": {
-                                                    "type": "cross_fields",
-                                                    "query": query,
-                                                    "analyzer": "whitespace",
-                                                    "auto_generate_synonyms_phrase_query": False,
-                                                    "operator": "and",
-                                                    "_name": f"multi_match_{query}",
-                                                    "fields": [
-                                                        "option_name^6",
-                                                        "option_name.*^3.6",
-                                                        "option_description^1",
-                                                        "option_description.*^0.6",
-                                                    ],
-                                                }
-                                            },
-                                            {
-                                                "wildcard": {
-                                                    "option_name": {
-                                                        "value": hierarchical_query,
-                                                        "case_insensitive": True,
-                                                    }
-                                                }
-                                            },
-                                        ],
+                                        "queries": all_queries,
                                     }
                                 }
                             ],
                         }
                     }
             else:
-                # For regular term searches, use the NixOS search format
+                # Prepare additional filters for multi-word queries
+                additional_queries = []
+
+                # Add filters for additional terms if provided
+                if additional_terms:
+                    for term in additional_terms:
+                        # Look for the term in description field with good boost
+                        additional_queries.append(
+                            {
+                                "match": {
+                                    "option_description": {
+                                        "query": term,
+                                        "boost": 4.0,
+                                    }
+                                }
+                            }
+                        )
+
+                # Add filters for quoted phrases if provided
+                if quoted_terms:
+                    for phrase in quoted_terms:
+                        additional_queries.append(
+                            {
+                                "match_phrase": {
+                                    "option_description": {
+                                        "query": phrase,
+                                        "boost": 6.0,
+                                    }
+                                }
+                            }
+                        )
+
+                # Generate base queries which are always included
+                base_queries = [
+                    {
+                        "multi_match": {
+                            "type": "cross_fields",
+                            "query": query,
+                            "analyzer": "whitespace",
+                            "auto_generate_synonyms_phrase_query": False,
+                            "operator": "and",
+                            "_name": f"multi_match_{query}",
+                            "fields": [
+                                "option_name^6",
+                                "option_name.*^3.6",
+                                "option_description^1",
+                                "option_description.*^0.6",
+                            ],
+                        }
+                    },
+                    {
+                        "wildcard": {
+                            "option_name": {
+                                "value": f"*{query}*",
+                                "case_insensitive": True,
+                            }
+                        }
+                    },
+                ]
+
+                # Combine base queries with additional terms
+                all_queries = base_queries + additional_queries
+
+                # For regular term searches, use the NixOS search format with additional terms support
                 search_query = {
                     "bool": {
                         "filter": [
@@ -392,32 +556,7 @@ class ElasticsearchClient:
                             {
                                 "dis_max": {
                                     "tie_breaker": 0.7,
-                                    "queries": [
-                                        {
-                                            "multi_match": {
-                                                "type": "cross_fields",
-                                                "query": query,
-                                                "analyzer": "whitespace",
-                                                "auto_generate_synonyms_phrase_query": False,
-                                                "operator": "and",
-                                                "_name": f"multi_match_{query}",
-                                                "fields": [
-                                                    "option_name^6",
-                                                    "option_name.*^3.6",
-                                                    "option_description^1",
-                                                    "option_description.*^0.6",
-                                                ],
-                                            }
-                                        },
-                                        {
-                                            "wildcard": {
-                                                "option_name": {
-                                                    "value": f"*{query}*",
-                                                    "case_insensitive": True,
-                                                }
-                                            }
-                                        },
-                                    ],
+                                    "queries": all_queries,
                                 }
                             }
                         ],

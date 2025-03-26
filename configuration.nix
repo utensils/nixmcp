@@ -2,12 +2,6 @@
 { config, pkgs, lib, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ./networking.nix
-      ./modules/monitoring.nix
-    ];
 
   # Bootloader and kernel configuration
   boot = {
@@ -20,7 +14,7 @@
         efiSupport = true;
         useOSProber = true;
       };
-      
+
     };
     kernelPackages = pkgs.linuxPackages_latest;
     kernelParams = [ "quiet" "splash" ];
@@ -156,9 +150,10 @@
     # Redis cache
     redis = {
       enable = true;
-      bind = "127.0.0.1";
-      port = 6379;
+      package = pkgs.redis;
       settings = {
+        bind = "127.0.0.1";
+        port = 6379;
         maxmemory = "512mb";
         maxmemory-policy = "allkeys-lru";
       };
@@ -369,8 +364,8 @@
 
   # User groups
   users.groups = {
-    admins = {};
-    backup = {};
+    admins = { };
+    backup = { };
   };
 
   # Security settings
@@ -595,12 +590,12 @@
       options = "--delete-older-than 30d";
     };
     package = pkgs.nixVersions.stable;
-    registry.nixpkgs.flake = inputs.nixpkgs;
+    # Removed reference to inputs.nixpkgs as it's not available in this context
   };
 
   # System state version
   system.stateVersion = "23.11"; # Compatible with NixOS 23.11 release
-  
+
 
   # Home Manager integration
   # This assumes you have home-manager as a module
@@ -611,14 +606,5 @@
     users.app = import ./home-manager/app.nix;
   };
 
-  services.redis = {
-    enable = true;
-    package = pkgs.redis; 
-    settings = {
-      maxmemory = "512mb";
-      maxmemory-policy = "allkeys-lru";
-    };
 
-    
-  };
 }

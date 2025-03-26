@@ -42,9 +42,23 @@ class NixOSContext:
         """Search for NixOS packages."""
         return self.es_client.search_packages(query, limit)
 
-    def search_options(self, query: str, limit: int = 10) -> Dict[str, Any]:
-        """Search for NixOS options."""
-        return self.es_client.search_options(query, limit)
+    def search_options(
+        self, query: str, limit: int = 10, additional_terms: list = None, quoted_terms: list = None
+    ) -> Dict[str, Any]:
+        """Search for NixOS options with enhanced multi-word query support.
+
+        Args:
+            query: The main search query (hierarchical path or term)
+            limit: Maximum number of results
+            additional_terms: Additional terms for filtering results
+            quoted_terms: Phrases that should be matched exactly
+
+        Returns:
+            Dictionary with search results
+        """
+        return self.es_client.search_options(
+            query, limit=limit, additional_terms=additional_terms or [], quoted_terms=quoted_terms or []
+        )
 
     def get_option(self, option_name: str) -> Dict[str, Any]:
         """Get information about a NixOS option."""
