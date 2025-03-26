@@ -1,6 +1,6 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from nixmcp.server import NixOSContext, ElasticsearchClient
+from unittest.mock import patch
+from nixmcp.server import NixOSContext
 
 
 class TestNixOSContext(unittest.TestCase):
@@ -9,7 +9,7 @@ class TestNixOSContext(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Mock the ElasticsearchClient to avoid real API calls
-        with patch('nixmcp.server.ElasticsearchClient') as mock_client:
+        with patch("nixmcp.server.ElasticsearchClient") as mock_client:
             self.es_client_mock = mock_client.return_value
             self.context = NixOSContext()
             # Replace the real client with our mock
@@ -19,10 +19,10 @@ class TestNixOSContext(unittest.TestCase):
         """Test get_status method."""
         # Configure mock
         self.es_client_mock.cache.get_stats.return_value = {"size": 10, "hits": 5, "misses": 2}
-        
+
         # Call the method
         status = self.context.get_status()
-        
+
         # Verify the result
         self.assertEqual(status["status"], "ok")
         self.assertEqual(status["name"], "NixMCP")
@@ -47,16 +47,16 @@ class TestNixOSContext(unittest.TestCase):
                     "description": "Vim text editor fork focused on extensibility and usability",
                     "programs": ["nvim"],
                 },
-            ]
+            ],
         }
         self.es_client_mock.search_programs.return_value = expected_result
-        
+
         # Call the method
         result = self.context.search_programs("vim", 10)
-        
+
         # Verify the method called the client correctly
         self.es_client_mock.search_programs.assert_called_once_with("vim", 10)
-        
+
         # Verify the result
         self.assertEqual(result, expected_result)
 
@@ -71,36 +71,33 @@ class TestNixOSContext(unittest.TestCase):
                     "version": "3.11.6",
                     "description": "A high-level dynamically-typed programming language",
                 }
-            ]
+            ],
         }
         self.es_client_mock.search_packages_with_version.return_value = expected_result
-        
+
         # Call the method
         result = self.context.search_packages_with_version("python", "3.11.*", 10)
-        
+
         # Verify the method called the client correctly
         self.es_client_mock.search_packages_with_version.assert_called_once_with("python", "3.11.*", 10)
-        
+
         # Verify the result
         self.assertEqual(result, expected_result)
 
     def test_advanced_query(self):
         """Test advanced_query method."""
         # Configure mock
-        expected_result = {
-            "hits": {
-                "total": {"value": 1},
-                "hits": [{"_source": {"package_attr_name": "python311"}}]
-            }
-        }
+        expected_result = {"hits": {"total": {"value": 1}, "hits": [{"_source": {"package_attr_name": "python311"}}]}}
         self.es_client_mock.advanced_query.return_value = expected_result
-        
+
         # Call the method
         result = self.context.advanced_query("packages", "package_attr_name:python* AND package_version:3.11*", 10)
-        
+
         # Verify the method called the client correctly
-        self.es_client_mock.advanced_query.assert_called_once_with("packages", "package_attr_name:python* AND package_version:3.11*", 10)
-        
+        self.es_client_mock.advanced_query.assert_called_once_with(
+            "packages", "package_attr_name:python* AND package_version:3.11*", 10
+        )
+
         # Verify the result
         self.assertEqual(result, expected_result)
 
@@ -111,17 +108,17 @@ class TestNixOSContext(unittest.TestCase):
             "aggregations": {
                 "channels": {"buckets": [{"key": "unstable", "doc_count": 100}]},
                 "licenses": {"buckets": [{"key": "MIT", "doc_count": 50}]},
-                "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 80}]}
+                "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 80}]},
             }
         }
         self.es_client_mock.get_package_stats.return_value = expected_result
-        
+
         # Call the method
         result = self.context.get_package_stats("python*")
-        
+
         # Verify the method called the client correctly
         self.es_client_mock.get_package_stats.assert_called_once_with("python*")
-        
+
         # Verify the result
         self.assertEqual(result, expected_result)
 

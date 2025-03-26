@@ -12,15 +12,15 @@ class TestHelperFunctions(unittest.TestCase):
         # Test simple single word query
         result = create_wildcard_query("python")
         self.assertEqual(result, "*python*")
-        
+
         # Test empty query
         result = create_wildcard_query("")
         self.assertEqual(result, "**")
-        
+
         # Test with special characters
         result = create_wildcard_query("c++")
         self.assertEqual(result, "*c++*")
-        
+
         # Test with numbers
         result = create_wildcard_query("python3")
         self.assertEqual(result, "*python3*")
@@ -30,15 +30,15 @@ class TestHelperFunctions(unittest.TestCase):
         # Test with two words
         result = create_wildcard_query("web server")
         self.assertEqual(result, "*web* *server*")
-        
+
         # Test with three words
         result = create_wildcard_query("python web framework")
         self.assertEqual(result, "*python* *web* *framework*")
-        
+
         # Test with extra spaces
         result = create_wildcard_query("  multiple   spaces   ")
         self.assertEqual(result, "*multiple* *spaces*")
-        
+
         # Test with mixed case
         result = create_wildcard_query("Python Package")
         self.assertEqual(result, "*Python* *Package*")
@@ -48,7 +48,7 @@ class TestHelperFunctions(unittest.TestCase):
         # This function doesn't detect existing wildcards, it just adds them
         result = create_wildcard_query("*python*")
         self.assertEqual(result, "**python**")
-        
+
         # With multiple words
         result = create_wildcard_query("*python* *package*")
         self.assertEqual(result, "**python** **package**")

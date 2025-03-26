@@ -2103,7 +2103,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
     # Use provided context or fallback to global context
     if context is None:
         context = nixos_context
-    
+
     # Set the channel for the search
     context.es_client.set_channel(channel)
     logger.info(f"Using channel: {channel}")
@@ -2245,7 +2245,7 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable", cont
     # Use provided context or fallback to global context
     if context is None:
         context = nixos_context
-    
+
     # Set the channel for the search
     context.es_client.set_channel(channel)
     logger.info(f"Using channel: {channel}")
@@ -2393,7 +2393,7 @@ def nixos_stats(context=None) -> str:
 
     Args:
         context: Optional context object for dependency injection in tests
-        
+
     Returns:
         Statistics about NixOS packages
     """
