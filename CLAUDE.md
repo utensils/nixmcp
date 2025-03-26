@@ -52,11 +52,16 @@ When implementing MCP resources with `@mcp.resource`, follow these rules:
 
 3. **Example Resource**:
    ```python
-   @mcp.resource("nixos://package/{package_name}")
-   def package_resource(package_name: str) -> Dict[str, Any]:
+   # Resource function in nixmcp/resources/nixos_resources.py
+   def package_resource(package_name: str, nixos_context) -> Dict[str, Any]:
        """Get detailed information about a NixOS package."""
        logger.info(f"Handling package resource request for {package_name}")
-       return model_context.get_package(package_name)
+       return nixos_context.get_package(package_name)
+   
+   # Registration in register_nixos_resources function
+   @mcp.resource("nixos://package/{package_name}")
+   def package_resource_handler(package_name: str):
+       return package_resource(package_name, get_nixos_context())
    ```
 
 ### Tool Definitions
@@ -87,31 +92,50 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
 
 5. **Example Tool**:
    ```python
-   @mcp.tool()
-   def search_nixos(query: str, search_type: str = "packages", limit: int = 10, context=None) -> str:
+   def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable", context=None) -> str:
        """
-       Search for NixOS packages or options.
+       Search for NixOS packages, options, or programs.
        
        Args:
            query: The search term
-           search_type: Type of search - either "packages", "options", or "programs"
-           limit: Maximum number of results to return (default: 10)
+           type: What to search for - "packages", "options", or "programs"
+           limit: Maximum number of results to return (default: 20)
+           channel: NixOS channel to search (default: "unstable", can also be "24.11")
            context: Optional context object for dependency injection in tests
        
        Returns:
            Results formatted as text
        """
+       logger.info(f"Searching for {type} with query '{query}' in channel '{channel}'")
+
+       # Validate parameters
+       valid_types = ["packages", "options", "programs"]
+       if type.lower() not in valid_types:
+           return f"Error: Invalid type. Must be one of: {', '.join(valid_types)}"
+
        # Use provided context or fallback to global context
        if context is None:
-           context = nixos_context
+           # Import here to avoid circular imports
+           import nixmcp.server
+           context = nixmcp.server.nixos_context
            
        # Implementation with proper error handling
        try:
+           # Set the channel for search
+           context.es_client.set_channel(channel)
+           
            # Search logic using the context
-           results = context.search_packages(query, limit)
-           return formatted_results
+           if type.lower() == "packages":
+               result = context.search_packages(query, limit=limit)
+               return format_packages_result(result)
+           elif type.lower() == "options":
+               result = context.search_options(query, limit=limit)
+               return format_options_result(result)
+           else:  # programs
+               result = context.search_programs(query, limit=limit)
+               return format_programs_result(result)
        except Exception as e:
-           logger.error(f"Error in search_nixos: {e}", exc_info=True)
+           logger.error(f"Error in nixos_search: {e}", exc_info=True)
            return f"Error performing search: {str(e)}\n\nTry simplifying your query."
    ```
 
@@ -133,11 +157,15 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
    async def app_lifespan(mcp_server: FastMCP):
        logger.info("Initializing NixMCP server")
        # Set up resources
-       context = NixOSContext()
+       nixos_context = NixOSContext()
+       home_manager_context = HomeManagerContext()
        
        try:
-           # We yield our context that will be accessible in all handlers
-           yield {"context": context}
+           # We yield our contexts that will be accessible in all handlers
+           yield {"nixos_context": nixos_context, "home_manager_context": home_manager_context}
+       except Exception as e:
+           logger.error(f"Error in server lifespan: {e}")
+           raise
        finally:
            # Cleanup on shutdown
            logger.info("Shutting down NixMCP server")
@@ -159,15 +187,25 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
 
 3. **Dependency Injection**:
    - Avoid direct use of global state in function implementations
-   - Always accept optional context parameters in tool functions
-   - Use provided contexts or fall back to global contexts only when necessary
+   - Always accept context parameters in resource functions
+   - Use optional context parameters in tool functions with fallback to globals
    - This pattern improves testability and reduces coupling between components
-   - Example:
+   - Resource function example:
      ```python
-     def my_tool(param1: str, param2: int, context=None) -> str:
+     def resource_function(param: str, context) -> Dict[str, Any]:
+         """Resource function that requires a context."""
+         # Context is required parameter, no fallback to global
+         return context.get_something(param)
+     ```
+   - Tool function example:
+     ```python
+     def tool_function(param1: str, param2: int, context=None) -> str:
+         """Tool function with optional context parameter."""
          # Use provided context or fall back to global
          if context is None:
-             context = global_context
+             # Import here to avoid circular imports
+             import nixmcp.server
+             context = nixmcp.server.global_context
          # Use context instead of global state
          return context.do_something(param1, param2)
      ```
@@ -325,10 +363,25 @@ The project includes a comprehensive test suite:
    - Test caching behavior where applicable
    - Use parameterized tests for different input variations
 4. Test dependency injection:
-   - Always use context injection with mock objects instead of patching global state
-   - Pass mock contexts directly to tool functions using the `context` parameter
+   - For resource functions: create mock contexts and pass them directly to the resource functions
+   - For tool functions: pass mock contexts directly using the `context` parameter
+   - Avoid patching global state whenever possible
    - Validate mocks are called with the correct arguments
    - This approach isolates tests and prevents interference between test cases
+   - Example:
+     ```python
+     def test_resource_function():
+         # Create a mock context
+         mock_context = Mock()
+         mock_context.get_something.return_value = {"key": "value"}
+         
+         # Call the resource function with the mock context
+         result = resource_function("param", mock_context)
+         
+         # Verify the result and that mock was called correctly
+         assert result["key"] == "value"
+         mock_context.get_something.assert_called_once_with("param")
+     ```
 5. Test async components:
    - Use pytest-asyncio for testing async code
    - Properly wrap async tests with `async_to_sync` decorator for compatibility

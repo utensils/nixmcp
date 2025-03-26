@@ -1,13 +1,13 @@
 """Test Home Manager resource endpoints."""
 
 import logging
-from unittest.mock import patch
+from unittest.mock import Mock
 
 # Import base test class
 from tests import NixMCPTestBase
 
-# Import the server module
-from nixmcp.server import (
+# Import the resource functions directly from the resources module
+from nixmcp.resources.home_manager_resources import (
     home_manager_status_resource,
     home_manager_search_options_resource,
     home_manager_option_resource,
@@ -24,9 +24,7 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
     def setUp(self):
         """Set up the test environment."""
         # Create a mock for the HomeManagerContext
-        self.context_patcher = patch("nixmcp.server.home_manager_context")
-        self.mock_context = self.context_patcher.start()
-        self.addCleanup(self.context_patcher.stop)
+        self.mock_context = Mock()
 
     def test_status_resource(self):
         """Test the home-manager://status resource."""
@@ -42,8 +40,8 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
             },
         }
 
-        # Call the resource function
-        result = home_manager_status_resource()
+        # Call the resource function with our mock context
+        result = home_manager_status_resource(self.mock_context)
 
         # Verify the structure of the response
         self.assertEqual(result["status"], "ok")
@@ -77,8 +75,8 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
             ],
         }
 
-        # Call the resource function
-        result = home_manager_search_options_resource("git")
+        # Call the resource function with our mock context
+        result = home_manager_search_options_resource("git", self.mock_context)
 
         # Verify the structure of the response
         self.assertEqual(result["count"], 2)
@@ -112,8 +110,8 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
             ],
         }
 
-        # Call the resource function
-        result = home_manager_option_resource("programs.git.enable")
+        # Call the resource function with our mock context
+        result = home_manager_option_resource("programs.git.enable", self.mock_context)
 
         # Verify the structure of the response
         self.assertEqual(result["name"], "programs.git.enable")
@@ -139,8 +137,8 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
             "error": "Option not found",
         }
 
-        # Call the resource function
-        result = home_manager_option_resource("programs.nonexistent")
+        # Call the resource function with our mock context
+        result = home_manager_option_resource("programs.nonexistent", self.mock_context)
 
         # Verify the structure of the response
         self.assertEqual(result["name"], "programs.nonexistent")
@@ -172,8 +170,8 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
             },
         }
 
-        # Call the resource function
-        result = home_manager_stats_resource()
+        # Call the resource function with our mock context
+        result = home_manager_stats_resource(self.mock_context)
 
         # Verify the structure of the response
         self.assertEqual(result["total_options"], 1234)

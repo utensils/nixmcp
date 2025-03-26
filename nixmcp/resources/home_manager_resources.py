@@ -36,19 +36,28 @@ def home_manager_stats_resource(home_manager_context) -> Dict[str, Any]:
 def register_home_manager_resources(mcp, get_home_manager_context: Callable[[], Any]) -> None:
     """
     Register all Home Manager resources with the MCP server.
-    
+
     Args:
         mcp: The MCP server instance
         get_home_manager_context: A function that returns the Home Manager context
     """
-    # Define a decorator to inject the Home Manager context
-    def with_home_manager_context(handler):
-        def wrapper(*args, **kwargs):
-            return handler(*args, home_manager_context=get_home_manager_context(), **kwargs)
-        return wrapper
-    
-    # Register resources with context injection
-    mcp.resource("home-manager://status")(with_home_manager_context(home_manager_status_resource))
-    mcp.resource("home-manager://search/options/{query}")(with_home_manager_context(home_manager_search_options_resource))
-    mcp.resource("home-manager://option/{option_name}")(with_home_manager_context(home_manager_option_resource))
-    mcp.resource("home-manager://options/stats")(with_home_manager_context(home_manager_stats_resource))
+
+    # Register status resource
+    @mcp.resource("home-manager://status")
+    def home_manager_status_resource_handler():
+        return home_manager_status_resource(get_home_manager_context())
+
+    # Register search options resource
+    @mcp.resource("home-manager://search/options/{query}")
+    def home_manager_search_options_resource_handler(query: str):
+        return home_manager_search_options_resource(query, get_home_manager_context())
+
+    # Register option resource
+    @mcp.resource("home-manager://option/{option_name}")
+    def home_manager_option_resource_handler(option_name: str):
+        return home_manager_option_resource(option_name, get_home_manager_context())
+
+    # Register stats resource
+    @mcp.resource("home-manager://options/stats")
+    def home_manager_stats_resource_handler():
+        return home_manager_stats_resource(get_home_manager_context())

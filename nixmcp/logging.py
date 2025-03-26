@@ -13,7 +13,7 @@ def setup_logging():
 
     By default, only logs to console. If NIX_MCP_LOG environment variable is set,
     it will also log to the specified file path. LOG_LEVEL controls the logging level.
-    
+
     Returns:
         logger: Configured logger instance
     """

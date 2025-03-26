@@ -54,22 +54,43 @@ def package_stats_resource(nixos_context) -> Dict[str, Any]:
 def register_nixos_resources(mcp, get_nixos_context: Callable[[], Any]) -> None:
     """
     Register all NixOS resources with the MCP server.
-    
+
     Args:
         mcp: The MCP server instance
         get_nixos_context: A function that returns the NixOS context
     """
-    # Define a decorator to inject the NixOS context
-    def with_nixos_context(handler):
-        def wrapper(*args, **kwargs):
-            return handler(*args, nixos_context=get_nixos_context(), **kwargs)
-        return wrapper
-    
-    # Register resources with context injection
-    mcp.resource("nixos://status")(with_nixos_context(nixos_status_resource))
-    mcp.resource("nixos://package/{package_name}")(with_nixos_context(package_resource))
-    mcp.resource("nixos://search/packages/{query}")(with_nixos_context(search_packages_resource))
-    mcp.resource("nixos://search/options/{query}")(with_nixos_context(search_options_resource))
-    mcp.resource("nixos://option/{option_name}")(with_nixos_context(option_resource))
-    mcp.resource("nixos://search/programs/{program}")(with_nixos_context(search_programs_resource))
-    mcp.resource("nixos://packages/stats")(with_nixos_context(package_stats_resource))
+
+    # Register status resource
+    @mcp.resource("nixos://status")
+    def status_resource_handler():
+        return nixos_status_resource(get_nixos_context())
+
+    # Register package resource
+    @mcp.resource("nixos://package/{package_name}")
+    def package_resource_handler(package_name: str):
+        return package_resource(package_name, get_nixos_context())
+
+    # Register search packages resource
+    @mcp.resource("nixos://search/packages/{query}")
+    def search_packages_resource_handler(query: str):
+        return search_packages_resource(query, get_nixos_context())
+
+    # Register search options resource
+    @mcp.resource("nixos://search/options/{query}")
+    def search_options_resource_handler(query: str):
+        return search_options_resource(query, get_nixos_context())
+
+    # Register option resource
+    @mcp.resource("nixos://option/{option_name}")
+    def option_resource_handler(option_name: str):
+        return option_resource(option_name, get_nixos_context())
+
+    # Register search programs resource
+    @mcp.resource("nixos://search/programs/{program}")
+    def search_programs_resource_handler(program: str):
+        return search_programs_resource(program, get_nixos_context())
+
+    # Register package stats resource
+    @mcp.resource("nixos://packages/stats")
+    def package_stats_resource_handler():
+        return package_stats_resource(get_nixos_context())

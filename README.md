@@ -9,13 +9,24 @@
 
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, and Home Manager configuration options to AI models. It provides AI models with up-to-date information about both NixOS and Home Manager resources, reducing hallucinations and outdated information.
 
+### Code Architecture Improvements
+- Completely refactored codebase with modular architecture
+- Separated components into dedicated modules:
+  - `nixmcp/cache/` - Caching components (SimpleCache)
+  - `nixmcp/clients/` - API clients (ElasticsearchClient, HomeManagerClient)
+  - `nixmcp/contexts/` - Application contexts (NixOSContext, HomeManagerContext)
+  - `nixmcp/resources/` - MCP resource definitions
+  - `nixmcp/tools/` - MCP tool implementations
+  - `nixmcp/utils/` - Utility functions and helpers
+- Improved code organization for better maintainability
+- Better separation of concerns for testing and extension
+
 ### New in v0.1.2
 - Complete Home Manager integration with HTML parsing of official documentation
 - In-memory search engine for fast option lookups
 - Support for hierarchical paths like programs.git.* and services.postgresql.*
 - Related options and contextual suggestions for better discoverability
 - Background fetching and caching of documentation
-- Modular code architecture for better maintainability and testing
 
 Using the FastMCP framework, the server provides MCP endpoints for accessing the NixOS Elasticsearch API for system resources and an integrated parser for Home Manager documentation to deliver accurate information about packages and options.
 

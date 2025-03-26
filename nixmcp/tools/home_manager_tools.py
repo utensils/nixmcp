@@ -30,6 +30,7 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
     if context is None:
         # Import here to avoid circular imports
         import nixmcp.server
+
         context = nixmcp.server.home_manager_context
 
     try:
@@ -109,6 +110,7 @@ def home_manager_info(name: str, context=None) -> str:
     if context is None:
         # Import here to avoid circular imports
         import nixmcp.server
+
         context = nixmcp.server.home_manager_context
 
     try:
@@ -235,6 +237,7 @@ def home_manager_stats(context=None) -> str:
     if context is None:
         # Import here to avoid circular imports
         import nixmcp.server
+
         context = nixmcp.server.home_manager_context
 
     try:
@@ -302,7 +305,7 @@ def home_manager_stats(context=None) -> str:
 def register_home_manager_tools(mcp) -> None:
     """
     Register all Home Manager tools with the MCP server.
-    
+
     Args:
         mcp: The MCP server instance
     """

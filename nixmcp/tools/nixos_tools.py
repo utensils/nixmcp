@@ -12,13 +12,7 @@ logger = logging.getLogger("nixmcp")
 from nixmcp.utils.helpers import create_wildcard_query
 
 
-def nixos_search(
-    query: str, 
-    type: str = "packages", 
-    limit: int = 20, 
-    channel: str = "unstable", 
-    context=None
-) -> str:
+def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable", context=None) -> str:
     """
     Search for NixOS packages, options, or programs.
 
@@ -42,6 +36,7 @@ def nixos_search(
     if context is None:
         # Import here to avoid circular imports
         import nixmcp.server
+
         context = nixmcp.server.nixos_context
 
     # Set the channel for the search
@@ -163,12 +158,7 @@ def nixos_search(
         return f"Error performing search: {str(e)}"
 
 
-def nixos_info(
-    name: str, 
-    type: str = "package", 
-    channel: str = "unstable", 
-    context=None
-) -> str:
+def nixos_info(name: str, type: str = "package", channel: str = "unstable", context=None) -> str:
     """
     Get detailed information about a NixOS package or option.
 
@@ -190,6 +180,7 @@ def nixos_info(
     if context is None:
         # Import here to avoid circular imports
         import nixmcp.server
+
         context = nixmcp.server.nixos_context
 
     # Set the channel for the search
@@ -348,6 +339,7 @@ def nixos_stats(context=None) -> str:
     if context is None:
         # Import here to avoid circular imports
         import nixmcp.server
+
         context = nixmcp.server.nixos_context
 
     try:
@@ -396,7 +388,7 @@ def nixos_stats(context=None) -> str:
 def register_nixos_tools(mcp) -> None:
     """
     Register all NixOS tools with the MCP server.
-    
+
     Args:
         mcp: The MCP server instance
     """

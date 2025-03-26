@@ -3,8 +3,9 @@ import logging
 from unittest.mock import patch, MagicMock
 import threading
 
-# Import the server module
-from nixmcp.server import HomeManagerClient, HomeManagerContext
+# Import from the refactored module structure
+from nixmcp.clients.home_manager_client import HomeManagerClient
+from nixmcp.contexts.home_manager_context import HomeManagerContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -448,7 +449,7 @@ class TestHomeManagerContext(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         # Create a mock for the HomeManagerClient
-        self.client_patcher = patch("nixmcp.server.HomeManagerClient")
+        self.client_patcher = patch("nixmcp.contexts.home_manager_context.HomeManagerClient")
         self.MockClient = self.client_patcher.start()
 
         # Create a mock client instance
@@ -533,7 +534,7 @@ class TestHomeManagerTools(unittest.TestCase):
         self.mock_context = self.context_patcher.start()
 
         # Import the tool functions
-        from nixmcp.server import home_manager_search, home_manager_info, home_manager_stats
+        from nixmcp.tools.home_manager_tools import home_manager_search, home_manager_info, home_manager_stats
 
         self.search_tool = home_manager_search
         self.info_tool = home_manager_info

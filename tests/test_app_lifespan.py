@@ -11,29 +11,23 @@ from nixmcp.server import app_lifespan
 class TestAppLifespan(unittest.TestCase):
     """Test the app_lifespan context manager."""
 
-    @patch("nixmcp.server.NixOSContext")
-    @patch("nixmcp.server.HomeManagerContext")
+    @patch("nixmcp.server.nixos_context")
+    @patch("nixmcp.server.home_manager_context")
     async def test_app_lifespan_enter(self, mock_home_manager_context, mock_nixos_context):
         """Test entering the app_lifespan context manager."""
-        # Setup mocks
-        mock_nixos_instance = mock_nixos_context.return_value
-        mock_home_manager_instance = mock_home_manager_context.return_value
+        # Setup mock server
         mock_server = MagicMock()
 
         # Create and enter the context manager
         context_manager = app_lifespan(mock_server)
         context = await context_manager.__aenter__()
 
-        # Verify the contexts were created
-        mock_nixos_context.assert_called_once()
-        mock_home_manager_context.assert_called_once()
-
         # Verify the context has the expected structure
         self.assertIsInstance(context, dict)
         self.assertIn("nixos_context", context)
         self.assertIn("home_manager_context", context)
-        self.assertEqual(context["nixos_context"], mock_nixos_instance)
-        self.assertEqual(context["home_manager_context"], mock_home_manager_instance)
+        self.assertEqual(context["nixos_context"], mock_nixos_context)
+        self.assertEqual(context["home_manager_context"], mock_home_manager_context)
 
         # Verify prompt was set on the server
         self.assertTrue(hasattr(mock_server, "prompt"))
@@ -43,8 +37,8 @@ class TestAppLifespan(unittest.TestCase):
         # Exit the context manager to clean up
         await context_manager.__aexit__(None, None, None)
 
-    @patch("nixmcp.server.NixOSContext")
-    @patch("nixmcp.server.HomeManagerContext")
+    @patch("nixmcp.server.nixos_context")
+    @patch("nixmcp.server.home_manager_context")
     async def test_app_lifespan_exit(self, mock_home_manager_context, mock_nixos_context):
         """Test exiting the app_lifespan context manager (cleanup)."""
         # Setup mocks
@@ -65,8 +59,8 @@ class TestAppLifespan(unittest.TestCase):
     # We'll skip this test for now as it's causing issues
     # and we already have good coverage from the other tests
     @unittest.skip("This test is unstable due to timing issues with asyncio context managers")
-    @patch("nixmcp.server.NixOSContext")
-    @patch("nixmcp.server.HomeManagerContext")
+    @patch("nixmcp.server.nixos_context")
+    @patch("nixmcp.server.home_manager_context")
     async def test_app_lifespan_exception_handling(self, mock_home_manager_context, mock_nixos_context):
         """Test exception handling in the app_lifespan context manager."""
         # This test is skipped, but we'll leave it for reference
@@ -74,8 +68,8 @@ class TestAppLifespan(unittest.TestCase):
         # doesn't match what we're trying to test here
         pass
 
-    @patch("nixmcp.server.NixOSContext")
-    @patch("nixmcp.server.HomeManagerContext")
+    @patch("nixmcp.server.nixos_context")
+    @patch("nixmcp.server.home_manager_context")
     async def test_app_lifespan_cleanup_on_exception(self, mock_home_manager_context, mock_nixos_context):
         """Test cleanup is performed even when exception occurs during handling."""
         # Setup mocks

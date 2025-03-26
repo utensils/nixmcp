@@ -39,6 +39,30 @@ from nixmcp.resources.home_manager_resources import register_home_manager_resour
 from nixmcp.tools.nixos_tools import register_nixos_tools
 from nixmcp.tools.home_manager_tools import register_home_manager_tools
 
+# Compatibility imports for tests
+# These imports allow the existing tests to work without needing immediate updates
+from nixmcp.clients.elasticsearch_client import ElasticsearchClient
+from nixmcp.clients.home_manager_client import HomeManagerClient
+from nixmcp.cache.simple_cache import SimpleCache
+from nixmcp.utils.helpers import create_wildcard_query
+from nixmcp.tools.nixos_tools import nixos_search, nixos_info, nixos_stats
+from nixmcp.tools.home_manager_tools import home_manager_search, home_manager_info, home_manager_stats
+from nixmcp.resources.nixos_resources import (
+    nixos_status_resource,
+    package_resource,
+    search_packages_resource,
+    search_options_resource,
+    option_resource,
+    search_programs_resource,
+    package_stats_resource,
+)
+from nixmcp.resources.home_manager_resources import (
+    home_manager_status_resource,
+    home_manager_search_options_resource,
+    home_manager_option_resource,
+    home_manager_stats_resource,
+)
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -54,7 +78,7 @@ home_manager_context = HomeManagerContext()
 @asynccontextmanager
 async def app_lifespan(mcp_server: FastMCP):
     logger.info("Initializing NixMCP server")
-    
+
     # Add prompt to guide assistants on using the MCP tools
     mcp_server.prompt = """
     # NixOS and Home Manager MCP Guide
@@ -266,7 +290,7 @@ async def app_lifespan(mcp_server: FastMCP):
     - NixOS: System-wide Firefox installation
     - Home Manager: `programs.firefox.*` - User profiles, extensions, settings
     """
-    
+
     try:
         # We yield our contexts that will be accessible in all handlers
         yield {"nixos_context": nixos_context, "home_manager_context": home_manager_context}
@@ -288,17 +312,20 @@ async def app_lifespan(mcp_server: FastMCP):
 logger.info("Creating FastMCP server instance")
 mcp = FastMCP(
     "NixMCP",
-    version="0.1.1",
+    version="0.1.2",
     description="NixOS HTTP-based Model Context Protocol Server",
     lifespan=app_lifespan,
 )
+
 
 # Helper functions for context access
 def get_nixos_context():
     return nixos_context
 
+
 def get_home_manager_context():
     return home_manager_context
+
 
 # Register all resources and tools
 register_nixos_resources(mcp, get_nixos_context)

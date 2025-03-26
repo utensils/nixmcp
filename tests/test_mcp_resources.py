@@ -4,9 +4,9 @@ from unittest.mock import patch
 # Import base test class
 from tests import NixMCPTestBase
 
-# Import directly from server module
-from nixmcp.server import (
-    NixOSContext,
+# Import from the new modular structure
+from nixmcp.contexts.nixos_context import NixOSContext
+from nixmcp.resources.nixos_resources import (
     nixos_status_resource,
     package_resource,
     search_packages_resource,
@@ -44,7 +44,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = nixos_status_resource()
+            result = nixos_status_resource(self.context)
 
             # Verify the structure of the response
             self.assertEqual(result["status"], "ok")
@@ -74,7 +74,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = package_resource("python3")
+            result = package_resource("python3", self.context)
 
             # Verify the structure of the response
             self.assertEqual(result["name"], "python3")
@@ -96,7 +96,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = package_resource("nonexistent-package")
+            result = package_resource("nonexistent-package", self.context)
 
             # Verify the structure of the response
             self.assertEqual(result["name"], "nonexistent-package")
@@ -124,7 +124,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = search_packages_resource("python")
+            result = search_packages_resource("python", self.context)
 
             # Verify the structure of the response
             self.assertEqual(result["count"], 2)
@@ -158,7 +158,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = search_options_resource("nginx")
+            result = search_options_resource("nginx", self.context)
 
             # Verify the structure of the response
             self.assertEqual(result["count"], 2)
@@ -185,7 +185,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = option_resource("services.nginx.enable")
+            result = option_resource("services.nginx.enable", self.context)
 
             # Verify the structure of the response
             self.assertEqual(result["name"], "services.nginx.enable")
@@ -220,7 +220,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = search_programs_resource("python")
+            result = search_programs_resource("python", self.context)
 
             # Verify the structure of the response
             self.assertEqual(result["count"], 2)
@@ -259,7 +259,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = package_stats_resource()
+            result = package_stats_resource(self.context)
 
             # Verify the structure of the response
             self.assertIn("aggregations", result)

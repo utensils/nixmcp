@@ -1,6 +1,6 @@
 import unittest
 import logging
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import time
 
 # Import the server module
@@ -623,194 +623,194 @@ class TestMCPResources(unittest.TestCase):
 
     def test_status_resource(self):
         """Test the status resource."""
-        # Mock the get_status method
-        with patch.object(NixOSContext, "get_status") as mock_status:
-            mock_status.return_value = {
-                "status": "ok",
-                "version": "1.0.0",
-                "name": "NixMCP",
-                "description": "NixOS HTTP-based Model Context Protocol Server",
-                "cache_stats": {
-                    "size": 100,
-                    "max_size": 500,
-                    "ttl": 600,
-                    "hits": 800,
-                    "misses": 200,
-                    "hit_ratio": 0.8,
-                },
-            }
+        # Create a mock for the NixOSContext
+        mock_context = Mock()
+        mock_context.get_status.return_value = {
+            "status": "ok",
+            "version": "1.0.0",
+            "name": "NixMCP",
+            "description": "NixOS HTTP-based Model Context Protocol Server",
+            "cache_stats": {
+                "size": 100,
+                "max_size": 500,
+                "ttl": 600,
+                "hits": 800,
+                "misses": 200,
+                "hit_ratio": 0.8,
+            },
+        }
 
-            # Import the resource function
-            from nixmcp.server import nixos_status_resource
+        # Import the resource function from resources module
+        from nixmcp.resources.nixos_resources import nixos_status_resource
 
-            # Call the resource function
-            result = nixos_status_resource()
+        # Call the resource function with our mock context
+        result = nixos_status_resource(mock_context)
 
-            # Verify the result
-            self.assertEqual(result["status"], "ok")
-            self.assertEqual(result["version"], "1.0.0")
-            self.assertEqual(result["name"], "NixMCP")
-            self.assertIn("cache_stats", result)
+        # Verify the result
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["version"], "1.0.0")
+        self.assertEqual(result["name"], "NixMCP")
+        self.assertIn("cache_stats", result)
 
-            # Verify the mock was called
-            mock_status.assert_called_once()
+        # Verify the mock was called
+        mock_context.get_status.assert_called_once()
 
     def test_package_resource(self):
         """Test the package resource."""
-        # Mock the get_package method
-        with patch.object(NixOSContext, "get_package") as mock_get:
-            mock_get.return_value = {
-                "name": "python3",
-                "version": "3.10.12",
-                "description": "Python programming language",
-                "found": True,
-            }
+        # Create a mock for the NixOSContext
+        mock_context = Mock()
+        mock_context.get_package.return_value = {
+            "name": "python3",
+            "version": "3.10.12",
+            "description": "Python programming language",
+            "found": True,
+        }
 
-            # Import the resource function
-            from nixmcp.server import package_resource
+        # Import the resource function from resources module
+        from nixmcp.resources.nixos_resources import package_resource
 
-            # Call the resource function
-            result = package_resource("python3")
+        # Call the resource function with our mock context
+        result = package_resource("python3", mock_context)
 
-            # Verify the result
-            self.assertEqual(result["name"], "python3")
-            self.assertEqual(result["version"], "3.10.12")
-            self.assertTrue(result["found"])
+        # Verify the result
+        self.assertEqual(result["name"], "python3")
+        self.assertEqual(result["version"], "3.10.12")
+        self.assertTrue(result["found"])
 
-            # Verify the mock was called correctly
-            mock_get.assert_called_once_with("python3")
+        # Verify the mock was called correctly
+        mock_context.get_package.assert_called_once_with("python3")
 
     def test_search_packages_resource(self):
         """Test the search_packages resource."""
-        # Mock the search_packages method
-        with patch.object(NixOSContext, "search_packages") as mock_search:
-            mock_search.return_value = {
-                "count": 2,
-                "packages": [
-                    {"name": "python3", "description": "Python 3"},
-                    {"name": "python39", "description": "Python 3.9"},
-                ],
-            }
+        # Create a mock for the NixOSContext
+        mock_context = Mock()
+        mock_context.search_packages.return_value = {
+            "count": 2,
+            "packages": [
+                {"name": "python3", "description": "Python 3"},
+                {"name": "python39", "description": "Python 3.9"},
+            ],
+        }
 
-            # Import the resource function
-            from nixmcp.server import search_packages_resource
+        # Import the resource function from resources module
+        from nixmcp.resources.nixos_resources import search_packages_resource
 
-            # Call the resource function
-            result = search_packages_resource("python")
+        # Call the resource function with our mock context
+        result = search_packages_resource("python", mock_context)
 
-            # Verify the result
-            self.assertEqual(result["count"], 2)
-            self.assertEqual(len(result["packages"]), 2)
-            self.assertEqual(result["packages"][0]["name"], "python3")
+        # Verify the result
+        self.assertEqual(result["count"], 2)
+        self.assertEqual(len(result["packages"]), 2)
+        self.assertEqual(result["packages"][0]["name"], "python3")
 
-            # Verify the mock was called correctly
-            mock_search.assert_called_once_with("python")
+        # Verify the mock was called correctly
+        mock_context.search_packages.assert_called_once_with("python")
 
     def test_search_options_resource(self):
         """Test the search_options resource."""
-        # Mock the search_options method
-        with patch.object(NixOSContext, "search_options") as mock_search:
-            mock_search.return_value = {
-                "count": 2,
-                "options": [
-                    {"name": "services.nginx.enable", "description": "Enable nginx"},
-                    {
-                        "name": "services.nginx.virtualHosts",
-                        "description": "Virtual hosts",
-                    },
-                ],
-            }
+        # Create a mock for the NixOSContext
+        mock_context = Mock()
+        mock_context.search_options.return_value = {
+            "count": 2,
+            "options": [
+                {"name": "services.nginx.enable", "description": "Enable nginx"},
+                {
+                    "name": "services.nginx.virtualHosts",
+                    "description": "Virtual hosts",
+                },
+            ],
+        }
 
-            # Import the resource function
-            from nixmcp.server import search_options_resource
+        # Import the resource function from resources module
+        from nixmcp.resources.nixos_resources import search_options_resource
 
-            # Call the resource function
-            result = search_options_resource("nginx")
+        # Call the resource function with our mock context
+        result = search_options_resource("nginx", mock_context)
 
-            # Verify the result
-            self.assertEqual(result["count"], 2)
-            self.assertEqual(len(result["options"]), 2)
-            self.assertEqual(result["options"][0]["name"], "services.nginx.enable")
+        # Verify the result
+        self.assertEqual(result["count"], 2)
+        self.assertEqual(len(result["options"]), 2)
+        self.assertEqual(result["options"][0]["name"], "services.nginx.enable")
 
-            # Verify the mock was called correctly
-            mock_search.assert_called_once_with("nginx")
+        # Verify the mock was called correctly
+        mock_context.search_options.assert_called_once_with("nginx")
 
     def test_option_resource(self):
         """Test the option resource."""
-        # Mock the get_option method
-        with patch.object(NixOSContext, "get_option") as mock_get:
-            mock_get.return_value = {
-                "name": "services.nginx.enable",
-                "description": "Whether to enable nginx.",
-                "type": "boolean",
-                "default": "false",
-                "found": True,
-            }
+        # Create a mock for the NixOSContext
+        mock_context = Mock()
+        mock_context.get_option.return_value = {
+            "name": "services.nginx.enable",
+            "description": "Whether to enable nginx.",
+            "type": "boolean",
+            "default": "false",
+            "found": True,
+        }
 
-            # Import the resource function
-            from nixmcp.server import option_resource
+        # Import the resource function from resources module
+        from nixmcp.resources.nixos_resources import option_resource
 
-            # Call the resource function
-            result = option_resource("services.nginx.enable")
+        # Call the resource function with our mock context
+        result = option_resource("services.nginx.enable", mock_context)
 
-            # Verify the result
-            self.assertEqual(result["name"], "services.nginx.enable")
-            self.assertEqual(result["type"], "boolean")
-            self.assertTrue(result["found"])
+        # Verify the result
+        self.assertEqual(result["name"], "services.nginx.enable")
+        self.assertEqual(result["type"], "boolean")
+        self.assertTrue(result["found"])
 
-            # Verify the mock was called correctly
-            mock_get.assert_called_once_with("services.nginx.enable")
+        # Verify the mock was called correctly
+        mock_context.get_option.assert_called_once_with("services.nginx.enable")
 
     def test_search_programs_resource(self):
         """Test the search_programs resource."""
-        # Mock the search_programs method
-        with patch.object(NixOSContext, "search_programs") as mock_search:
-            mock_search.return_value = {
-                "count": 2,
-                "packages": [
-                    {"name": "python3", "programs": ["python3", "python3.10"]},
-                    {"name": "python39", "programs": ["python3.9"]},
-                ],
-            }
+        # Create a mock for the NixOSContext
+        mock_context = Mock()
+        mock_context.search_programs.return_value = {
+            "count": 2,
+            "packages": [
+                {"name": "python3", "programs": ["python3", "python3.10"]},
+                {"name": "python39", "programs": ["python3.9"]},
+            ],
+        }
 
-            # Import the resource function
-            from nixmcp.server import search_programs_resource
+        # Import the resource function from resources module
+        from nixmcp.resources.nixos_resources import search_programs_resource
 
-            # Call the resource function
-            result = search_programs_resource("python")
+        # Call the resource function with our mock context
+        result = search_programs_resource("python", mock_context)
 
-            # Verify the result
-            self.assertEqual(result["count"], 2)
-            self.assertEqual(len(result["packages"]), 2)
-            self.assertEqual(result["packages"][0]["name"], "python3")
+        # Verify the result
+        self.assertEqual(result["count"], 2)
+        self.assertEqual(len(result["packages"]), 2)
+        self.assertEqual(result["packages"][0]["name"], "python3")
 
-            # Verify the mock was called correctly
-            mock_search.assert_called_once_with("python")
+        # Verify the mock was called correctly
+        mock_context.search_programs.assert_called_once_with("python")
 
     def test_package_stats_resource(self):
         """Test the package_stats resource."""
-        # Mock the get_package_stats method
-        with patch.object(NixOSContext, "get_package_stats") as mock_stats:
-            mock_stats.return_value = {
-                "aggregations": {
-                    "channels": {"buckets": [{"key": "nixos-unstable", "doc_count": 80000}]},
-                    "licenses": {"buckets": [{"key": "MIT", "doc_count": 20000}]},
-                    "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]},
-                }
+        # Create a mock for the NixOSContext
+        mock_context = Mock()
+        mock_context.get_package_stats.return_value = {
+            "aggregations": {
+                "channels": {"buckets": [{"key": "nixos-unstable", "doc_count": 80000}]},
+                "licenses": {"buckets": [{"key": "MIT", "doc_count": 20000}]},
+                "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]},
             }
+        }
 
-            # Import the resource function
-            from nixmcp.server import package_stats_resource
+        # Import the resource function from resources module
+        from nixmcp.resources.nixos_resources import package_stats_resource
 
-            # Call the resource function
-            result = package_stats_resource()
+        # Call the resource function with our mock context
+        result = package_stats_resource(mock_context)
 
-            # Verify the result
-            self.assertIn("aggregations", result)
-            self.assertIn("channels", result["aggregations"])
+        # Verify the result
+        self.assertIn("aggregations", result)
+        self.assertIn("channels", result["aggregations"])
 
-            # Verify the mock was called
-            mock_stats.assert_called_once()
+        # Verify the mock was called
+        mock_context.get_package_stats.assert_called_once()
 
 
 if __name__ == "__main__":
