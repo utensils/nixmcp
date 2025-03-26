@@ -21,7 +21,7 @@ NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, sys
 - Improved code organization for better maintainability
 - Better separation of concerns for testing and extension
 
-### New in v0.2.0
+### New in v0.1.2
 - Completely refactored modular architecture for better maintainability
 - Improved entry point with proper Python module structure
 - Enhanced development workflow with clearer documentation
@@ -64,6 +64,33 @@ The server implements both MCP resources and tools for accessing NixOS and Home 
 - `home-manager://search/options/{query}` - Search for Home Manager options matching the query
 - `home-manager://option/{option_name}` - Get information about a specific Home Manager option
 - `home-manager://options/stats` - Get statistics about Home Manager options
+- `home-manager://options/list` - Get a hierarchical list of all top-level Home Manager option categories
+- `home-manager://options/programs` - Get all options under the programs.* prefix
+- `home-manager://options/services` - Get all options under the services.* prefix
+- `home-manager://options/home` - Get all options under the home.* prefix
+- `home-manager://options/accounts` - Get all options under the accounts.* prefix
+- `home-manager://options/fonts` - Get all options under the fonts.* prefix
+- `home-manager://options/gtk` - Get all options under the gtk.* prefix
+- `home-manager://options/qt` - Get all options under the qt.* prefix
+- `home-manager://options/xdg` - Get all options under the xdg.* prefix
+- `home-manager://options/wayland` - Get all options under the wayland.* prefix
+- `home-manager://options/i18n` - Get all options under the i18n.* prefix
+- `home-manager://options/manual` - Get all options under the manual.* prefix
+- `home-manager://options/news` - Get all options under the news.* prefix
+- `home-manager://options/nix` - Get all options under the nix.* prefix
+- `home-manager://options/nixpkgs` - Get all options under the nixpkgs.* prefix
+- `home-manager://options/systemd` - Get all options under the systemd.* prefix
+- `home-manager://options/targets` - Get all options under the targets.* prefix
+- `home-manager://options/dconf` - Get all options under the dconf.* prefix
+- `home-manager://options/editorconfig` - Get all options under the editorconfig.* prefix
+- `home-manager://options/lib` - Get all options under the lib.* prefix
+- `home-manager://options/launchd` - Get all options under the launchd.* prefix
+- `home-manager://options/pam` - Get all options under the pam.* prefix
+- `home-manager://options/sops` - Get all options under the sops.* prefix
+- `home-manager://options/windowManager` - Get all options under the windowManager.* prefix
+- `home-manager://options/xresources` - Get all options under the xresources.* prefix
+- `home-manager://options/xsession` - Get all options under the xsession.* prefix
+- `home-manager://options/prefix/{option_prefix}` - Get all options under any specified prefix
 
 ### MCP Tools
 
@@ -174,8 +201,8 @@ To release a new version:
 2. Commit the changes
 3. Tag the release:
    ```bash
-   git tag v0.2.0  # Use semantic versioning
-   git push origin v0.2.0
+   git tag v0.1.2  # Use semantic versioning
+   git push origin v0.1.2
    ```
 
 The GitHub Actions workflow will automatically test and publish the new version to PyPI.

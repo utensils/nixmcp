@@ -309,7 +309,7 @@ async def app_lifespan(mcp_server: FastMCP):
 logger.info("Creating FastMCP server instance")
 mcp = FastMCP(
     "NixMCP",
-    version="0.2.0",
+    version="0.1.2",
     description="NixOS HTTP-based Model Context Protocol Server",
     lifespan=app_lifespan,
 )
