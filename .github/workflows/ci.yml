@@ -116,9 +116,8 @@ jobs:
             ./htmlcov
             ./coverage.xml
 
-  # Trigger publish workflow when a tag is pushed and CI succeeds
   publish:
-    name: Trigger Publish
+    name: Publish
     needs: [build, lint, test]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
