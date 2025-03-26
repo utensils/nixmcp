@@ -146,7 +146,7 @@ The codebase follows a modular architecture:
 
 ## Configuration
 - `LOG_LEVEL`: Set logging level (default: INFO)
-- `NIX_MCP_LOG`: Optional log file path (default: logs to stdout/stderr)
+- `LOG_FILE`: Optional log file path (default: logs to stdout/stderr)
 - Environment variables for Elasticsearch API credentials (see above)
 
 ## Testing
@@ -187,7 +187,8 @@ To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
       "command": "uvx",
       "args": ["nixmcp"],
       "env": {
-        "LOG_LEVEL": "INFO"
+        "LOG_LEVEL": "INFO",
+        "LOG_FILE": "/path/to/nixmcp.log"
       }
     }
   }

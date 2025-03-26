@@ -11,13 +11,13 @@ def setup_logging():
     """
     Configure logging for the NixMCP server.
 
-    By default, only logs to console. If NIX_MCP_LOG environment variable is set,
+    By default, only logs to console. If LOG_FILE environment variable is set,
     it will also log to the specified file path. LOG_LEVEL controls the logging level.
 
     Returns:
         logger: Configured logger instance
     """
-    log_file = os.environ.get("NIX_MCP_LOG")
+    log_file = os.environ.get("LOG_FILE")
     log_level = os.environ.get("LOG_LEVEL", "INFO")
 
     # Create logger

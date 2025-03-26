@@ -30,9 +30,9 @@ class TestLogging(unittest.TestCase):
         self.assertEqual(len(logger.handlers), 1)
         self.assertIsInstance(logger.handlers[0], logging.StreamHandler)
 
-    @patch.dict(os.environ, {"NIX_MCP_LOG": ""}, clear=True)
+    @patch.dict(os.environ, {"LOG_FILE": ""}, clear=True)
     def test_logging_empty_log_path(self):
-        """Test logging setup with NIX_MCP_LOG explicitly set to empty string."""
+        """Test logging setup with LOG_FILE explicitly set to empty string."""
         # Patch logging.info to avoid actual output during test
         with patch.object(logging.Logger, "info"):
             logger = setup_logging()
@@ -41,9 +41,9 @@ class TestLogging(unittest.TestCase):
         self.assertEqual(len(logger.handlers), 1)
         self.assertIsInstance(logger.handlers[0], logging.StreamHandler)
 
-    @patch.dict(os.environ, {"NIX_MCP_LOG": "/tmp/test.log"}, clear=True)
+    @patch.dict(os.environ, {"LOG_FILE": "/tmp/test.log"}, clear=True)
     def test_logging_with_file(self):
-        """Test logging setup with NIX_MCP_LOG environment variable."""
+        """Test logging setup with LOG_FILE environment variable."""
         with patch("logging.handlers.RotatingFileHandler") as mock_handler:
             # Setup a mock for the file handler with proper level attribute
             mock_instance = MagicMock()
@@ -63,7 +63,7 @@ class TestLogging(unittest.TestCase):
             args, _ = mock_handler.call_args
             self.assertEqual(args[0], "/tmp/test.log")
 
-    @patch.dict(os.environ, {"LOG_LEVEL": "DEBUG", "NIX_MCP_LOG": "/tmp/test.log"}, clear=True)
+    @patch.dict(os.environ, {"LOG_LEVEL": "DEBUG", "LOG_FILE": "/tmp/test.log"}, clear=True)
     def test_logging_levels(self):
         """Test that log levels are set correctly."""
         with patch("logging.handlers.RotatingFileHandler") as mock_handler:
@@ -84,7 +84,7 @@ class TestLogging(unittest.TestCase):
             # Verify mock file handler's level was set to DEBUG
             mock_instance.setLevel.assert_called_with(logging.DEBUG)
 
-    @patch.dict(os.environ, {"NIX_MCP_LOG": "/nonexistent/directory/test.log"}, clear=True)
+    @patch.dict(os.environ, {"LOG_FILE": "/nonexistent/directory/test.log"}, clear=True)
     def test_logging_file_error(self):
         """Test error handling when log file cannot be created."""
         # Simulate an error when creating the file handler
