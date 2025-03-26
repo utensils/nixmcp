@@ -1,5 +1,5 @@
 {
-  description = "NixMCP - Model Context Protocol server for NixOS resources";
+  description = "NixMCP - Model Context Protocol server for NixOS and Home Manager resources";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -88,7 +88,7 @@
             
             # Better prompt appearance
             motd = ''
-              NixMCP Dev Environment - Model Context Protocol for NixOS resources
+              NixMCP Dev Environment - Model Context Protocol for NixOS and Home Manager resources
             '';
             
             # Environment variables
@@ -165,15 +165,11 @@
                     pip install -e .
                   fi
                   
-                  # Run either directly or using the installed package
+                  # Run using the Python module
                   # Do not set NIX_MCP_LOG by default - only log to console
                   # Users can explicitly set NIX_MCP_LOG if they want file logging
                   
-                  if [ -f "server.py" ]; then
-                    python server.py
-                  else
-                    python -m nixmcp
-                  fi
+                  python -m nixmcp
                 '';
               }
               {
@@ -342,7 +338,8 @@
               # Print environment info
               echo ""
               echo "┌─────────────────────────────────────────────────┐"
-              echo "│            NixMCP Development Environment        │"
+              echo "│      NixMCP Development Environment              │"
+              echo "│      NixOS & Home Manager MCP Resources          │"
               echo "└─────────────────────────────────────────────────┘"
               echo ""
               echo "• Python: $(python --version)"
@@ -385,7 +382,7 @@
               ${setupVenvScript}
               
               echo "NixMCP Legacy Shell activated"
-              echo "Run 'python server.py' to start the server"
+              echo "Run 'python -m nixmcp' to start the server"
             '';
           };
         };

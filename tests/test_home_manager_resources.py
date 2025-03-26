@@ -25,7 +25,7 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
     def setUp(self):
         """Set up the test environment."""
         # Create a mock for the HomeManagerContext
-        self.context_patcher = patch('nixmcp.server.home_manager_context')
+        self.context_patcher = patch("nixmcp.server.home_manager_context")
         self.mock_context = self.context_patcher.start()
         self.addCleanup(self.context_patcher.stop)
 
@@ -125,7 +125,7 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
         self.assertEqual(result["example"], "true")
         self.assertEqual(result["source"], "options")
         self.assertTrue(result["found"])
-        
+
         # Verify related options
         self.assertIn("related_options", result)
         self.assertEqual(len(result["related_options"]), 1)
@@ -180,17 +180,17 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
         self.assertEqual(result["total_options"], 1234)
         self.assertEqual(result["total_categories"], 42)
         self.assertEqual(result["total_types"], 10)
-        
+
         # Verify source distribution
         self.assertIn("by_source", result)
         self.assertEqual(result["by_source"]["options"], 800)
         self.assertEqual(result["by_source"]["nixos-options"], 434)
-        
+
         # Verify category distribution
         self.assertIn("by_category", result)
         self.assertEqual(result["by_category"]["Version Control"], 50)
         self.assertEqual(result["by_category"]["Web Browsers"], 30)
-        
+
         # Verify type distribution
         self.assertIn("by_type", result)
         self.assertEqual(result["by_type"]["boolean"], 500)
@@ -199,4 +199,5 @@ class TestHomeManagerResourceEndpoints(NixMCPTestBase):
 
 if __name__ == "__main__":
     import unittest
+
     unittest.main()

@@ -249,13 +249,23 @@ https://nix-community.github.io/home-manager/nixos-options.xhtml
 https://nix-community.github.io/home-manager/nix-darwin-options.xhtml
 ```
 
-2. HTML documentation is parsed and indexed in memory for fast searching.
+2. HTML documentation is parsed and indexed in memory for fast searching:
+   - Parses options from `<div class="variablelist">` elements containing `<dl>/<dt>/<dd>` elements
+   - Extracts option names, types, descriptions, defaults, and examples
+   - Automatically categorizes options based on document structure and headings
 
-3. Background loading is used to avoid blocking server startup.
+3. Multiple specialized indexes for search:
+   - Inverted index for text search across option names and descriptions
+   - Prefix index for hierarchical path matches (e.g., programs.git.*)
+   - Hierarchical index for path component matching
 
-4. Results include option metadata such as type, description, default values and examples.
+4. Background loading is used to avoid blocking server startup.
 
-5. Data is automatically refreshed when the server restarts to ensure current documentation.
+5. Results include option metadata such as type, description, default values and examples.
+
+6. Related options are automatically suggested based on hierarchical paths.
+
+7. Data is automatically refreshed when the server restarts to ensure current documentation.
 
 ### Testing
 The project includes a comprehensive test suite:

@@ -4,16 +4,16 @@ from unittest.mock import patch
 # Import base test class
 from tests import NixMCPTestBase
 
-# Import the server module
-from server import (
-    status_resource,
+# Import directly from server module
+from nixmcp.server import (
+    NixOSContext,
+    nixos_status_resource,
     package_resource,
     search_packages_resource,
     search_options_resource,
     option_resource,
     search_programs_resource,
     package_stats_resource,
-    NixOSContext,
 )
 
 # Disable logging during tests
@@ -44,7 +44,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             }
 
             # Call the resource function
-            result = status_resource()
+            result = nixos_status_resource()
 
             # Verify the structure of the response
             self.assertEqual(result["status"], "ok")

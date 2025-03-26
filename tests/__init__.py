@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 # Configure import path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from server import ElasticsearchClient, NixOSContext, SimpleCache
+from nixmcp.server import ElasticsearchClient, NixOSContext, SimpleCache
 
 
 # Base test class with common setup for mocked tests

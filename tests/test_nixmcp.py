@@ -4,7 +4,7 @@ from unittest.mock import patch
 import time
 
 # Import the server module
-from server import ElasticsearchClient, NixOSContext, SimpleCache
+from nixmcp.server import ElasticsearchClient, NixOSContext, SimpleCache
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -409,7 +409,7 @@ class TestMCPTools(unittest.TestCase):
             }
 
             # Import the tool function directly
-            from server import nixos_search
+            from nixmcp.server import nixos_search
 
             # Call the tool function
             result = nixos_search("python", "packages", 5)
@@ -447,7 +447,7 @@ class TestMCPTools(unittest.TestCase):
             }
 
             # Import the tool function directly
-            from server import nixos_search
+            from nixmcp.server import nixos_search
 
             # Call the tool function
             result = nixos_search("nginx", "options", 5)
@@ -484,7 +484,7 @@ class TestMCPTools(unittest.TestCase):
             }
 
             # Import the tool function directly
-            from server import nixos_search
+            from nixmcp.server import nixos_search
 
             # Call the tool function
             result = nixos_search("python", "programs", 5)
@@ -514,7 +514,7 @@ class TestMCPTools(unittest.TestCase):
             }
 
             # Import the tool function directly
-            from server import nixos_info
+            from nixmcp.server import nixos_info
 
             # Call the tool function
             result = nixos_info("python3", "package")
@@ -544,7 +544,7 @@ class TestMCPTools(unittest.TestCase):
             }
 
             # Import the tool function directly
-            from server import nixos_info
+            from nixmcp.server import nixos_info
 
             # Call the tool function
             result = nixos_info("services.nginx.enable", "option")
@@ -587,7 +587,7 @@ class TestMCPTools(unittest.TestCase):
             }
 
             # Import the tool function directly
-            from server import nixos_stats
+            from nixmcp.server import nixos_stats
 
             # Call the tool function
             result = nixos_stats()
@@ -641,7 +641,7 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from server import status_resource
+            from nixmcp.server import status_resource
 
             # Call the resource function
             result = status_resource()
@@ -667,7 +667,7 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from server import package_resource
+            from nixmcp.server import package_resource
 
             # Call the resource function
             result = package_resource("python3")
@@ -693,7 +693,7 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from server import search_packages_resource
+            from nixmcp.server import search_packages_resource
 
             # Call the resource function
             result = search_packages_resource("python")
@@ -722,7 +722,7 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from server import search_options_resource
+            from nixmcp.server import search_options_resource
 
             # Call the resource function
             result = search_options_resource("nginx")
@@ -748,7 +748,7 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from server import option_resource
+            from nixmcp.server import option_resource
 
             # Call the resource function
             result = option_resource("services.nginx.enable")
@@ -774,7 +774,7 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from server import search_programs_resource
+            from nixmcp.server import search_programs_resource
 
             # Call the resource function
             result = search_programs_resource("python")
@@ -800,7 +800,7 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from server import package_stats_resource
+            from nixmcp.server import package_stats_resource
 
             # Call the resource function
             result = package_stats_resource()

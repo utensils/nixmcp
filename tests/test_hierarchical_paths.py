@@ -6,7 +6,7 @@ import json
 from unittest.mock import patch
 
 # Import the server module
-from server import ElasticsearchClient, create_wildcard_query
+from nixmcp.server import ElasticsearchClient, create_wildcard_query
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)

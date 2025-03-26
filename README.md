@@ -9,6 +9,13 @@
 
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, and Home Manager configuration options to AI models. It provides AI models with up-to-date information about both NixOS and Home Manager resources, reducing hallucinations and outdated information.
 
+### New in v0.1.2
+- Complete Home Manager integration with HTML parsing of official documentation
+- In-memory search engine for fast option lookups
+- Support for hierarchical paths like programs.git.* and services.postgresql.*
+- Related options and contextual suggestions for better discoverability
+- Background fetching and caching of documentation
+
 Using the FastMCP framework, the server provides MCP endpoints for accessing the NixOS Elasticsearch API for system resources and an integrated parser for Home Manager documentation to deliver accurate information about packages and options.
 
 ## Features
@@ -105,7 +112,11 @@ uv pip install nixmcp
 To use the package with uvx (uv execute), which runs Python packages directly without installing:
 
 ```bash
-uvx nixmcp
+# Make sure to install dependencies explicitly with --install-deps
+uvx --install-deps nixmcp
+
+# Or with a specific Python version
+uvx --python=3.11 --install-deps nixmcp
 ```
 
 ## MCP Configuration
@@ -116,8 +127,24 @@ Add the following to your MCP configuration file:
 {
   "mcpServers": {
     "nixos": {
+      "command": "python",
+      "args": ["-m", "nixmcp"],
+      "env": {
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+Alternatively, if you're using `uvx`, make sure you install the package with explicit dependencies:
+
+```json
+{
+  "mcpServers": {
+    "nixos": {
       "command": "uvx",
-      "args": ["nixmcp"],
+      "args": ["--install-deps", "nixmcp"],
       "env": {
         "LOG_LEVEL": "INFO"
       }
@@ -148,8 +175,8 @@ To release a new version:
 2. Commit the changes
 3. Tag the release:
    ```bash
-   git tag v0.1.1  # Use semantic versioning
-   git push origin v0.1.1
+   git tag v0.1.2  # Use semantic versioning
+   git push origin v0.1.2
    ```
 
 The GitHub Actions workflow will automatically test and publish the new version to PyPI.

@@ -7,7 +7,7 @@ from unittest.mock import patch
 from tests import NixMCPRealAPITestBase
 
 # Import the server module functions and classes
-from server import nixos_search, nixos_info, ElasticsearchClient, NixOSContext
+from nixmcp.server import nixos_search, nixos_info, ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
 import logging
@@ -21,7 +21,7 @@ class TestServicePathDetection(unittest.TestCase):
     def test_is_service_path_detection(self):
         """Test the detection of service paths."""
 
-        # Setup - extract the service path detection logic from server.py's nixos_search function
+        # Setup - extract the service path detection logic from nixmcp.server.py's nixos_search function
         def is_service_path(query):
             return query.startswith("services.") if not query.startswith("*") else False
 
@@ -39,7 +39,7 @@ class TestServicePathDetection(unittest.TestCase):
     def test_service_name_extraction(self):
         """Test extraction of service name from path."""
 
-        # Setup - extract the service name extraction logic from server.py's nixos_search function
+        # Setup - extract the service name extraction logic from nixmcp.server.py's nixos_search function
         def extract_service_name(query):
             if not query.startswith("services."):
                 return ""

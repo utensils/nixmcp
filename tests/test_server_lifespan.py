@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 from tests import NixMCPTestBase
 
 # Import the server module
-from server import app_lifespan, ElasticsearchClient, NixOSContext
+from nixmcp.server import app_lifespan, ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -119,7 +119,7 @@ class TestErrorHandling(NixMCPTestBase):
     def test_search_with_invalid_parameters(self):
         """Test search with invalid parameters."""
         # Import the nixos_search function directly
-        from server import nixos_search
+        from nixmcp.server import nixos_search
 
         # Test with an invalid type
         result = nixos_search("python", "invalid_type", 5)

@@ -29,10 +29,9 @@ import logging
 import logging.handlers
 import json
 import time
-import asyncio
 import threading
 import re
-from typing import Dict, List, Any, Optional, Set, Tuple
+from typing import Dict, List, Any
 from collections import defaultdict
 import requests
 from bs4 import BeautifulSoup
@@ -48,7 +47,7 @@ load_dotenv()
 def setup_logging():
     """
     Configure logging for the NixMCP server.
-    
+
     By default, only logs to console. If NIX_MCP_LOG environment variable is set,
     it will also log to the specified file path. LOG_LEVEL controls the logging level.
     """
@@ -58,7 +57,7 @@ def setup_logging():
     # Create logger
     logger = logging.getLogger("nixmcp")
 
-    # Only configure handlers if they haven't been added yet
+    # Only configure handlers if they haven't been added ye
     # This prevents duplicate logging when code is reloaded
     if not logger.handlers:
         logger.setLevel(getattr(logging, log_level))
@@ -75,9 +74,7 @@ def setup_logging():
         # Add file handler only if NIX_MCP_LOG is set and not empty
         if log_file and log_file.strip():
             try:
-                file_handler = logging.handlers.RotatingFileHandler(
-                    log_file, maxBytes=10 * 1024 * 1024, backupCount=5
-                )
+                file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
                 file_handler.setLevel(getattr(logging, log_level))
                 file_handler.setFormatter(formatter)
                 logger.addHandler(file_handler)
@@ -160,58 +157,56 @@ class HomeManagerClient:
             "nixos-options": "https://nix-community.github.io/home-manager/nixos-options.xhtml",
             "nix-darwin-options": "https://nix-community.github.io/home-manager/nix-darwin-options.xhtml",
         }
-        
+
         # Create cache for raw HTML content and parsed data
         self.cache = SimpleCache(max_size=100, ttl=3600)  # 1 hour TTL
-        
+
         # In-memory data structures for search
         self.options = {}  # All options indexed by name
         self.options_by_category = defaultdict(list)  # Options indexed by category
         self.inverted_index = defaultdict(set)  # Word -> set of option names
         self.prefix_index = defaultdict(set)  # Prefix -> set of option names
         self.hierarchical_index = defaultdict(set)  # Hierarchical parts -> set of option names
-        
+
         # Request timeout settings
         self.connect_timeout = 5.0  # seconds
         self.read_timeout = 15.0  # seconds
-        
+
         # Retry settings
         self.max_retries = 3
         self.retry_delay = 1.0  # seconds
-        
+
         # Loading state
         self.is_loaded = False
         self.loading_error = None
         self.loading_lock = threading.RLock()
-        
+
         logger.info("Home Manager client initialized")
-    
+
     def fetch_url(self, url: str) -> str:
         """Fetch HTML content from a URL with caching and error handling."""
         cache_key = f"html:{url}"
         cached_content = self.cache.get(cache_key)
-        
+
         if cached_content:
             logger.debug(f"Cache hit for URL: {url}")
             return cached_content
-        
+
         logger.debug(f"Cache miss for URL: {url}")
-        
+
         for attempt in range(self.max_retries):
             try:
                 logger.info(f"Fetching URL: {url} (attempt {attempt + 1})")
                 response = requests.get(
-                    url,
-                    timeout=(self.connect_timeout, self.read_timeout),
-                    headers={"User-Agent": "NixMCP/0.1.1"}
+                    url, timeout=(self.connect_timeout, self.read_timeout), headers={"User-Agent": "NixMCP/0.1.1"}
                 )
                 response.raise_for_status()
-                
+
                 # Cache the HTML content
                 content = response.text
                 self.cache.set(cache_key, content)
                 return content
-                
+
             except requests.exceptions.ConnectionError:
                 logger.error(f"Connection error for URL: {url}")
                 if attempt < self.max_retries - 1:
@@ -227,93 +222,93 @@ class HomeManagerClient:
             except Exception as e:
                 logger.error(f"Error fetching URL: {url} - {str(e)}")
                 raise
-                
+
         raise Exception(f"Failed to fetch URL after {self.max_retries} attempts: {url}")
-    
+
     def parse_html(self, html: str, doc_type: str) -> List[Dict[str, Any]]:
         """Parse Home Manager HTML documentation and extract options."""
         options = []
-        
+
         try:
             logger.info(f"Parsing HTML content for {doc_type}")
-            soup = BeautifulSoup(html, 'html.parser')
-            
+            soup = BeautifulSoup(html, "html.parser")
+
             # Find the variablelist that contains the options
-            variablelist = soup.find(class_='variablelist')
-            
+            variablelist = soup.find(class_="variablelist")
+
             if not variablelist:
                 logger.warning(f"No variablelist found in {doc_type} HTML")
                 return []
-                
+
             # Find the definition list that contains all the options
-            dl = variablelist.find('dl')
-            
+            dl = variablelist.find("dl")
+
             if not dl:
                 logger.warning(f"No definition list found in {doc_type} HTML")
                 return []
-            
+
             # Get all dt (term) elements - these contain option names
-            dt_elements = dl.find_all('dt')
-            
+            dt_elements = dl.find_all("dt")
+
             if not dt_elements:
                 logger.warning(f"No option terms found in {doc_type} HTML")
                 return []
-                
+
             # Process each term (dt) and its description (dd)
             for dt in dt_elements:
                 try:
                     # Find the term span that contains the option name
-                    term_span = dt.find('span', class_='term')
+                    term_span = dt.find("span", class_="term")
                     if not term_span:
                         continue
-                        
+
                     # Find the code element with the option name
-                    code = term_span.find('code')
+                    code = term_span.find("code")
                     if not code:
                         continue
-                    
+
                     # Get the option name
                     option_name = code.text.strip()
-                    
-                    # Find the associated description element
-                    dd = dt.find_next_sibling('dd')
+
+                    # Find the associated description elemen
+                    dd = dt.find_next_sibling("dd")
                     if not dd:
                         continue
-                        
+
                     # Get paragraphs from the description
-                    p_elements = dd.find_all('p')
-                    
+                    p_elements = dd.find_all("p")
+
                     # Extract description, type, default, and example
                     description = ""
                     option_type = ""
                     default_value = None
                     example_value = None
-                    
+
                     # First paragraph is typically the description
                     if p_elements and len(p_elements) > 0:
                         description = p_elements[0].text.strip()
-                        
+
                     # Look for type info in subsequent paragraphs
                     for p in p_elements[1:]:
                         text = p.text.strip()
-                        
+
                         # Extract type
                         if "Type:" in text:
                             option_type = text.split("Type:")[1].strip()
-                            
+
                         # Extract default value
                         elif "Default:" in text:
                             default_value = text.split("Default:")[1].strip()
-                            
+
                         # Extract example
                         elif "Example:" in text:
                             example_value = text.split("Example:")[1].strip()
-                    
+
                     # Determine the category
                     # Use the previous heading or a default category
-                    category_heading = dt.find_previous('h3')
+                    category_heading = dt.find_previous("h3")
                     category = category_heading.text.strip() if category_heading else "Uncategorized"
-                            
+
                     # Create the option record
                     option = {
                         "name": option_name,
@@ -324,84 +319,86 @@ class HomeManagerClient:
                         "category": category,
                         "source": doc_type,
                     }
-                    
+
                     options.append(option)
-                    
+
                 except Exception as e:
                     logger.warning(f"Error parsing option in {doc_type}: {str(e)}")
                     continue
-            
+
             logger.info(f"Parsed {len(options)} options from {doc_type}")
             return options
-            
+
         except Exception as e:
             logger.error(f"Error parsing HTML content for {doc_type}: {str(e)}")
             return []
-    
+
     def build_search_indices(self, options: List[Dict[str, Any]]) -> None:
         """Build in-memory search indices for fast option lookup."""
         try:
             logger.info("Building search indices for Home Manager options")
-            
+
             # Reset indices
             self.options = {}
             self.options_by_category = defaultdict(list)
             self.inverted_index = defaultdict(set)
             self.prefix_index = defaultdict(set)
             self.hierarchical_index = defaultdict(set)
-            
+
             # Process each option
             for option in options:
                 option_name = option["name"]
-                
+
                 # Store the complete option
                 self.options[option_name] = option
-                
+
                 # Index by category
                 category = option.get("category", "Uncategorized")
                 self.options_by_category[category].append(option_name)
-                
+
                 # Build inverted index for all words in name and description
-                name_words = re.findall(r'\w+', option_name.lower())
-                desc_words = re.findall(r'\w+', option.get("description", "").lower())
-                
+                name_words = re.findall(r"\w+", option_name.lower())
+                desc_words = re.findall(r"\w+", option.get("description", "").lower())
+
                 # Add to inverted index with higher weight for name words
                 for word in name_words:
                     if len(word) > 2:  # Skip very short words
                         self.inverted_index[word].add(option_name)
-                
+
                 for word in desc_words:
                     if len(word) > 2:  # Skip very short words
                         self.inverted_index[word].add(option_name)
-                
+
                 # Build prefix index for quick prefix searches
-                parts = option_name.split('.')
+                parts = option_name.split(".")
                 for i in range(1, len(parts) + 1):
-                    prefix = '.'.join(parts[:i])
+                    prefix = ".".join(parts[:i])
                     self.prefix_index[prefix].add(option_name)
-                
-                # Build hierarchical index for each path component
+
+                # Build hierarchical index for each path componen
                 for i, part in enumerate(parts):
-                    # Get the parent path up to this component
-                    parent_path = '.'.join(parts[:i]) if i > 0 else ""
-                    
+                    # Get the parent path up to this componen
+                    parent_path = ".".join(parts[:i]) if i > 0 else ""
+
                     # Add this part to the hierarchical index
                     self.hierarchical_index[(parent_path, part)].add(option_name)
-            
-            logger.info(f"Built search indices with {len(self.options)} options, "
-                        f"{len(self.inverted_index)} words, "
-                        f"{len(self.prefix_index)} prefixes, "
-                        f"{len(self.hierarchical_index)} hierarchical parts")
-                        
+
+            logger.info(
+                f"Built search indices with {len(self.options)} options, "
+                f"{len(self.inverted_index)} words, "
+                f"{len(self.prefix_index)} prefixes, "
+                f"{len(self.hierarchical_index)} hierarchical parts"
+            )
+
         except Exception as e:
             logger.error(f"Error building search indices: {str(e)}")
             raise
-    
+
     def load_all_options(self) -> List[Dict[str, Any]]:
         """Load options from all Home Manager HTML documentation sources."""
         all_options = []
         errors = []
-        
+
         for doc_type, url in self.hm_urls.items():
             try:
                 logger.info(f"Loading options from {doc_type}: {url}")
@@ -413,24 +410,24 @@ class HomeManagerClient:
                 error_msg = f"Error loading options from {doc_type}: {str(e)}"
                 logger.error(error_msg)
                 errors.append(error_msg)
-        
+
         if not all_options and errors:
             error_summary = "; ".join(errors)
             logger.error(f"Failed to load any options: {error_summary}")
             raise Exception(f"Failed to load Home Manager options: {error_summary}")
-        
+
         logger.info(f"Loaded a total of {len(all_options)} options from all sources")
         return all_options
-    
+
     def ensure_loaded(self) -> None:
         """Ensure that options are loaded and indices are built."""
         with self.loading_lock:
             if self.is_loaded:
                 return
-                
+
             if self.loading_error:
                 raise Exception(f"Previous loading attempt failed: {self.loading_error}")
-                
+
             try:
                 logger.info("Loading Home Manager options")
                 options = self.load_all_options()
@@ -441,67 +438,64 @@ class HomeManagerClient:
                 self.loading_error = str(e)
                 logger.error(f"Failed to load Home Manager options: {str(e)}")
                 raise
-    
+
     def load_in_background(self) -> None:
         """Start loading options in a background thread."""
+
         def _load_data():
             try:
                 self.ensure_loaded()
                 logger.info("Background loading of Home Manager options completed")
             except Exception as e:
                 logger.error(f"Background loading of Home Manager options failed: {str(e)}")
-        
+
         logger.info("Starting background thread for loading Home Manager options")
         thread = threading.Thread(target=_load_data, daemon=True)
         thread.start()
-    
+
     def search_options(self, query: str, limit: int = 20) -> Dict[str, Any]:
         """
         Search for Home Manager options using the in-memory indices.
-        
+
         Args:
             query: Search query string
             limit: Maximum number of results to return
-            
+
         Returns:
             Dict containing search results and metadata
         """
         try:
             # Ensure data is loaded
             self.ensure_loaded()
-            
+
             logger.info(f"Searching Home Manager options for: {query}")
             query = query.strip()
-            
+
             if not query:
-                return {
-                    "count": 0,
-                    "options": [],
-                    "error": "Empty query"
-                }
-            
+                return {"count": 0, "options": [], "error": "Empty query"}
+
             # Track matched options and their scores
             matches = {}  # option_name -> score
-            
+
             # Check for exact match
             if query in self.options:
                 matches[query] = 100  # Highest possible score
-            
+
             # Check for hierarchical path match (services.foo.*)
-            if '.' in query:
+            if "." in query:
                 # If query ends with wildcard, use prefix search
-                if query.endswith('*'):
+                if query.endswith("*"):
                     prefix = query[:-1]  # Remove the '*'
                     for option_name in self.prefix_index.get(prefix, set()):
                         matches[option_name] = 90  # Very high score for prefix match
                 else:
                     # Try prefix search anyway
                     for option_name in self.prefix_index.get(query, set()):
-                        if option_name.startswith(query + '.'):
+                        if option_name.startswith(query + "."):
                             matches[option_name] = 80  # High score for hierarchical match
-            
+
             # Split query into words for text search
-            words = re.findall(r'\w+', query.lower())
+            words = re.findall(r"\w+", query.lower())
             if words:
                 # Find options that match all words
                 candidates = set()
@@ -513,12 +507,12 @@ class HomeManagerClient:
                     else:
                         word_matches = self.inverted_index.get(word, set())
                         candidates &= word_matches
-                
+
                 # Add candidates to matches with appropriate scores
                 for option_name in candidates:
                     # Calculate score based on whether words appear in name or description
                     option = self.options[option_name]
-                    
+
                     score = 0
                     for word in words:
                         # Higher score if word is in name
@@ -527,9 +521,9 @@ class HomeManagerClient:
                         # Lower score if only in description
                         elif word in option.get("description", "").lower():
                             score += 3
-                    
+
                     matches[option_name] = max(matches.get(option_name, 0), score)
-            
+
             # If still no matches, try partial matching with prefixes of words
             if not matches and len(words) > 0:
                 word_prefixes = [w[:3] for w in words if len(w) >= 3]
@@ -539,81 +533,77 @@ class HomeManagerClient:
                         if word.startswith(prefix):
                             for option_name in options:
                                 matches[option_name] = matches.get(option_name, 0) + 2
-            
+
             # Sort matches by score
             sorted_matches = sorted(
-                matches.items(),
-                key=lambda x: (-x[1], x[0])  # Sort by score (desc) then name (asc)
+                matches.items(), key=lambda x: (-x[1], x[0])  # Sort by score (desc) then name (asc)
             )
-            
+
             # Get top matches
             top_matches = sorted_matches[:limit]
-            
+
             # Format results
             result_options = []
             for option_name, score in top_matches:
                 option = self.options[option_name]
-                result_options.append({
-                    "name": option_name,
-                    "description": option.get("description", ""),
-                    "type": option.get("type", ""),
-                    "default": option.get("default", ""),
-                    "category": option.get("category", ""),
-                    "source": option.get("source", ""),
-                    "score": score
-                })
-            
-            return {
-                "count": len(matches),
-                "options": result_options
-            }
-            
+                result_options.append(
+                    {
+                        "name": option_name,
+                        "description": option.get("description", ""),
+                        "type": option.get("type", ""),
+                        "default": option.get("default", ""),
+                        "category": option.get("category", ""),
+                        "source": option.get("source", ""),
+                        "score": score,
+                    }
+                )
+
+            return {"count": len(matches), "options": result_options}
+
         except Exception as e:
             logger.error(f"Error searching Home Manager options: {str(e)}")
-            return {
-                "count": 0,
-                "options": [],
-                "error": str(e)
-            }
-    
+            return {"count": 0, "options": [], "error": str(e)}
+
     def get_option(self, option_name: str) -> Dict[str, Any]:
         """
         Get detailed information about a specific Home Manager option.
-        
+
         Args:
             option_name: Name of the option
-            
+
         Returns:
             Dict containing option details
         """
         try:
             # Ensure data is loaded
             self.ensure_loaded()
-            
+
             logger.info(f"Getting Home Manager option: {option_name}")
-            
+
             # Check for exact match
             if option_name in self.options:
                 option = self.options[option_name]
-                
+
                 # Find related options (same parent path)
                 related_options = []
-                if '.' in option_name:
-                    parts = option_name.split('.')
-                    parent_path = '.'.join(parts[:-1])
-                    
+                if "." in option_name:
+                    parts = option_name.split(".")
+                    parent_path = ".".join(parts[:-1])
+
                     # Get options with same parent path
                     for other_name, other_option in self.options.items():
-                        if other_name != option_name and other_name.startswith(parent_path + '.'):
-                            related_options.append({
-                                "name": other_name,
-                                "description": other_option.get("description", ""),
-                                "type": other_option.get("type", "")
-                            })
-                    
+                        if other_name != option_name and other_name.startswith(parent_path + "."):
+                            related_options.append(
+                                {
+                                    "name": other_name,
+                                    "description": other_option.get("description", ""),
+                                    "type": other_option.get("type", ""),
+                                }
+                            )
+
                     # Limit to top 5 related options
                     related_options = related_options[:5]
-                
+
                 result = {
                     "name": option_name,
                     "description": option.get("description", ""),
@@ -622,19 +612,19 @@ class HomeManagerClient:
                     "example": option.get("example", ""),
                     "category": option.get("category", ""),
                     "source": option.get("source", ""),
-                    "found": True
+                    "found": True,
                 }
-                
+
                 if related_options:
                     result["related_options"] = related_options
-                
+
                 return result
-            
+
             # Try to find options that start with the given name
             if option_name in self.prefix_index:
                 matches = list(self.prefix_index[option_name])
                 logger.info(f"Option {option_name} not found, but found {len(matches)} options with this prefix")
-                
+
                 # Get the first matching option
                 if matches:
                     suggested_name = matches[0]
@@ -642,60 +632,49 @@ class HomeManagerClient:
                         "name": option_name,
                         "error": f"Option not found. Did you mean '{suggested_name}'?",
                         "found": False,
-                        "suggestions": matches[:5]  # Include up to 5 suggestions
+                        "suggestions": matches[:5],  # Include up to 5 suggestions
                     }
-            
+
             # No matches found
-            return {
-                "name": option_name,
-                "error": "Option not found",
-                "found": False
-            }
-            
+            return {"name": option_name, "error": "Option not found", "found": False}
+
         except Exception as e:
             logger.error(f"Error getting Home Manager option: {str(e)}")
-            return {
-                "name": option_name,
-                "error": str(e),
-                "found": False
-            }
-    
+            return {"name": option_name, "error": str(e), "found": False}
+
     def get_stats(self) -> Dict[str, Any]:
         """
         Get statistics about Home Manager options.
-        
+
         Returns:
             Dict containing statistics
         """
         try:
             # Ensure data is loaded
             self.ensure_loaded()
-            
+
             logger.info("Getting Home Manager option statistics")
-            
+
             # Count options by source
             options_by_source = defaultdict(int)
             for option in self.options.values():
                 source = option.get("source", "unknown")
                 options_by_source[source] += 1
-            
+
             # Count options by category
-            options_by_category = {
-                category: len(options)
-                for category, options in self.options_by_category.items()
-            }
-            
+            options_by_category = {category: len(options) for category, options in self.options_by_category.items()}
+
             # Count options by type
             options_by_type = defaultdict(int)
             for option in self.options.values():
                 option_type = option.get("type", "unknown")
                 options_by_type[option_type] += 1
-            
+
             # Extract some top-level stats
             total_options = len(self.options)
             total_categories = len(self.options_by_category)
             total_types = len(options_by_type)
-            
+
             return {
                 "total_options": total_options,
                 "total_categories": total_categories,
@@ -706,15 +685,14 @@ class HomeManagerClient:
                 "index_stats": {
                     "words": len(self.inverted_index),
                     "prefixes": len(self.prefix_index),
-                    "hierarchical_parts": len(self.hierarchical_index)
-                }
+                    "hierarchical_parts": len(self.hierarchical_index),
+                },
             }
-            
+
         except Exception as e:
             logger.error(f"Error getting Home Manager option statistics: {str(e)}")
-            return {
-                "error": str(e)
-            }
+            return {"error": str(e)}
+
 
 # Elasticsearch client for accessing NixOS resources
 class ElasticsearchClient:
@@ -838,7 +816,7 @@ class ElasticsearchClient:
                     "query": {
                         "bool": {
                             "should": [
-                                # Contains match with high boost
+                                # Contains match with high boos
                                 {
                                     "wildcard": {
                                         "package_attr_name": {
@@ -895,7 +873,7 @@ class ElasticsearchClient:
                 "query": {
                     "bool": {
                         "should": [
-                            # Exact match with highest boost
+                            # Exact match with highest boos
                             {"term": {"package_attr_name": {"value": query, "boost": 10}}},
                             {"term": {"package_pname": {"value": query, "boost": 8}}},
                             # Prefix match (starts with)
@@ -1000,7 +978,7 @@ class ElasticsearchClient:
                 # For hierarchical paths like services.postgresql, add a wildcard
                 logger.info(f"Detected hierarchical path in option search: {query}")
 
-                # Add wildcards for hierarchical paths by default
+                # Add wildcards for hierarchical paths by defaul
                 if not query.endswith("*"):
                     hierarchical_query = f"{query}*"
                     logger.info(f"Adding wildcard to hierarchical path: {hierarchical_query}")
@@ -1105,7 +1083,7 @@ class ElasticsearchClient:
                         }
                     }
             else:
-                # For regular term searches, use the NixOS search format
+                # For regular term searches, use the NixOS search forma
                 search_query = {
                     "bool": {
                         "filter": [
@@ -1154,7 +1132,7 @@ class ElasticsearchClient:
                     }
                 }
 
-        # Build the full request
+        # Build the full reques
         request_data = {
             "from": offset,
             "size": limit,
@@ -1254,7 +1232,7 @@ class ElasticsearchClient:
             source = hit.get("_source", {})
             programs = source.get("package_programs", [])
 
-            # Filter to only include matching programs in the result
+            # Filter to only include matching programs in the resul
             matching_programs = []
             if isinstance(programs, list):
                 if "*" in program:
@@ -1387,7 +1365,7 @@ class ElasticsearchClient:
         """
         logger.info(f"Executing advanced query on {index_type}: {query_string}")
 
-        # Determine the endpoint
+        # Determine the endpoin
         if index_type.lower() == "options":
             endpoint = self.es_options_url
         else:
@@ -1462,7 +1440,7 @@ class ElasticsearchClient:
 
         # Build a query to find the exact package by name
         request_data = {
-            "size": 1,  # We only need one result
+            "size": 1,  # We only need one resul
             "query": {"bool": {"must": [{"term": {"package_attr_name": package_name}}]}},
         }
 
@@ -1480,7 +1458,7 @@ class ElasticsearchClient:
             logger.warning(f"Package {package_name} not found")
             return {"name": package_name, "error": "Package not found", "found": False}
 
-        # Extract package details from the first hit
+        # Extract package details from the first hi
         source = hits[0].get("_source", {})
 
         # Return comprehensive package information
@@ -1522,7 +1500,7 @@ class ElasticsearchClient:
 
         # Build a query to find the exact option by name
         request_data = {
-            "size": 1,  # We only need one result
+            "size": 1,  # We only need one resul
             "query": {
                 "bool": {
                     "filter": [{"term": {"type": {"value": "option"}}}],
@@ -1581,7 +1559,7 @@ class ElasticsearchClient:
                     "found": False,
                 }
 
-        # Extract option details from the first hit
+        # Extract option details from the first hi
         source = hits[0].get("_source", {})
 
         # Get related options for service paths
@@ -1640,15 +1618,15 @@ class ElasticsearchClient:
 # Model Context with app-specific data for Home Manager
 class HomeManagerContext:
     """Provides Home Manager resources to AI models."""
-    
+
     def __init__(self):
         """Initialize the Home Manager context."""
         self.hm_client = HomeManagerClient()
         logger.info("HomeManagerContext initialized")
-        
+
         # Start loading the data in the background
         self.hm_client.load_in_background()
-    
+
     def get_status(self) -> Dict[str, Any]:
         """Get the status of the Home Manager context."""
         try:
@@ -1682,18 +1660,19 @@ class HomeManagerContext:
                 "error": str(e),
                 "loaded": False,
             }
-    
+
     def search_options(self, query: str, limit: int = 10) -> Dict[str, Any]:
         """Search for Home Manager options."""
         return self.hm_client.search_options(query, limit)
-    
+
     def get_option(self, option_name: str) -> Dict[str, Any]:
         """Get information about a specific Home Manager option."""
         return self.hm_client.get_option(option_name)
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about Home Manager options."""
         return self.hm_client.get_stats()
+
 
 # Model Context with app-specific data
 class NixOSContext:
@@ -1761,36 +1740,36 @@ async def app_lifespan(mcp_server: FastMCP):
     # NixOS and Home Manager MCP Guide
 
     This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about:
-    1. NixOS packages, system options, and service configurations 
+    1. NixOS packages, system options, and service configurations
     2. Home Manager options for user configuration
 
     ## Choosing the Right Tools
 
     ### When to use NixOS tools vs. Home Manager tools
-    
+
     - **NixOS tools** (`nixos_*`): Use when looking for:
       - System-wide packages in the Nix package registry
       - System-level configuration options for NixOS
-      - System services configuration (like services.postgresql)  
+      - System services configuration (like services.postgresql)
       - Available executable programs and which packages provide them
-    
+
     - **Home Manager tools** (`home_manager_*`): Use when looking for:
       - User environment configuration options
       - Home Manager module configuration (programs.*, services.*)
       - Application configuration managed through Home Manager
       - User-specific package and service settings
-    
+
     ### For questions about...
-    
+
     - **System-wide package availability**: Use `nixos_search(type="packages")`
     - **NixOS system configuration**: Use `nixos_search(type="options")`
     - **Executable programs**: Use `nixos_search(type="programs")`
     - **Home Manager configuration**: Use `home_manager_search()`
     - **User environment setup**: Use `home_manager_search()`
-    - **Configuration for specific applications**: 
-      - Try `home_manager_search(query="programs.NAME")` first
+    - **Configuration for specific applications**:
+      - Try `home_manager_search(query="programs.NAME")` firs
       - If not found, try `nixos_search(query="NAME", type="packages")`
-    
+
     ## When to Use These Tools
 
     - `nixos_search`: Use when you need to find NixOS packages, system options, or executable programs
@@ -1806,18 +1785,18 @@ async def app_lifespan(mcp_server: FastMCP):
     - `nixos_stats`: Use when you need statistics about NixOS packages
         - Distribution by channel, license, platforms
         - Overview of the NixOS package ecosystem
-        
+
     - `home_manager_search`: Use when you need to find Home Manager configuration options
         - Finding options for configuring user environments with Home Manager
         - Getting details about the structure and usage of Home Manager options
         - Especially useful for program configurations like programs.git, programs.firefox, etc.
         - Use for user-specific configuration rather than system-wide settings
-        
+
     - `home_manager_info`: Use when you need detailed information about a specific Home Manager option
         - Getting detailed descriptions, type information, default values, examples
         - Understanding the purpose and usage of Home Manager configuration options
         - Includes configuration examples for Home Manager options
-        
+
     - `home_manager_stats`: Use when you need statistics about Home Manager options
         - Count of available options by category and type
         - Overview of the Home Manager configuration ecosystem
@@ -1866,9 +1845,9 @@ async def app_lifespan(mcp_server: FastMCP):
 
     Example:
     - `nixos_stats()` - Get statistics about NixOS packages
-    
+
     ### Home Manager Tools
-    
+
     #### home_manager_search
 
     ```python
@@ -1879,10 +1858,10 @@ async def app_lifespan(mcp_server: FastMCP):
     ```
 
     Examples:
-    - `home_manager_search(query="git")` - Find Home Manager options related to git
+    - `home_manager_search(query="git")` - Find Home Manager options related to gi
     - `home_manager_search(query="programs.alacritty")` - Find Alacritty terminal options
     - `home_manager_search(query="firefox")` - Find Firefox browser configuration options
-    
+
     #### home_manager_info
 
     ```python
@@ -1894,7 +1873,7 @@ async def app_lifespan(mcp_server: FastMCP):
     Examples:
     - `home_manager_info(name="programs.git.enable")` - Get details about the Git enable option
     - `home_manager_info(name="programs.vscode")` - Get details about VSCode configuration
-    
+
     #### home_manager_stats
 
     ```python
@@ -1910,7 +1889,7 @@ async def app_lifespan(mcp_server: FastMCP):
 
     #### Setting up a system service
     For configuring a system service like PostgreSQL in NixOS:
-    1. `nixos_search(query="services.postgresql", type="options")` - Find available system service options 
+    1. `nixos_search(query="services.postgresql", type="options")` - Find available system service options
     2. `nixos_info(name="services.postgresql.enable", type="option")` - Get details about enabling the service
 
     #### Configuring a user application
@@ -1920,10 +1899,10 @@ async def app_lifespan(mcp_server: FastMCP):
 
     #### Finding a package
     1. `nixos_search(query="firefox", type="packages")` - Find Firefox package in NixOS
-    
+
     #### Configuring a browser
     1. `home_manager_search(query="programs.firefox")` - Find Firefox configuration options in Home Manager
-    
+
     #### Setting up shell configuration
     1. `home_manager_search(query="programs.bash")` or `home_manager_search(query="programs.zsh")`
 
@@ -1949,20 +1928,20 @@ async def app_lifespan(mcp_server: FastMCP):
     - Use the `channel` parameter to specify which NixOS version to search:
         - `unstable` (default): Latest development branch with newest packages
         - `24.11`: Latest stable release with more stable packages
-        
+
     ### Comparing NixOS vs Home Manager Configuration
-    
+
     - **NixOS** (`/etc/nixos/configuration.nix`): Configures system-wide settings, services, and packages
     - **Home Manager** (`~/.config/nixpkgs/home.nix`): Configures user-specific settings, applications, and dotfiles
 
     #### Example: PostgreSQL
     - NixOS: `services.postgresql.*` - System-wide database service
     - Home Manager: Client configuration and tools related to PostgreSQL
-    
-    #### Example: Git
+
+    #### Example: Gi
     - NixOS: System-wide Git package installation
     - Home Manager: `programs.git.*` - User config including gitconfig, identity, ignores
-        
+
     #### Example: Firefox
     - NixOS: System-wide Firefox installation
     - Home Manager: `programs.firefox.*` - User profiles, extensions, settings
@@ -1970,10 +1949,7 @@ async def app_lifespan(mcp_server: FastMCP):
 
     try:
         # We yield our contexts that will be accessible in all handlers
-        yield {
-            "nixos_context": nixos_context,
-            "home_manager_context": home_manager_context
-        }
+        yield {"nixos_context": nixos_context, "home_manager_context": home_manager_context}
     except Exception as e:
         logger.error(f"Error in server lifespan: {e}")
         raise
@@ -2115,7 +2091,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
         channel: NixOS channel to search (default: "unstable", can also be "24.11")
 
     Returns:
-        Results formatted as text
+        Results formatted as tex
     """
     logger.info(f"Searching for {type} with query '{query}' in channel '{channel}'")
 
@@ -2130,7 +2106,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
     try:
         # Special handling for hierarchical paths in options
         if type.lower() == "options" and "." in query and "*" not in query:
-            # Don't add wildcards yet - the search_options method will handle it
+            # Don't add wildcards yet - the search_options method will handle i
             logger.info(f"Detected hierarchical path in options search: {query}")
         # Add wildcards if not present and not a special query
         elif "*" not in query and ":" not in query:
@@ -2253,7 +2229,7 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
         channel: NixOS channel to search (default: "unstable", can also be "24.11")
 
     Returns:
-        Detailed information formatted as text
+        Detailed information formatted as tex
     """
     logger.info(f"Getting {type} information for: {name} from channel '{channel}'")
 
@@ -2457,33 +2433,33 @@ def nixos_stats() -> str:
 def home_manager_search(query: str, limit: int = 20) -> str:
     """
     Search for Home Manager options.
-    
+
     Args:
         query: The search term
         limit: Maximum number of results to return (default: 20)
-    
+
     Returns:
-        Results formatted as text
+        Results formatted as tex
     """
     logger.info(f"Searching for Home Manager options with query '{query}'")
-    
+
     try:
         # Add wildcards if not present and not a special query
-        if "*" not in query and ":" not in query and not query.endswith('.'):
+        if "*" not in query and ":" not in query and not query.endswith("."):
             wildcard_query = create_wildcard_query(query)
             logger.info(f"Adding wildcards to query: {wildcard_query}")
             query = wildcard_query
-        
+
         results = home_manager_context.search_options(query, limit)
         options = results.get("options", [])
-        
+
         if not options:
             if "error" in results:
                 return f"Error: {results['error']}"
             return f"No Home Manager options found for '{query}'."
-        
+
         output = f"Found {len(options)} Home Manager options for '{query}':\n\n"
-        
+
         # Group options by category for better organization
         options_by_category = {}
         for opt in options:
@@ -2491,7 +2467,7 @@ def home_manager_search(query: str, limit: int = 20) -> str:
             if category not in options_by_category:
                 options_by_category[category] = []
             options_by_category[category].append(opt)
-        
+
         # Print options grouped by category
         for category, category_options in options_by_category.items():
             output += f"## {category}\n\n"
@@ -2502,7 +2478,7 @@ def home_manager_search(query: str, limit: int = 20) -> str:
                 if opt.get("description"):
                     output += f"  {opt.get('description')}\n"
                 output += "\n"
-        
+
         # Add usage hint if results contain program options
         program_options = [opt for opt in options if "programs." in opt.get("name", "")]
         if program_options:
@@ -2519,9 +2495,9 @@ def home_manager_search(query: str, limit: int = 20) -> str:
                 output += "  };\n"
                 output += "}\n"
                 output += "```\n"
-        
+
         return output
-        
+
     except Exception as e:
         logger.error(f"Error in home_manager_search: {e}", exc_info=True)
         return f"Error performing search: {str(e)}"
@@ -2531,55 +2507,55 @@ def home_manager_search(query: str, limit: int = 20) -> str:
 def home_manager_info(name: str) -> str:
     """
     Get detailed information about a Home Manager option.
-    
+
     Args:
         name: The name of the option
-    
+
     Returns:
-        Detailed information formatted as text
+        Detailed information formatted as tex
     """
     logger.info(f"Getting Home Manager option information for: {name}")
-    
+
     try:
         info = home_manager_context.get_option(name)
-        
+
         if not info.get("found", False):
             output = f"# Option '{name}' not found\n\n"
-            
+
             if "suggestions" in info:
-                output += f"Did you mean one of these options?\n\n"
+                output += "Did you mean one of these options?\n\n"
                 for suggestion in info.get("suggestions", []):
                     output += f"- {suggestion}\n"
-                    
+
                 # Get the first suggestion's parent path if it's a hierarchical path
                 if "." in name and len(info.get("suggestions", [])) > 0:
                     suggested_name = info.get("suggestions", [])[0]
                     parts = suggested_name.split(".")
                     if len(parts) > 1:
                         parent_path = ".".join(parts[:-1])
-                        output += f"\nTry searching for all options under this path:\n"
-                        output += f"`home_manager_search(query=\"{parent_path}\")`"
+                        output += "\nTry searching for all options under this path:\n"
+                        output += f'`home_manager_search(query="{parent_path}")`'
             else:
                 # If name contains dots, suggest searching for parent path
                 if "." in name:
                     parts = name.split(".")
                     if len(parts) > 1:
                         parent_path = ".".join(parts[:-1])
-                        output += f"Try searching for all options under this path:\n"
-                        output += f"`home_manager_search(query=\"{parent_path}\")`"
-            
+                        output += "Try searching for all options under this path:\n"
+                        output += f'`home_manager_search(query="{parent_path}")`'
+
             return output
-        
+
         option = info
-        
+
         output = f"# {option.get('name', name)}\n\n"
-        
+
         if option.get("description"):
             output += f"**Description:** {option.get('description')}\n\n"
-        
+
         if option.get("type"):
             output += f"**Type:** {option.get('type')}\n"
-        
+
         if option.get("default") is not None:
             # Format default value nicely
             default_val = option.get("default")
@@ -2587,21 +2563,21 @@ def home_manager_info(name: str) -> str:
                 output += f"**Default:**\n```nix\n{default_val}\n```\n"
             else:
                 output += f"**Default:** {default_val}\n"
-        
+
         if option.get("example"):
             output += f"\n**Example:**\n```nix\n{option.get('example')}\n```\n"
-        
+
         if option.get("category"):
             output += f"\n**Category:** {option.get('category')}\n"
-        
+
         if option.get("source"):
             output += f"**Source:** {option.get('source')}\n"
-        
+
         # Add information about related options
         if "related_options" in option and option["related_options"]:
             related_options = option["related_options"]
-            
-            output += f"\n## Related Options\n\n"
+
+            output += "\n## Related Options\n\n"
             for opt in related_options:
                 output += f"- `{opt.get('name', '')}`"
                 if opt.get("type"):
@@ -2609,25 +2585,25 @@ def home_manager_info(name: str) -> str:
                 output += "\n"
                 if opt.get("description"):
                     output += f"  {opt.get('description')}\n"
-        
+
         # Add example Home Manager configuration if this is a program option
         if "programs." in name:
             parts = name.split(".")
             if len(parts) > 1:
                 program_name = parts[1]
-                
-                output += f"\n## Example Home Manager Configuration\n\n"
+
+                output += "\n## Example Home Manager Configuration\n\n"
                 output += "```nix\n"
                 output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
                 output += "{ config, pkgs, ... }:\n"
                 output += "{\n"
                 output += f"  programs.{program_name} = {{\n"
                 output += "    enable = true;\n"
-                
+
                 # Specific configuration for this option if it's not the enable option
                 if not name.endswith(".enable"):
                     option_leaf = parts[-1]
-                    
+
                     if option.get("type") == "boolean":
                         output += f"    {option_leaf} = true;\n"
                     elif option.get("type") == "string":
@@ -2636,13 +2612,13 @@ def home_manager_info(name: str) -> str:
                         output += f"    {option_leaf} = 1234;\n"
                     else:
                         output += f"    # Configure {option_leaf} here\n"
-                
+
                 output += "  };\n"
                 output += "}\n"
                 output += "```\n"
-        
+
         return output
-        
+
     except Exception as e:
         logger.error(f"Error getting Home Manager option information: {e}", exc_info=True)
         return f"Error retrieving information: {str(e)}"
@@ -2652,25 +2628,25 @@ def home_manager_info(name: str) -> str:
 def home_manager_stats() -> str:
     """
     Get statistics about Home Manager options.
-    
+
     Returns:
         Statistics about Home Manager options
     """
     logger.info("Getting Home Manager option statistics")
-    
+
     try:
         stats = home_manager_context.get_stats()
-        
+
         if "error" in stats:
             return f"Error getting statistics: {stats['error']}"
-        
+
         output = "# Home Manager Option Statistics\n\n"
-        
+
         # Overall statistics
         output += f"Total options: {stats.get('total_options', 0)}\n"
         output += f"Categories: {stats.get('total_categories', 0)}\n"
         output += f"Option types: {stats.get('total_types', 0)}\n\n"
-        
+
         # Distribution by source
         by_source = stats.get("by_source", {})
         if by_source:
@@ -2678,33 +2654,33 @@ def home_manager_stats() -> str:
             for source, count in by_source.items():
                 output += f"- {source}: {count} options\n"
             output += "\n"
-        
-        # Top categories by option count
+
+        # Top categories by option coun
         by_category = stats.get("by_category", {})
         if by_category:
             output += "## Top Categories\n\n"
-            
+
             # Sort categories by option count (descending)
             sorted_categories = sorted(by_category.items(), key=lambda x: x[1], reverse=True)
-            
+
             # Show top 10 categories
             for category, count in sorted_categories[:10]:
                 output += f"- {category}: {count} options\n"
             output += "\n"
-        
+
         # Distribution by type
         by_type = stats.get("by_type", {})
         if by_type:
             output += "## Distribution by Type\n\n"
-            
+
             # Sort types by option count (descending)
             sorted_types = sorted(by_type.items(), key=lambda x: x[1], reverse=True)
-            
+
             # Show top 10 types
             for type_name, count in sorted_types[:10]:
                 output += f"- {type_name}: {count} options\n"
             output += "\n"
-        
+
         # Indexing statistics
         index_stats = stats.get("index_stats", {})
         if index_stats:
@@ -2712,9 +2688,9 @@ def home_manager_stats() -> str:
             output += f"- Words indexed: {index_stats.get('words', 0)}\n"
             output += f"- Prefix paths: {index_stats.get('prefixes', 0)}\n"
             output += f"- Hierarchical parts: {index_stats.get('hierarchical_parts', 0)}\n"
-        
+
         return output
-        
+
     except Exception as e:
         logger.error(f"Error getting Home Manager statistics: {e}", exc_info=True)
         return f"Error retrieving statistics: {str(e)}"

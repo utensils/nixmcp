@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 # Import the server module functions and classes
-from server import nixos_search, nixos_info, ElasticsearchClient, NixOSContext
+from nixmcp.server import nixos_search, nixos_info, ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
 import logging
