@@ -45,6 +45,7 @@ async def handle_completion(
         Dictionary with completion items
     """
     logger.info("Handling completion request")
+    logger.debug(f"Completion request params: {params}")
 
     try:
         # Extract reference type and parameters
@@ -99,6 +100,7 @@ async def complete_resource_uri(
         Dictionary with completion items
     """
     logger.info(f"Completing resource URI: {uri}")
+    logger.debug(f"Completion context - NixOS: {nixos_context is not None}, Home Manager: {home_manager_context is not None}")
 
     # Get elasticsearch client
     es_client = nixos_context.get_es_client()
@@ -120,37 +122,51 @@ async def complete_resource_uri(
     # NixOS package completions
     if re.match(NIXOS_PACKAGE_PATTERN, uri):
         partial_name = re.match(NIXOS_PACKAGE_PATTERN, uri).group(1)
-        return await complete_nixos_package_name(partial_name, es_client)
+        result = await complete_nixos_package_name(partial_name, es_client)
+        logger.debug(f"Package completion result for '{partial_name}': {len(result.get('items', []))} items")
+        return result
 
     # NixOS option completions
     elif re.match(NIXOS_OPTION_PATTERN, uri):
         partial_name = re.match(NIXOS_OPTION_PATTERN, uri).group(1)
-        return await complete_nixos_option_name(partial_name, es_client)
+        result = await complete_nixos_option_name(partial_name, es_client)
+        logger.debug(f"Option completion result for '{partial_name}': {len(result.get('items', []))} items")
+        return result
 
     # NixOS search/packages completions
     elif re.match(NIXOS_SEARCH_PACKAGES_PATTERN, uri):
         partial_query = re.match(NIXOS_SEARCH_PACKAGES_PATTERN, uri).group(1)
-        return await complete_nixos_package_name(partial_query, es_client, is_search=True)
+        result = await complete_nixos_package_name(partial_query, es_client, is_search=True)
+        logger.debug(f"Package search completion result for '{partial_query}': {len(result.get('items', []))} items")
+        return result
 
     # NixOS search/options completions
     elif re.match(NIXOS_SEARCH_OPTIONS_PATTERN, uri):
         partial_query = re.match(NIXOS_SEARCH_OPTIONS_PATTERN, uri).group(1)
-        return await complete_nixos_option_name(partial_query, es_client, is_search=True)
+        result = await complete_nixos_option_name(partial_query, es_client, is_search=True)
+        logger.debug(f"Option search completion result for '{partial_query}': {len(result.get('items', []))} items")
+        return result
 
     # NixOS search/programs completions
     elif re.match(NIXOS_SEARCH_PROGRAMS_PATTERN, uri):
         partial_program = re.match(NIXOS_SEARCH_PROGRAMS_PATTERN, uri).group(1)
-        return await complete_nixos_program_name(partial_program, es_client)
+        result = await complete_nixos_program_name(partial_program, es_client)
+        logger.debug(f"Program search completion result for '{partial_program}': {len(result.get('items', []))} items")
+        return result
 
     # Home Manager option completions
     elif re.match(HOME_MANAGER_OPTION_PATTERN, uri):
         partial_name = re.match(HOME_MANAGER_OPTION_PATTERN, uri).group(1)
-        return await complete_home_manager_option_name(partial_name, hm_client)
+        result = await complete_home_manager_option_name(partial_name, hm_client)
+        logger.debug(f"Home Manager option completion result for '{partial_name}': {len(result.get('items', []))} items")
+        return result
 
     # Home Manager search completions
     elif re.match(HOME_MANAGER_SEARCH_PATTERN, uri):
         partial_query = re.match(HOME_MANAGER_SEARCH_PATTERN, uri).group(1)
-        return await complete_home_manager_option_name(partial_query, hm_client, is_search=True)
+        result = await complete_home_manager_option_name(partial_query, hm_client, is_search=True)
+        logger.debug(f"Home Manager search completion result for '{partial_query}': {len(result.get('items', []))} items")
+        return result
 
     # Base resource URI completion (first level paths)
     elif uri in ["nixos://", "nixos:", "nixos"]:
@@ -168,6 +184,7 @@ async def complete_resource_uri(
             create_completion_item("nixos://packages/stats", "nixos://packages/stats", "NixOS package statistics"),
             create_completion_item("nixos://status", "nixos://status", "NixOS context status"),
         ]
+        logger.debug(f"Returning {len(items)} top-level NixOS resource completions")
         return {"items": items}
 
     elif uri in ["home-manager://", "home-manager:", "home-manager"]:
@@ -190,6 +207,7 @@ async def complete_resource_uri(
             ),
             create_completion_item("home-manager://status", "home-manager://status", "Home Manager context status"),
         ]
+        logger.debug(f"Returning {len(items)} top-level Home Manager resource completions")
         return {"items": items}
 
     # Fallback - no completions
@@ -214,29 +232,40 @@ async def complete_tool_argument(
         Dictionary with completion items
     """
     logger.info(f"Completing tool argument: {tool_name}.{arg_name}={arg_value}")
+    logger.debug(f"Tool argument completion context - NixOS: {nixos_context is not None}, Home Manager: {home_manager_context is not None}")
+
+    result = {"items": []}
 
     # NixOS search tool completions
     if tool_name == "nixos_search":
-        return await complete_nixos_search_arguments(arg_name, arg_value, nixos_context)
+        result = await complete_nixos_search_arguments(arg_name, arg_value, nixos_context)
+        logger.debug(f"NixOS search tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
 
     # NixOS info tool completions
     elif tool_name == "nixos_info":
-        return await complete_nixos_info_arguments(arg_name, arg_value, nixos_context)
+        result = await complete_nixos_info_arguments(arg_name, arg_value, nixos_context)
+        logger.debug(f"NixOS info tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
 
     # Home Manager search tool completions
     elif tool_name == "home_manager_search":
-        return await complete_home_manager_search_arguments(arg_name, arg_value, home_manager_context)
+        result = await complete_home_manager_search_arguments(arg_name, arg_value, home_manager_context)
+        logger.debug(f"Home Manager search tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
 
     # Home Manager info tool completions
     elif tool_name == "home_manager_info":
-        return await complete_home_manager_info_arguments(arg_name, arg_value, home_manager_context)
+        result = await complete_home_manager_info_arguments(arg_name, arg_value, home_manager_context)
+        logger.debug(f"Home Manager info tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
 
     # Home Manager options by prefix tool completions
     elif tool_name == "home_manager_options_by_prefix":
-        return await complete_home_manager_prefix_arguments(arg_name, arg_value, home_manager_context)
+        result = await complete_home_manager_prefix_arguments(arg_name, arg_value, home_manager_context)
+        logger.debug(f"Home Manager prefix tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
 
     # Fallback for unknown tools
-    return {"items": []}
+    elif tool_name:
+        logger.debug(f"No completion handler for tool: {tool_name}")
+    
+    return result
 
 
 async def complete_prompt_argument(
@@ -255,5 +284,7 @@ async def complete_prompt_argument(
     Returns:
         Dictionary with completion items
     """
+    logger.info(f"Prompt argument completion request: {prompt_name}.{arg_name}={arg_value}")
+    logger.debug("Currently no prompt completion support in NixMCP")
     # Currently no prompt support in NixMCP
     return {"items": []}

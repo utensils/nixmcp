@@ -344,7 +344,12 @@ async def mcp_handle_completion(params: dict) -> dict:
     logger.info("Received completion request")
 
     # Pass the request to our completion handler
-    return await handle_completion(params, nixos_context, home_manager_context)
+    result = await handle_completion(params, nixos_context, home_manager_context)
+    
+    # Log the completion results at DEBUG level
+    logger.debug(f"Completion result: {result}")
+    
+    return result
 
 
 if __name__ == "__main__":
