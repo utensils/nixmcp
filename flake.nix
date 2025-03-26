@@ -50,31 +50,44 @@
         
         # Unified venv setup function
         setupVenvScript = ''
+          # Create venv if it doesn't exist
           if [ ! -d .venv ]; then
             echo "Creating Python virtual environment..."
             ${pythonEnv}/bin/python -m venv .venv
-            source .venv/bin/activate
-            
-            # Ensure pip is installed and up-to-date in the venv
-            echo "Ensuring pip is installed and up-to-date..."
-            python -m ensurepip --upgrade
-            python -m pip install --upgrade pip setuptools wheel
-            
-            # Check if uv is available and use it, otherwise fall back to pip
-            if command -v uv >/dev/null 2>&1; then
-              echo "Using uv to install dependencies..."
-              uv pip install -r requirements.txt
-            else
-              echo "Using pip to install dependencies..."
-              python -m pip install -r requirements.txt
-            fi
+          fi
+          
+          # Always activate the venv
+          source .venv/bin/activate
+          
+          # Verify pip is using the venv version
+          VENV_PIP="$(which pip)"
+          if [[ "$VENV_PIP" != *".venv/bin/pip"* ]]; then
+            echo "Warning: Not using virtual environment pip. Fixing PATH..."
+            export PATH="$PWD/.venv/bin:$PATH"
+          fi
+          
+          # Always ensure pip is installed and up-to-date in the venv
+          echo "Ensuring pip is installed and up-to-date..."
+          python -m ensurepip --upgrade
+          python -m pip install --upgrade pip setuptools wheel
+          
+          # Always install dependencies from requirements.txt
+          echo "Installing dependencies from requirements.txt..."
+          if command -v uv >/dev/null 2>&1; then
+            echo "Using uv to install dependencies..."
+            uv pip install -r requirements.txt
           else
-            source .venv/bin/activate
-            # Verify pip is using the venv version
-            VENV_PIP="$(which pip)"
-            if [[ "$VENV_PIP" != *".venv/bin/pip"* ]]; then
-              echo "Warning: Not using virtual environment pip. Fixing PATH..."
-              export PATH="$PWD/.venv/bin:$PATH"
+            echo "Using pip to install dependencies..."
+            python -m pip install -r requirements.txt
+          fi
+          
+          # In CI especially, make sure everything is installed in development mode
+          if [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+            echo "Installing package in development mode..."
+            if command -v uv >/dev/null 2>&1; then
+              uv pip install -e .
+            else
+              pip install -e .
             fi
           fi
         '';
@@ -216,24 +229,11 @@
                     esac
                   done
                   
-                  # Install the package in development mode if needed
-                  if ! python -c "import nixmcp" &>/dev/null; then
-                    echo "Installing nixmcp in development mode..."
-                    if command -v uv >/dev/null 2>&1; then
-                      uv pip install -e .
-                    else
-                      pip install -e .
-                    fi
-                  fi
-                  
-                  # Ensure all required dependencies are installed
-                  if ! python -c "import bs4" &>/dev/null; then
-                    echo "Installing BeautifulSoup and other package dependencies..."
-                    if command -v uv >/dev/null 2>&1; then
-                      uv pip install beautifulsoup4
-                    else
-                      pip install beautifulsoup4
-                    fi
+                  # Dependencies should be fully installed during setup
+                  # Just verify that critical modules are available
+                  if ! python -c "import nixmcp" &>/dev/null || ! python -c "import bs4" &>/dev/null; then
+                    echo "Warning: Critical dependencies missing. Running setup again..."
+                    ${setupVenvScript}
                   fi
                   
                   # Run pytest with proper configuration
