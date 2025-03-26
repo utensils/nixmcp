@@ -12,7 +12,7 @@ When updating rules:
    ```
 
 ## Project Overview
-NixMCP is a Model Context Protocol (MCP) server for NixOS resources. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages and system options. Communication happens over standard input/output streams using a JSON-based message format.
+NixMCP is a Model Context Protocol (MCP) server for NixOS resources and Home Manager configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, and Home Manager user configuration options. Communication happens over standard input/output streams using a JSON-based message format.
 
 ## MCP Implementation Guidelines
 
@@ -21,7 +21,8 @@ NixMCP is a Model Context Protocol (MCP) server for NixOS resources. It provides
 When implementing MCP resources with `@mcp.resource`, follow these rules:
 
 1. **URI Pattern Structure**:
-   - Use the `nixos://` scheme for all resources
+   - Use the `nixos://` scheme for NixOS resources
+   - Use the `home-manager://` scheme for Home Manager resources
    - Follow consistent path hierarchy: `scheme://category/action/parameter`
    - Place parameters in curly braces: `nixos://package/{package_name}`
 
@@ -142,13 +143,22 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
 
 The server implements the following MCP resource endpoints:
 
-- `nixos://status`: Server status information
-- `nixos://package/{package_name}`: Package information
-- `nixos://search/packages/{query}`: Package search
-- `nixos://search/options/{query}`: Options search
-- `nixos://option/{option_name}`: Option information
+### NixOS Resource Endpoints
+
+- `nixos://status`: NixOS server status information
+- `nixos://package/{package_name}`: NixOS package information
+- `nixos://search/packages/{query}`: NixOS package search
+- `nixos://search/options/{query}`: NixOS options search
+- `nixos://option/{option_name}`: NixOS option information
 - `nixos://search/programs/{program}`: Search for packages providing specific programs
-- `nixos://packages/stats`: Package statistics
+- `nixos://packages/stats`: NixOS package statistics
+
+### Home Manager Resource Endpoints
+
+- `home-manager://status`: Home Manager context status information
+- `home-manager://search/options/{query}`: Home Manager options search
+- `home-manager://option/{option_name}`: Home Manager option information
+- `home-manager://options/stats`: Home Manager options statistics
 
 ## Searching for NixOS Options
 
@@ -189,6 +199,8 @@ When searching for NixOS options, particularly for service configurations:
 
 The server implements the following simplified MCP tools:
 
+### NixOS Tools
+
 - `nixos_search`: Search for packages, options, or programs with automatic wildcard handling
   - Supports channel selection (`unstable`, `24.11`)
   - Optimized for hierarchical path searching (services.postgresql.*)
@@ -196,10 +208,19 @@ The server implements the following simplified MCP tools:
   - Supports channel selection (`unstable`, `24.11`)
 - `nixos_stats`: Get statistical information about NixOS packages
 
+### Home Manager Tools
+
+- `home_manager_search`: Search for Home Manager options with automatic wildcard handling
+  - Optimized for hierarchical path searching (programs.git.*)
+  - Categorizes results by source and option groups
+- `home_manager_info`: Get detailed information about a specific Home Manager option
+  - Provides related options and usage examples
+- `home_manager_stats`: Get statistical information about Home Manager options
+
 ## System Requirements
 
-### Elasticsearch API Access (Required)
-The server requires access to the NixOS Elasticsearch API to function:
+### Elasticsearch API Access (Required for NixOS features)
+The server requires access to the NixOS Elasticsearch API to provide NixOS package and system option data:
 
 1. Credentials are hardcoded in server.py using the public NixOS search credentials, but can be overridden with environment variables:
 ```
@@ -218,7 +239,23 @@ latest-42-nixos-24.11      # For 24.11 channel
 
 4. Both packages and options are in the same index, but are differentiated by a "type" field.
 
-The server requires these credentials to access the NixOS package and option data.
+### Home Manager Documentation Access (Required for Home Manager features)
+The server requires internet access to fetch Home Manager documentation at startup:
+
+1. The server fetches documentation from these URLs:
+```
+https://nix-community.github.io/home-manager/options.xhtml
+https://nix-community.github.io/home-manager/nixos-options.xhtml
+https://nix-community.github.io/home-manager/nix-darwin-options.xhtml
+```
+
+2. HTML documentation is parsed and indexed in memory for fast searching.
+
+3. Background loading is used to avoid blocking server startup.
+
+4. Results include option metadata such as type, description, default values and examples.
+
+5. Data is automatically refreshed when the server restarts to ensure current documentation.
 
 ### Testing
 The project includes a comprehensive test suite:

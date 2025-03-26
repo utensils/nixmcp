@@ -7,42 +7,58 @@
 
 > **⚠️ UNDER ACTIVE DEVELOPMENT**: NixMCP is being actively maintained and improved. I'm just a fool fumbling through the codebase like a raccoon in a dumpster, but having fun along the way!
 
-NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages and options to AI models. It provides AI models with up-to-date information about NixOS resources, reducing hallucinations and outdated information.
+NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, and Home Manager configuration options to AI models. It provides AI models with up-to-date information about both NixOS and Home Manager resources, reducing hallucinations and outdated information.
 
-Using the FastMCP framework, the server provides MCP endpoints for accessing the NixOS Elasticsearch API to deliver accurate information about packages and options.
+Using the FastMCP framework, the server provides MCP endpoints for accessing the NixOS Elasticsearch API for system resources and an integrated parser for Home Manager documentation to deliver accurate information about packages and options.
 
 ## Features
 
-- MCP server implementation for NixOS resources
-- Access to NixOS packages and options through a standardized MCP interface
-- Get detailed package and option metadata using direct Elasticsearch API access
+- Complete MCP server implementation for NixOS and Home Manager resources
+- Access to NixOS packages and system options through the NixOS Elasticsearch API
+- Access to Home Manager configuration options through in-memory parsed documentation
+- Get detailed package, system option, and Home Manager option metadata
 - Connect seamlessly with Claude and other MCP-compatible AI models
-- Rich search capabilities with automatic wildcard matching
+- Rich search capabilities with automatic wildcard matching and hierarchical path support
+- Intelligent context-based tool selection for different resource types
 - JSON-based responses for easy integration with MCP clients
 
 ## MCP Implementation
 
-The server implements both MCP resources and tools for accessing NixOS information:
+The server implements both MCP resources and tools for accessing NixOS and Home Manager information:
 
 ### MCP Resources
 
-- `nixos://status` - Get server status information
+#### NixOS Resources
+- `nixos://status` - Get NixOS server status information
 - `nixos://package/{package_name}` - Get information about a specific package
 - `nixos://search/packages/{query}` - Search for packages matching the query
-- `nixos://search/options/{query}` - Search for options matching the query
+- `nixos://search/options/{query}` - Search for NixOS options matching the query
 - `nixos://option/{option_name}` - Get information about a specific NixOS option
 - `nixos://search/programs/{program}` - Search for packages that provide specific programs
 - `nixos://packages/stats` - Get statistics about NixOS packages
 
+#### Home Manager Resources
+- `home-manager://status` - Get Home Manager context status information
+- `home-manager://search/options/{query}` - Search for Home Manager options matching the query
+- `home-manager://option/{option_name}` - Get information about a specific Home Manager option
+- `home-manager://options/stats` - Get statistics about Home Manager options
+
 ### MCP Tools
 
+#### NixOS Tools
 - `nixos_search` - Search for packages, options, or programs with automatic wildcard handling
 - `nixos_info` - Get detailed information about a specific package or option
 - `nixos_stats` - Get statistical information about NixOS packages
 
+#### Home Manager Tools
+- `home_manager_search` - Search for Home Manager configuration options
+- `home_manager_info` - Get detailed information about a specific Home Manager option
+- `home_manager_stats` - Get statistics about Home Manager options
+
 #### Tool Usage Examples
 
 ```python
+# NixOS examples
 # Search for packages
 nixos_search(query="firefox", type="packages", limit=10, channel="unstable")
 
@@ -60,6 +76,16 @@ nixos_info(name="services.postgresql.enable", type="option", channel="24.11")
 
 # Get package statistics
 nixos_stats()
+
+# Home Manager examples
+# Search for Home Manager options
+home_manager_search(query="programs.git")
+
+# Get Home Manager option details
+home_manager_info(name="programs.firefox.enable")
+
+# Get Home Manager statistics
+home_manager_stats()
 ```
 
 ## Installation
@@ -199,28 +225,65 @@ Current code coverage is tracked on [Codecov](https://codecov.io/gh/utensils/nix
 Once configured, you can use NixMCP in your prompts with MCP-compatible models:
 
 ```
-# Direct resource references
+# Direct resource references for NixOS
 Please provide information about the Python package in NixOS.
 ~nixos://package/python
 
 What configuration options are available for NGINX in NixOS?
 ~nixos://option/services.nginx
 
-# Tool usage
+# Direct resource references for Home Manager
+What options are available for configuring Git in Home Manager?
+~home-manager://search/options/programs.git
+
+Tell me about the Firefox profiles option in Home Manager.
+~home-manager://option/programs.firefox.profiles
+
+# Tool usage for NixOS
 Search for PostgreSQL options in NixOS:
 ~nixos_search(query="postgresql", type="options")
 
 Get details about the Firefox package:
 ~nixos_info(name="firefox", type="package")
+
+# Tool usage for Home Manager
+Search for shell configuration options:
+~home_manager_search(query="programs.zsh")
+
+Get details about Git username configuration:
+~home_manager_info(name="programs.git.userName")
 ```
 
-The LLM will automatically fetch the requested information through the MCP server.
+The LLM will automatically fetch the requested information through the MCP server and use the appropriate tools based on whether you're asking about NixOS system-level configuration or Home Manager user-level configuration.
+
+## Implementation Details
+
+### NixOS API Integration
+
+For NixOS packages and system options, NixMCP connects directly to the NixOS Elasticsearch API to provide real-time access to the latest package and system configuration data.
+
+### Home Manager Documentation Parser
+
+For Home Manager options, NixMCP implements:
+
+1. An HTML documentation parser that fetches and indexes these documents at server startup:
+   - https://nix-community.github.io/home-manager/options.xhtml
+   - https://nix-community.github.io/home-manager/nixos-options.xhtml
+   - https://nix-community.github.io/home-manager/nix-darwin-options.xhtml
+
+2. An in-memory search engine with:
+   - Inverted index for fast text search
+   - Prefix tree for hierarchical path lookups
+   - Option categorization by source and type
+   - Result scoring and relevance ranking
+
+3. Background loading to avoid blocking server startup
 
 ## What is Model Context Protocol?
 
 The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. MCP uses a JSON-based message format exchanged over various transport mechanisms (typically standard input/output streams).
 
-This project implements the MCP specification using the FastMCP library, providing a bridge between AI models and NixOS resources.
+This project implements the MCP specification using the FastMCP library, providing a bridge between AI models and both NixOS and Home Manager resources.
 
 ## License
 
