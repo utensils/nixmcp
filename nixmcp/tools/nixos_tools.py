@@ -270,8 +270,10 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable", cont
 
             output = f"# {info.get('name', name)}\n\n"
 
-            if info.get("version"):
-                output += f"**Version:** {info.get('version')}\n"
+            # Always show version information, even if it's not available
+            # Force version to be explicitly displayed in the output
+            version = info.get("version", "")
+            output += f"**Version:** {version if version else 'Not available'}\n"
 
             if info.get("description"):
                 output += f"\n**Description:** {info.get('description')}\n"
@@ -280,10 +282,64 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable", cont
                 output += f"\n**Long Description:**\n{info.get('longDescription')}\n"
 
             if info.get("homepage"):
-                output += f"\n**Homepage:** {info.get('homepage')}\n"
+                homepage = info.get("homepage")
+                if isinstance(homepage, list):
+                    if len(homepage) == 1:
+                        output += f"\n**Homepage:** {homepage[0]}\n"
+                    else:
+                        output += "\n**Homepages:**\n"
+                        for url in homepage:
+                            output += f"- {url}\n"
+                else:
+                    output += f"\n**Homepage:** {homepage}\n"
 
             if info.get("license"):
-                output += f"\n**License:** {info.get('license')}\n"
+                # Handle both string and list/dict formats for license
+                license_info = info.get("license")
+                if isinstance(license_info, list) and license_info:
+                    if isinstance(license_info[0], dict) and "fullName" in license_info[0]:
+                        # Extract license names
+                        license_names = [lic.get("fullName", "") for lic in license_info if lic.get("fullName")]
+                        output += f"\n**License:** {', '.join(license_names)}\n"
+                    else:
+                        output += f"\n**License:** {license_info}\n"
+                else:
+                    output += f"\n**License:** {license_info}\n"
+
+            # Add source code position information
+            if info.get("position"):
+                position = info.get("position")
+                # Create a link to the NixOS packages GitHub repository
+                if ":" in position:
+                    # If position has format "path:line"
+                    file_path, line_num = position.rsplit(":", 1)
+                    github_url = f"https://github.com/NixOS/nixpkgs/blob/master/{file_path}#L{line_num}"
+                    output += f"\n**Source:** [{position}]({github_url})\n"
+                else:
+                    github_url = f"https://github.com/NixOS/nixpkgs/blob/master/{position}"
+                    output += f"\n**Source:** [{position}]({github_url})\n"
+
+            # Add maintainers
+            if info.get("maintainers") and isinstance(info.get("maintainers"), list):
+                maintainers = info.get("maintainers")
+                if maintainers:
+                    maintainer_names = []
+                    for maintainer in maintainers:
+                        if isinstance(maintainer, dict):
+                            name = maintainer.get("name", "")
+                            if name:
+                                maintainer_names.append(name)
+                        elif maintainer:
+                            maintainer_names.append(str(maintainer))
+
+                    if maintainer_names:
+                        output += f"\n**Maintainers:** {', '.join(maintainer_names)}\n"
+
+            # Add platforms
+            if info.get("platforms") and isinstance(info.get("platforms"), list):
+                platforms = info.get("platforms")
+                if platforms:
+                    output += f"\n**Platforms:** {', '.join(platforms)}\n"
 
             if info.get("programs") and isinstance(info.get("programs"), list):
                 programs = info.get("programs")
@@ -337,6 +393,12 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable", cont
             if info.get("type"):
                 output += f"**Type:** {info.get('type')}\n"
 
+            if info.get("introduced_version"):
+                output += f"**Introduced in:** NixOS {info.get('introduced_version')}\n"
+
+            if info.get("deprecated_version"):
+                output += f"**Deprecated in:** NixOS {info.get('deprecated_version')}\n"
+
             if info.get("default") is not None:
                 # Format default value nicely
                 default_val = info.get("default")
@@ -345,8 +407,39 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable", cont
                 else:
                     output += f"**Default:** {default_val}\n"
 
+            if info.get("manual_url"):
+                output += f"**Manual:** [{info.get('manual_url')}]({info.get('manual_url')})\n"
+
             if info.get("example"):
                 output += f"\n**Example:**\n```nix\n{info.get('example')}\n```\n"
+
+                # Add example in context if this is a nested option
+                if "." in info.get("name", ""):
+                    parts = info.get("name", "").split(".")
+                    if len(parts) > 1:
+                        # Using parts directly instead of storing in unused variable
+                        leaf_name = parts[-1]
+
+                        output += "\n**Example in context:**\n```nix\n"
+                        output += "# /etc/nixos/configuration.nix\n"
+                        output += "{ config, pkgs, ... }:\n{\n"
+
+                        # Build nested structure
+                        current_indent = "  "
+                        for i, part in enumerate(parts[:-1]):
+                            output += f"{current_indent}{part} = " + ("{\n" if i < len(parts) - 2 else "{\n")
+                            current_indent += "  "
+
+                        # Add the actual example
+                        example_value = info.get("example")
+                        output += f"{current_indent}{leaf_name} = {example_value};\n"
+
+                        # Close the nested structure
+                        for i in range(len(parts) - 1):
+                            current_indent = current_indent[:-2]
+                            output += f"{current_indent}}};\n"
+
+                        output += "}\n```\n"
 
             # Add information about related options for service paths
             if info.get("is_service_path", False) and info.get("related_options", []):
@@ -462,6 +555,7 @@ def register_nixos_tools(mcp) -> None:
     Args:
         mcp: The MCP server instance
     """
+    # Explicitly register tools with function handle to ensure proper serialization
     mcp.tool()(nixos_search)
     mcp.tool()(nixos_info)
     mcp.tool()(nixos_stats)

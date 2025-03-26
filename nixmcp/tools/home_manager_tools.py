@@ -144,6 +144,12 @@ def home_manager_info(name: str, context=None) -> str:
         if option.get("type"):
             output += f"**Type:** {option.get('type')}\n"
 
+        if option.get("introduced_version"):
+            output += f"**Introduced in version:** {option.get('introduced_version')}\n"
+
+        if option.get("deprecated_version"):
+            output += f"**Deprecated in version:** {option.get('deprecated_version')}\n"
+
         if option.get("default") is not None:
             # Format default value nicely
             default_val = option.get("default")
@@ -152,8 +158,39 @@ def home_manager_info(name: str, context=None) -> str:
             else:
                 output += f"**Default:** {default_val}\n"
 
+        if option.get("manual_url"):
+            output += f"**Documentation:** [Home Manager Manual]({option.get('manual_url')})\n"
+
         if option.get("example"):
             output += f"\n**Example:**\n```nix\n{option.get('example')}\n```\n"
+
+            # Add example in context if this is a nested option
+            if "." in option.get("name", ""):
+                parts = option.get("name", "").split(".")
+                if len(parts) > 1:
+                    # Using parts directly instead of storing in unused variable
+                    leaf_name = parts[-1]
+
+                    output += "\n**Example in context:**\n```nix\n"
+                    output += "# ~/.config/nixpkgs/home.nix\n"
+                    output += "{ config, pkgs, ... }:\n{\n"
+
+                    # Build nested structure
+                    current_indent = "  "
+                    for i, part in enumerate(parts[:-1]):
+                        output += f"{current_indent}{part} = " + ("{\n" if i < len(parts) - 2 else "{\n")
+                        current_indent += "  "
+
+                    # Add the actual example
+                    example_value = option.get("example")
+                    output += f"{current_indent}{leaf_name} = {example_value};\n"
+
+                    # Close the nested structure
+                    for i in range(len(parts) - 1):
+                        current_indent = current_indent[:-2]
+                        output += f"{current_indent}}};\n"
+
+                    output += "}\n```\n"
 
         if option.get("category"):
             output += f"\n**Category:** {option.get('category')}\n"

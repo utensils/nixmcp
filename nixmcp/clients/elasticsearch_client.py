@@ -217,7 +217,7 @@ class ElasticsearchClient:
                 {
                     "name": source.get("package_attr_name", ""),
                     "pname": source.get("package_pname", ""),
-                    "version": source.get("package_version", ""),
+                    "version": source.get("package_version", source.get("package_pversion", "")),
                     "description": source.get("package_description", ""),
                     "channel": source.get("package_channel", ""),
                     "score": hit.get("_score", 0),
@@ -677,7 +677,7 @@ class ElasticsearchClient:
             packages.append(
                 {
                     "name": source.get("package_attr_name", ""),
-                    "version": source.get("package_version", ""),
+                    "version": source.get("package_version", source.get("package_pversion", "")),
                     "description": source.get("package_description", ""),
                     "programs": matching_programs,
                     "all_programs": programs,
@@ -769,7 +769,7 @@ class ElasticsearchClient:
             packages.append(
                 {
                     "name": source.get("package_attr_name", ""),
-                    "version": source.get("package_version", ""),
+                    "version": source.get("package_version", source.get("package_pversion", "")),
                     "description": source.get("package_description", ""),
                     "channel": source.get("package_channel", ""),
                     "score": hit.get("_score", 0),
@@ -896,7 +896,7 @@ class ElasticsearchClient:
         return {
             "name": source.get("package_attr_name", package_name),
             "pname": source.get("package_pname", ""),
-            "version": source.get("package_version", ""),
+            "version": source.get("package_version", source.get("package_pversion", "")),
             "description": source.get("package_description", ""),
             "longDescription": source.get("package_longDescription", ""),
             "license": source.get("package_license", ""),
@@ -938,6 +938,18 @@ class ElasticsearchClient:
                     "must": [{"term": {"option_name": option_name}}],
                 }
             },
+            "_source": [
+                "option_name",
+                "option_description",
+                "option_type",
+                "option_default",
+                "option_example",
+                "option_declarations",
+                "option_readOnly",
+                "option_manual_url",
+                "option_added_in",
+                "option_deprecated_in",
+            ],
         }
 
         # Execute the query
@@ -1034,6 +1046,9 @@ class ElasticsearchClient:
             "example": source.get("option_example", ""),
             "declarations": source.get("option_declarations", []),
             "readOnly": source.get("option_readOnly", False),
+            "manual_url": source.get("option_manual_url", ""),
+            "introduced_version": source.get("option_added_in", ""),
+            "deprecated_version": source.get("option_deprecated_in", ""),
             "found": True,
         }
 

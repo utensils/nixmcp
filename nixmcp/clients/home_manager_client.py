@@ -144,6 +144,9 @@ class HomeManagerClient:
                     option_type = ""
                     default_value = None
                     example_value = None
+                    introduced_version = None
+                    deprecated_version = None
+                    manual_url = None
 
                     # First paragraph is typically the description
                     if p_elements and len(p_elements) > 0:
@@ -165,6 +168,25 @@ class HomeManagerClient:
                         elif "Example:" in text:
                             example_value = text.split("Example:")[1].strip()
 
+                        # Extract introduced version
+                        elif "Introduced in version:" in text or "Since:" in text:
+                            introduced_match = re.search(r"(Introduced in version|Since):\s*([0-9\.]+)", text)
+                            if introduced_match:
+                                introduced_version = introduced_match.group(2)
+
+                        # Extract deprecated version
+                        elif "Deprecated in version:" in text or "Deprecated since:" in text:
+                            deprecated_match = re.search(
+                                r"(Deprecated in version|Deprecated since):\s*([0-9\.]+)", text
+                            )
+                            if deprecated_match:
+                                deprecated_version = deprecated_match.group(2)
+
+                    # Try to find a manual link
+                    link_element = dd.find("a", href=True)
+                    if link_element and "manual" in link_element.get("href", ""):
+                        manual_url = link_element.get("href")
+
                     # Determine the category
                     # Use the previous heading or a default category
                     category_heading = dt.find_previous("h3")
@@ -179,6 +201,9 @@ class HomeManagerClient:
                         "example": example_value,
                         "category": category,
                         "source": doc_type,
+                        "introduced_version": introduced_version,
+                        "deprecated_version": deprecated_version,
+                        "manual_url": manual_url,
                     }
 
                     options.append(option)
