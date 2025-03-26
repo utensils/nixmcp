@@ -31,6 +31,7 @@ class ElasticsearchClient:
         self.available_channels = {
             "unstable": "latest-42-nixos-unstable",
             "24.11": "latest-42-nixos-24.11",  # NixOS 24.11 stable release
+            "stable": "latest-42-nixos-24.11",  # Alias for current stable release
         }
 
         # Default to unstable channel
@@ -816,16 +817,18 @@ class ElasticsearchClient:
         Set the NixOS channel to use for queries.
 
         Args:
-            channel: The channel name ('unstable', '24.11', etc.)
+            channel: The channel name ('unstable', 'stable', '24.11', etc.)
         """
-        # For now, we'll stick with unstable since we know it works
-        # In a real implementation, we would have better channel detection logic
+        # Valid channels are keys in self.available_channels
+        valid_channels = set(self.available_channels.keys())
+
+        if channel.lower() not in valid_channels:
+            logger.warning(f"Unknown channel: {channel}, falling back to unstable")
+            channel = "unstable"
+
+        # Get the channel ID from the available_channels dict
         channel_id = self.available_channels.get(channel, self.available_channels["unstable"])
         logger.info(f"Setting channel to {channel} ({channel_id})")
-
-        if channel.lower() != "unstable" and channel.lower() != "24.11":
-            logger.warning(f"Unknown channel: {channel}, falling back to unstable")
-            channel_id = self.available_channels["unstable"]
 
         # Update the Elasticsearch URLs - use the correct NixOS API endpoints
         # Note: For options, we use the same index as packages, but filter by type

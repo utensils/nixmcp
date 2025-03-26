@@ -8,6 +8,7 @@ from nixmcp.server import (
     home_manager_search,
     home_manager_info,
 )
+from nixmcp.tools.nixos_tools import CHANNEL_UNSTABLE, CHANNEL_STABLE
 
 
 class TestNixOSTools(unittest.TestCase):
@@ -30,10 +31,12 @@ class TestNixOSTools(unittest.TestCase):
         }
 
         # Call the tool with the mock context directly
-        result = nixos_search("python", "packages", 5, "unstable", context=mock_context)
+        result = nixos_search("python", "packages", 5, CHANNEL_UNSTABLE, context=mock_context)
 
         # Verify the mock was called correctly
         mock_context.search_packages.assert_called_once()
+        # Verify that set_channel was called on the es_client with "unstable"
+        mock_context.es_client.set_channel.assert_called_with("unstable")
 
         # Check the result format
         self.assertIn("python311", result)
@@ -50,10 +53,12 @@ class TestNixOSTools(unittest.TestCase):
         }
 
         # Call the tool with the mock context directly
-        result = nixos_search("services.nginx", "options", 5, "24.11", context=mock_context)
+        result = nixos_search("services.nginx", "options", 5, CHANNEL_STABLE, context=mock_context)
 
         # Verify the mock was called correctly
         mock_context.search_options.assert_called_once()
+        # Verify that set_channel was called on the es_client with "stable"
+        mock_context.es_client.set_channel.assert_called_with(CHANNEL_STABLE)
 
         # Check the result format
         self.assertIn("services.nginx.enable", result)
@@ -76,16 +81,33 @@ class TestNixOSTools(unittest.TestCase):
             ],
         }
 
-        # Call the tool with the mock context directly
+        # Call the tool with the mock context directly, implicitly using default channel
         result = nixos_search("git", "programs", 5, context=mock_context)
 
         # Verify the mock was called correctly
         mock_context.search_programs.assert_called_once()
+        # Verify that set_channel was called with the default unstable channel
+        mock_context.es_client.set_channel.assert_called_with(CHANNEL_UNSTABLE)
 
         # Check the result format
         self.assertIn("git", result)
         self.assertIn("2.39.0", result)
         self.assertIn("git-upload-pack", result)
+
+    def test_channel_selection_with_invalid_channel(self):
+        """Test that invalid channels fall back to unstable."""
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.search_packages.return_value = {"count": 0, "packages": []}
+
+        # Call with invalid channel name
+        nixos_search("test", "packages", 5, "invalid-channel", context=mock_context)
+
+        # We expect set_channel to be called with the invalid channel name first
+        # The ElasticsearchClient handles the fallback internally
+        mock_context.es_client.set_channel.assert_called_with("invalid-channel")
+
+        # We don't need to check the result, just that the correct channel was selected
 
     def test_nixos_search_service_not_found(self):
         """Test nixos_search tool with a service path that returns no results."""
@@ -120,10 +142,12 @@ class TestNixOSTools(unittest.TestCase):
         }
 
         # Call the tool with the mock context directly
-        result = nixos_info("git", "package", "unstable", context=mock_context)
+        result = nixos_info("git", "package", CHANNEL_UNSTABLE, context=mock_context)
 
         # Verify the mock was called correctly
         mock_context.get_package.assert_called_once_with("git")
+        # Verify that set_channel was called on the es_client with unstable
+        mock_context.es_client.set_channel.assert_called_with(CHANNEL_UNSTABLE)
 
         # Check the result format
         self.assertIn("# git", result)
@@ -153,10 +177,12 @@ class TestNixOSTools(unittest.TestCase):
         }
 
         # Call the tool with the mock context directly
-        result = nixos_info("services.nginx.enable", "option", "24.11", context=mock_context)
+        result = nixos_info("services.nginx.enable", "option", CHANNEL_STABLE, context=mock_context)
 
         # Verify the mock was called correctly
         mock_context.get_option.assert_called_once_with("services.nginx.enable")
+        # Verify that set_channel was called on the es_client with stable
+        mock_context.es_client.set_channel.assert_called_with(CHANNEL_STABLE)
 
         # Check the result format
         self.assertIn("# services.nginx.enable", result)

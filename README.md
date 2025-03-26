@@ -116,8 +116,8 @@ The server implements both MCP resources and tools for accessing NixOS and Home 
 # Search for packages
 nixos_search(query="firefox", type="packages", limit=10, channel="unstable")
 
-# Search for system options
-nixos_search(query="postgresql", type="options", channel="24.11")
+# Search for system options using the stable channel (currently 24.11)
+nixos_search(query="postgresql", type="options", channel="stable")
 
 # Search for programs
 nixos_search(query="python", type="programs")
@@ -126,7 +126,7 @@ nixos_search(query="python", type="programs")
 nixos_info(name="nixos.firefox", type="package", channel="unstable")
 
 # Get option details
-nixos_info(name="services.postgresql.enable", type="option", channel="24.11")
+nixos_info(name="services.postgresql.enable", type="option", channel="stable")
 
 # Get package statistics
 nixos_stats()
@@ -197,6 +197,16 @@ You can customize the server behavior with these environment variables:
 LOG_LEVEL=INFO        # Log level (DEBUG, INFO, WARNING, ERROR)
 NIX_MCP_LOG=/path/log # Optional: If set to a non-empty value, logs to this file; otherwise logs only to console
 ```
+
+### NixOS Channel Support
+
+The server supports multiple NixOS channels for package and option searches:
+
+- `unstable`: Latest NixOS unstable channel (default)
+- `stable`: Current stable NixOS release (synonym for 24.11 currently)
+- `24.11`: Specific version reference
+
+These can be used with the `channel` parameter in `nixos_search` and `nixos_info` tools.
 
 ### Releasing New Versions
 

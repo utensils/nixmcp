@@ -102,6 +102,11 @@ The codebase follows a modular architecture:
   Search for packages, options, or programs with automatic wildcard handling
 - `nixos_info(name, type="package", channel="unstable", context=None)`: 
   Get detailed information about a specific package or option
+  
+Both tools above support the `channel` parameter with values:
+  - `"unstable"`: Latest NixOS unstable channel (default)
+  - `"stable"`: Current stable NixOS release (currently 24.11)
+  - `"24.11"`: Specific version reference (same as "stable" currently)
 - `nixos_stats(context=None)`: 
   Get statistical information about NixOS packages
 
@@ -126,7 +131,7 @@ The codebase follows a modular architecture:
   - Wildcards are automatically added where appropriate (services.postgresql*)
 - Service paths get special handling with automatic suggestions
 - Multiple query strategies are used: exact match, prefix match, wildcard match
-- Multiple channels are supported (unstable, 24.11, etc.)
+- Multiple channels are supported: unstable (default), stable (current release), or specific version (e.g., 24.11)
 
 ## System Requirements
 

@@ -21,7 +21,12 @@ class TestElasticsearchClient(unittest.TestCase):
         client = ElasticsearchClient()
         self.assertIn("unstable", client.es_packages_url)
 
-        # Change channel
+        # Change channel to stable release
+        client.set_channel("stable")
+        self.assertIn("24.11", client.es_packages_url)  # stable points to 24.11 currently
+        self.assertNotIn("unstable", client.es_packages_url)
+
+        # Test specific version
         client.set_channel("24.11")
         self.assertIn("24.11", client.es_packages_url)
         self.assertNotIn("unstable", client.es_packages_url)
@@ -29,6 +34,47 @@ class TestElasticsearchClient(unittest.TestCase):
         # Invalid channel should fall back to default
         client.set_channel("invalid-channel")
         self.assertIn("unstable", client.es_packages_url)
+
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_stable_channel_usage(self, mock_make_request):
+        """Test that stable channel can be used for searches."""
+        # Mock successful response for stable channel
+        mock_make_request.return_value = {
+            "hits": {
+                "total": {"value": 1},
+                "hits": [
+                    {
+                        "_score": 10.0,
+                        "_source": {
+                            "package_attr_name": "python311",
+                            "package_pname": "python",
+                            "package_version": "3.11.0",
+                            "package_description": "Python programming language",
+                            "package_channel": "nixos-24.11",
+                            "package_programs": ["python3", "python3.11"],
+                        },
+                    }
+                ],
+            }
+        }
+
+        # Create client and set to stable channel
+        client = ElasticsearchClient()
+        client.set_channel("stable")
+
+        # Verify the channel was set correctly - stable points to 24.11 currently
+        self.assertIn("24.11", client.es_packages_url)
+        self.assertNotIn("unstable", client.es_packages_url)
+
+        # Test search using the stable channel
+        result = client.search_packages("python")
+
+        # Verify results came back correctly
+        self.assertNotIn("error", result)
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(len(result["packages"]), 1)
+        self.assertEqual(result["packages"][0]["name"], "python311")
+        self.assertEqual(result["packages"][0]["channel"], "nixos-24.11")
 
     @patch("nixmcp.utils.helpers.make_http_request")
     def test_connection_error_handling(self, mock_make_request):

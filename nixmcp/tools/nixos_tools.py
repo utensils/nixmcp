@@ -15,7 +15,14 @@ from nixmcp.utils.helpers import (
 )
 
 
-def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable", context=None) -> str:
+# Define channel constants to make updates easier in the future
+CHANNEL_UNSTABLE = "unstable"
+CHANNEL_STABLE = "stable"  # Currently maps to 24.11, but using stable makes it easier to update
+
+
+def nixos_search(
+    query: str, type: str = "packages", limit: int = 20, channel: str = CHANNEL_UNSTABLE, context=None
+) -> str:
     """
     Search for NixOS packages, options, or programs.
 
@@ -23,7 +30,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
         query: The search term
         type: What to search for - "packages", "options", or "programs"
         limit: Maximum number of results to return (default: 20)
-        channel: NixOS channel to search (default: "unstable", can also be "24.11")
+        channel: NixOS channel to search (default: "unstable", can also be "stable")
         context: Optional context object for dependency injection in tests
 
     Returns:
@@ -236,14 +243,14 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
         return f"Error performing search: {str(e)}"
 
 
-def nixos_info(name: str, type: str = "package", channel: str = "unstable", context=None) -> str:
+def nixos_info(name: str, type: str = "package", channel: str = CHANNEL_UNSTABLE, context=None) -> str:
     """
     Get detailed information about a NixOS package or option.
 
     Args:
         name: The name of the package or option
         type: Either "package" or "option"
-        channel: NixOS channel to search (default: "unstable", can also be "24.11")
+        channel: NixOS channel to search (default: "unstable", can also be "stable")
         context: Optional context object for dependency injection in tests
 
     Returns:
