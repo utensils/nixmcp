@@ -95,10 +95,18 @@ class TestHomeManagerClient(unittest.TestCase):
         url = "https://example.com/options.xhtml"
         content = self.client.fetch_url(url)
 
-        # Verify the mock was called with the expected URL
-        self.mock_requests_get.assert_called_once_with(
-            url, timeout=(self.client.connect_timeout, self.client.read_timeout), headers={"User-Agent": "NixMCP/0.1.1"}
-        )
+        # Verify the mock was called with correct parameters
+        self.mock_requests_get.assert_called_once()
+        call_args = self.mock_requests_get.call_args
+
+        # Check URL and timeout separately
+        self.assertEqual(call_args[0][0], url)
+        self.assertEqual(call_args[1]["timeout"], (self.client.connect_timeout, self.client.read_timeout))
+
+        # Check headers partially (without hardcoding version)
+        self.assertIn("User-Agent", call_args[1]["headers"])
+        self.assertTrue(call_args[1]["headers"]["User-Agent"].startswith("NixMCP/"))
+        self.assertEqual(call_args[1]["headers"]["Accept-Encoding"], "gzip, deflate")
 
         # Verify the content was returned
         self.assertIsNotNone(content)

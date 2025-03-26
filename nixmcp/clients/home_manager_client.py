@@ -14,8 +14,9 @@ from bs4 import BeautifulSoup
 # Get logger
 logger = logging.getLogger("nixmcp")
 
-# Import SimpleCache
+# Import SimpleCache and version
 from nixmcp.cache.simple_cache import SimpleCache
+from nixmcp import __version__
 
 
 class HomeManagerClient:
@@ -72,7 +73,9 @@ class HomeManagerClient:
             try:
                 logger.info(f"Fetching URL: {url} (attempt {attempt + 1})")
                 response = requests.get(
-                    url, timeout=(self.connect_timeout, self.read_timeout), headers={"User-Agent": "NixMCP/0.1.1"}
+                    url,
+                    timeout=(self.connect_timeout, self.read_timeout),
+                    headers={"User-Agent": f"NixMCP/{__version__}", "Accept-Encoding": "gzip, deflate"},
                 )
                 response.raise_for_status()
 

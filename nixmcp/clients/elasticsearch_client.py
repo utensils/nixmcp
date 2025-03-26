@@ -12,8 +12,9 @@ from typing import Dict, Any
 # Get logger
 logger = logging.getLogger("nixmcp")
 
-# Import SimpleCache
+# Import SimpleCache and version
 from nixmcp.cache.simple_cache import SimpleCache
+from nixmcp import __version__
 
 
 class ElasticsearchClient:
@@ -69,7 +70,11 @@ class ElasticsearchClient:
                     endpoint,
                     json=query_data,
                     auth=self.es_auth,
-                    headers={"Content-Type": "application/json"},
+                    headers={
+                        "Content-Type": "application/json",
+                        "User-Agent": f"NixMCP/{__version__}",
+                        "Accept-Encoding": "gzip, deflate",
+                    },
                     timeout=(self.connect_timeout, self.read_timeout),
                 )
 
