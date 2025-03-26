@@ -456,12 +456,19 @@ class TestHomeManagerContext(unittest.TestCase):
         self.mock_client = MagicMock()
         self.MockClient.return_value = self.mock_client
 
-        # Configure the mock client
+        # Configure the mock client with all required properties
         self.mock_client.is_loaded = True
         self.mock_client.loading_lock = threading.RLock()
+        self.mock_client.loading_in_progress = False
+        self.mock_client.loading_error = None  # Ensure this is explicitly set to None
+        self.mock_client.cache = MagicMock()
+        self.mock_client.cache.get_stats.return_value = {"hits": 10, "misses": 5}
 
         # Create the context
         self.context = HomeManagerContext()
+
+        # Ensure the context isn't loading and ready for tests
+        self.context.hm_client = self.mock_client
 
     def tearDown(self):
         """Clean up after the test."""
@@ -486,8 +493,8 @@ class TestHomeManagerContext(unittest.TestCase):
 
     def test_search_options(self):
         """Test searching options."""
-        # Configure the mock
-        mock_results = {"count": 2, "options": [{"name": "test1"}, {"name": "test2"}]}
+        # Configure the mock for loaded state
+        mock_results = {"count": 2, "options": [{"name": "test1"}, {"name": "test2"}], "found": True}
         self.mock_client.search_options.return_value = mock_results
 
         # Search options
@@ -497,10 +504,55 @@ class TestHomeManagerContext(unittest.TestCase):
         self.assertEqual(results, mock_results)
         self.mock_client.search_options.assert_called_once_with("test", 10)
 
+        # Reset mock and test loading state
+        self.mock_client.search_options.reset_mock()
+        self.mock_client.is_loaded = False
+        self.mock_client.loading_in_progress = True
+        self.mock_client.loading_error = None
+
+        # Search options during loading
+        loading_results = self.context.search_options("test", 10)
+
+        # Verify we get a loading response
+        self.assertEqual(loading_results["loading"], True)
+        self.assertEqual(loading_results["found"], False)
+        self.assertEqual(loading_results["count"], 0)
+        self.assertEqual(loading_results["options"], [])
+        self.assertIn("error", loading_results)
+
+        # Verify the client's search_options was not called
+        self.mock_client.search_options.assert_not_called()
+
+        # Test failed loading state
+        self.mock_client.loading_in_progress = False
+        self.mock_client.loading_error = "Failed to load data"
+
+        # Search options after loading failed
+        failed_results = self.context.search_options("test", 10)
+
+        # Verify we get a failure response
+        self.assertEqual(failed_results["loading"], False)
+        self.assertEqual(failed_results["found"], False)
+        self.assertEqual(failed_results["count"], 0)
+        self.assertEqual(failed_results["options"], [])
+        self.assertIn("error", failed_results)
+        self.assertIn("Failed to load data", failed_results["error"])
+
+        # Verify the client's search_options was not called
+        self.mock_client.search_options.assert_not_called()
+
     def test_get_option(self):
         """Test getting an option."""
-        # Configure the mock
-        mock_option = {"name": "test", "found": True}
+        # Configure the mock for loaded state with all necessary fields
+        mock_option = {
+            "name": "test",
+            "found": True,
+            "description": "Test option",
+            "type": "boolean",
+            "default": "false",
+            "category": "Testing",
+            "source": "test-options",
+        }
         self.mock_client.get_option.return_value = mock_option
 
         # Get option
@@ -510,10 +562,54 @@ class TestHomeManagerContext(unittest.TestCase):
         self.assertEqual(option, mock_option)
         self.mock_client.get_option.assert_called_once_with("test")
 
+        # Reset mock and test loading state
+        self.mock_client.get_option.reset_mock()
+        self.mock_client.is_loaded = False
+        self.mock_client.loading_in_progress = True
+        self.mock_client.loading_error = None
+
+        # Get option during loading
+        loading_option = self.context.get_option("test")
+
+        # Verify we get a loading response
+        self.assertEqual(loading_option["loading"], True)
+        self.assertEqual(loading_option["found"], False)
+        self.assertEqual(loading_option["name"], "test")
+        self.assertIn("error", loading_option)
+
+        # Verify the client's get_option was not called
+        self.mock_client.get_option.assert_not_called()
+
+        # Test failed loading state
+        self.mock_client.loading_in_progress = False
+        self.mock_client.loading_error = "Failed to load data"
+
+        # Get option after loading failed
+        failed_option = self.context.get_option("test")
+
+        # Verify we get a failure response
+        self.assertEqual(failed_option["loading"], False)
+        self.assertEqual(failed_option["found"], False)
+        self.assertEqual(failed_option["name"], "test")
+        self.assertIn("error", failed_option)
+        self.assertIn("Failed to load data", failed_option["error"])
+
+        # Verify the client's get_option was not called
+        self.mock_client.get_option.assert_not_called()
+
     def test_get_stats(self):
         """Test getting stats."""
-        # Configure the mock
-        mock_stats = {"total_options": 100}
+        # Configure the mock for loaded state with complete stats data
+        mock_stats = {
+            "total_options": 100,
+            "total_categories": 10,
+            "total_types": 5,
+            "by_source": {"options": 60, "nixos-options": 40},
+            "by_category": {"Version Control": 20, "Web Browsers": 15},
+            "by_type": {"boolean": 50, "string": 30},
+            "index_stats": {"words": 500, "prefixes": 200, "hierarchical_parts": 300},
+            "found": True,
+        }
         self.mock_client.get_stats.return_value = mock_stats
 
         # Get stats
@@ -522,6 +618,169 @@ class TestHomeManagerContext(unittest.TestCase):
         # Verify the stats
         self.assertEqual(stats, mock_stats)
         self.mock_client.get_stats.assert_called_once()
+
+        # Reset mock and test loading state
+        self.mock_client.get_stats.reset_mock()
+        self.mock_client.is_loaded = False
+        self.mock_client.loading_in_progress = True
+        self.mock_client.loading_error = None
+
+        # Get stats during loading
+        loading_stats = self.context.get_stats()
+
+        # Verify we get a loading response
+        self.assertEqual(loading_stats["loading"], True)
+        self.assertEqual(loading_stats["found"], False)
+        self.assertEqual(loading_stats["total_options"], 0)
+        self.assertIn("error", loading_stats)
+
+        # Verify the client's get_stats was not called
+        self.mock_client.get_stats.assert_not_called()
+
+        # Test failed loading state
+        self.mock_client.loading_in_progress = False
+        self.mock_client.loading_error = "Failed to load data"
+
+        # Get stats after loading failed
+        failed_stats = self.context.get_stats()
+
+        # Verify we get a failure response
+        self.assertEqual(failed_stats["loading"], False)
+        self.assertEqual(failed_stats["found"], False)
+        self.assertEqual(failed_stats["total_options"], 0)
+        self.assertIn("error", failed_stats)
+        self.assertIn("Failed to load data", failed_stats["error"])
+
+    def test_get_options_list(self):
+        """Test getting options list."""
+        # Set up proper mock for get_options_by_prefix
+        self.mock_client.get_options_by_prefix = MagicMock()
+        self.mock_client.get_options_by_prefix.return_value = {
+            "prefix": "programs",
+            "options": [{"name": "programs.git.enable", "type": "boolean", "description": "Enable Git"}],
+            "count": 1,
+            "types": {"boolean": 1},
+            "enable_options": [{"name": "programs.git.enable", "parent": "git", "description": "Enable Git"}],
+            "found": True,
+        }
+
+        # Test the method
+        result = self.context.get_options_list()
+
+        # Verify the result structure
+        self.assertIn("options", result)
+        self.assertIn("count", result)
+        self.assertTrue(result["found"])
+
+        # Verify the options content
+        self.assertTrue(any(option in result["options"] for option in ["programs"]))
+
+        # For any returned option, check its structure
+        for option_name, option_data in result["options"].items():
+            self.assertIn("count", option_data)
+            self.assertIn("enable_options", option_data)
+            self.assertIn("types", option_data)
+            self.assertIn("has_children", option_data)
+            self.assertIsInstance(option_data["has_children"], bool)
+
+        # Reset mock and test loading state
+        self.mock_client.get_options_by_prefix.reset_mock()
+        self.mock_client.is_loaded = False
+        self.mock_client.loading_in_progress = True
+        self.mock_client.loading_error = None
+
+        # Get options list during loading
+        loading_result = self.context.get_options_list()
+
+        # Verify we get a loading response
+        self.assertEqual(loading_result["loading"], True)
+        self.assertEqual(loading_result["found"], False)
+        self.assertIn("error", loading_result)
+
+        # Test failed loading state
+        self.mock_client.loading_in_progress = False
+        self.mock_client.loading_error = "Failed to load data"
+
+        # Get options list after loading failed
+        failed_result = self.context.get_options_list()
+
+        # Verify we get a failure response
+        self.assertEqual(failed_result["loading"], False)
+        self.assertEqual(failed_result["found"], False)
+        self.assertIn("error", failed_result)
+        self.assertIn("Failed to load data", failed_result["error"])
+
+    def test_get_options_by_prefix(self):
+        """Test getting options by prefix."""
+        # Configure the mock for loaded state with complete search_options response
+        self.mock_client.search_options.return_value = {
+            "count": 1,
+            "options": [
+                {
+                    "name": "programs.git.enable",
+                    "type": "boolean",
+                    "description": "Enable Git",
+                    "category": "Version Control",
+                }
+            ],
+            "found": True,
+        }
+
+        # Test the method
+        result = self.context.get_options_by_prefix("programs")
+
+        # Verify the result structure
+        self.assertIn("prefix", result)
+        self.assertEqual(result["prefix"], "programs")
+        self.assertIn("options", result)
+        self.assertIn("count", result)
+        self.assertIn("types", result)
+        self.assertIn("enable_options", result)
+        self.assertTrue(result["found"])
+
+        # Verify the content
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(len(result["options"]), 1)
+        self.assertEqual(result["options"][0]["name"], "programs.git.enable")
+        self.assertEqual(result["options"][0]["type"], "boolean")
+        self.assertIn("boolean", result["types"])
+        self.assertEqual(result["types"]["boolean"], 1)
+
+        # Verify the search query format
+        self.mock_client.search_options.assert_called_once_with("programs.*", limit=500)
+
+        # Reset mock and test loading state
+        self.mock_client.search_options.reset_mock()
+        self.mock_client.is_loaded = False
+        self.mock_client.loading_in_progress = True
+        self.mock_client.loading_error = None
+
+        # Get options by prefix during loading
+        loading_result = self.context.get_options_by_prefix("programs")
+
+        # Verify we get a loading response
+        self.assertEqual(loading_result["loading"], True)
+        self.assertEqual(loading_result["found"], False)
+        self.assertIn("error", loading_result)
+
+        # Verify the client's search_options was not called
+        self.mock_client.search_options.assert_not_called()
+
+        # Test failed loading state
+        self.mock_client.loading_in_progress = False
+        self.mock_client.loading_error = "Failed to load data"
+
+        # Get options by prefix after loading failed
+        failed_result = self.context.get_options_by_prefix("programs")
+
+        # Verify we get a failure response
+        self.assertEqual(failed_result["loading"], False)
+        self.assertEqual(failed_result["found"], False)
+        self.assertIn("error", failed_result)
+        self.assertIn("Failed to load data", failed_result["error"])
+
+        # Verify the client's search_options was not called
+        self.mock_client.search_options.assert_not_called()
 
 
 class TestHomeManagerTools(unittest.TestCase):

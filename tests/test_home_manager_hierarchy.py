@@ -1,7 +1,7 @@
 """Test Home Manager hierarchical tools and resources."""
 
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 # Import base test class
 from tests import NixMCPTestBase

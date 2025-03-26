@@ -3,7 +3,7 @@
 import unittest
 import threading
 import time
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 import requests
 
 # Import the HomeManagerClient class
@@ -412,10 +412,10 @@ class TestHomeManagerClient(unittest.TestCase):
 
         # Start background loading
         client.load_in_background()
-        
+
         # Need to wait briefly to ensure the background thread has actually started
         time.sleep(0.1)
-        
+
         # Immediately call ensure_loaded from another thread
         def call_ensure_loaded():
             client.ensure_loaded()
@@ -437,21 +437,21 @@ class TestHomeManagerClient(unittest.TestCase):
     def test_multiple_concurrent_ensure_loaded_calls(self):
         """Test that multiple concurrent calls to ensure_loaded only result in loading once."""
         # This test verifies that the `loading_in_progress` flag correctly prevents duplicate loading
-        
+
         # Create a test fixture similar to what's happening in the real code
         client = HomeManagerClient()
-        
+
         # Track how many times _load_data_internal would be called
         load_count = 0
         load_event = threading.Event()
-        
+
         # Override ensure_loaded method with test version that counts calls to loading
         # This is needed because the locks in the real code require careful handling
         original_ensure_loaded = client.ensure_loaded
-        
+
         def test_ensure_loaded():
             nonlocal load_count
-            
+
             # Simulate the critical section that checks and sets loading_in_progress
             with client.loading_lock:
                 # First thread to arrive will do the loading
@@ -460,40 +460,40 @@ class TestHomeManagerClient(unittest.TestCase):
                     load_count += 1
                     # Eventually mark as loaded after all threads have tried to load
                     threading.Timer(0.2, lambda: load_event.set()).start()
-                    threading.Timer(0.3, lambda: setattr(client, 'is_loaded', True)).start()
+                    threading.Timer(0.3, lambda: setattr(client, "is_loaded", True)).start()
                     return
-                
+
                 # Other threads will either wait for loading or return immediately if loaded
                 if client.loading_in_progress and not client.is_loaded:
                     # These threads should wait, not try to load again
                     pass
-        
+
         # Replace the method
         client.ensure_loaded = test_ensure_loaded
-        
+
         try:
             # Reset client state
             with client.loading_lock:
                 client.is_loaded = False
                 client.loading_in_progress = False
-            
+
             # Start 5 threads that all try to ensure data is loaded
             threads = []
             for _ in range(5):
                 t = threading.Thread(target=client.ensure_loaded)
                 threads.append(t)
                 t.start()
-            
+
             # Wait for all threads to complete
             for t in threads:
                 t.join(timeout=0.5)
-            
+
             # Wait for the loading to complete (in case it's still in progress)
             load_event.wait(timeout=0.5)
-            
+
             # Verify that loading was only attempted once
             self.assertEqual(load_count, 1)
-            
+
         finally:
             # Restore original method
             client.ensure_loaded = original_ensure_loaded
@@ -515,7 +515,7 @@ class TestHomeManagerClient(unittest.TestCase):
         client.load_in_background()
 
         # Then immediately call a method that requires the data
-        result = client.search_options("git")
+        client.search_options("git")
 
         # Wait for background loading to complete
         if client.loading_thread and client.loading_thread.is_alive():
@@ -524,7 +524,7 @@ class TestHomeManagerClient(unittest.TestCase):
         # Verify that each URL was only requested once
         # Even though we called both load_in_background and search_options
         for url in client.hm_urls.values():
-            matching_calls = [call for call in mock_get.call_args_list if call[0][0] == url]
+            matching_calls = [mock_call for mock_call in mock_get.call_args_list if mock_call[0][0] == url]
             self.assertLessEqual(len(matching_calls), 1, f"URL {url} was requested multiple times")
 
 

@@ -337,7 +337,7 @@ def home_manager_list_options(context=None) -> str:
 
         # Calculate totals for summary
         total_options = sum(opt.get("count", 0) for opt in options.values())
-        total_enable_options = sum(len(opt.get("enable_options", [])) for opt in options.values())
+        # total_enable_options calculation removed - was unused
 
         output += f"Total categories: {len(options)}\n"
         output += f"Total options: {total_options}\n\n"
@@ -398,7 +398,7 @@ def home_manager_list_options(context=None) -> str:
             output += "```\n\n"
 
             # Add a tip to search for more detailed information
-            output += f"**Tip**: To see all options in this category, use:\n"
+            output += "**Tip**: To see all options in this category, use:\n"
             output += f'`home_manager_options_by_prefix(option_prefix="{name}")`\n\n'
 
         return output
@@ -488,7 +488,7 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
                 output += f"**{len(group_opts)}** options - "
                 # Add a tip to dive deeper
                 full_path = f"{option_prefix}.{group}"
-                output += f"To see all options in this group, use:\n"
+                output += "To see all options in this group, use:\n"
                 output += f'`home_manager_options_by_prefix(option_prefix="{full_path}")`\n\n'
 
                 # Show a sample of options from this group (up to 3)
