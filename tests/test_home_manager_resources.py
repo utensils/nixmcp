@@ -1,7 +1,7 @@
 """Test Home Manager resource endpoints."""
 
 import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Import base test class
 from tests import NixMCPTestBase
@@ -12,7 +12,6 @@ from nixmcp.server import (
     home_manager_search_options_resource,
     home_manager_option_resource,
     home_manager_stats_resource,
-    HomeManagerContext,
 )
 
 # Disable logging during tests

@@ -1,7 +1,6 @@
 import unittest
 import logging
 from unittest.mock import patch, MagicMock
-import time
 import threading
 
 # Import the server module

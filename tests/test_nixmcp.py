@@ -641,10 +641,10 @@ class TestMCPResources(unittest.TestCase):
             }
 
             # Import the resource function
-            from nixmcp.server import status_resource
+            from nixmcp.server import nixos_status_resource
 
             # Call the resource function
-            result = status_resource()
+            result = nixos_status_resource()
 
             # Verify the result
             self.assertEqual(result["status"], "ok")

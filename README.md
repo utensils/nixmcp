@@ -215,6 +215,38 @@ lint
 publish
 ```
 
+### Development with Claude Desktop
+
+For local development and testing with Claude Desktop, add this configuration to your `~/.config/claude/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "nixos": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--isolated",
+        "--with-requirements",
+        "<path-to-cloned-repo>/requirements.txt",
+        "<path-to-cloned-repo>/nixmcp/server.py"
+      ],
+      "cwd": "<path-to-cloned-repo>",
+      "env": {
+        "LOG_LEVEL": "DEBUG",
+        "LOG_FILE": "<path-to-cloned-repo>/nixmcp-server.log"
+      }
+    }
+  }
+}
+```
+
+This configuration:
+- Uses `uv run` with the `--isolated` flag to create a clean environment
+- Explicitly specifies requirements with `--with-requirements`
+- Sets the working directory to your repo location
+- Enables debug logging for development purposes
+
 ## Testing Approach
 
 The tests use real Elasticsearch API calls instead of mocks to ensure actual API compatibility. This approach:

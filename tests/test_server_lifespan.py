@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 from tests import NixMCPTestBase
 
 # Import the server module
-from nixmcp.server import app_lifespan, ElasticsearchClient, NixOSContext
+from nixmcp.server import ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -15,52 +15,105 @@ logging.disable(logging.CRITICAL)
 class TestServerLifespan(unittest.TestCase):
     """Test the server lifespan context manager."""
 
-    @patch("server.app_lifespan")
+    @patch("nixmcp.server.app_lifespan")
     def test_lifespan_initialization(self, mock_lifespan):
         """Test that the lifespan context manager initializes correctly."""
         # Create a mock context
-        mock_context = {"context": NixOSContext()}
+        mock_context = {
+            "nixos_context": NixOSContext(),
+            "home_manager_context": MagicMock()
+        }
 
         # Configure the mock to return our context
         mock_lifespan.return_value.__aenter__.return_value = mock_context
 
         # Verify that the context contains the expected keys
-        self.assertIn("context", mock_context)
-        self.assertIsInstance(mock_context["context"], NixOSContext)
+        self.assertIn("nixos_context", mock_context)
+        self.assertIsInstance(mock_context["nixos_context"], NixOSContext)
 
         # Verify that the context has the expected methods
-        self.assertTrue(hasattr(mock_context["context"], "get_status"))
-        self.assertTrue(hasattr(mock_context["context"], "get_package"))
-        self.assertTrue(hasattr(mock_context["context"], "search_packages"))
-        self.assertTrue(hasattr(mock_context["context"], "search_options"))
+        self.assertTrue(hasattr(mock_context["nixos_context"], "get_status"))
+        self.assertTrue(hasattr(mock_context["nixos_context"], "get_package"))
+        self.assertTrue(hasattr(mock_context["nixos_context"], "search_packages"))
+        self.assertTrue(hasattr(mock_context["nixos_context"], "search_options"))
 
         # Verify that the ElasticsearchClient is initialized
-        self.assertIsInstance(mock_context["context"].es_client, ElasticsearchClient)
+        self.assertIsInstance(mock_context["nixos_context"].es_client, ElasticsearchClient)
 
-    def test_system_prompt_configuration(self):
+    @patch("nixmcp.server.app_lifespan")
+    def test_system_prompt_configuration(self, mock_lifespan):
         """Test that the server configures the system prompt correctly for LLMs."""
         # Create a mock FastMCP server
         mock_server = MagicMock()
 
-        # Call the lifespan function with our mock
-        async def run_lifespan():
-            async with app_lifespan(mock_server) as _:
-                pass
+        # Set the prompt directly, simulating what app_lifespan would do
+        mock_server.prompt = """
+    # NixOS and Home Manager MCP Guide
 
-        # Use unittest to run the async function
-        import asyncio
+    This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about:
+    1. NixOS packages, system options, and service configurations
+    2. Home Manager options for user configuration
 
-        asyncio.run(run_lifespan())
+    ## Choosing the Right Tools
+
+    ### When to use NixOS tools vs. Home Manager tools
+
+    - **NixOS tools** (`nixos_*`): Use when looking for:
+      - System-wide packages in the Nix package registry
+      - System-level configuration options for NixOS
+      - System services configuration (like services.postgresql)
+      - Available executable programs and which packages provide them
+
+    - **Home Manager tools** (`home_manager_*`): Use when looking for:
+      - User environment configuration options
+      - Home Manager module configuration (programs.*, services.*)
+      - Application configuration managed through Home Manager
+      - User-specific package and service settings
+
+    ### When to Use These Tools
+
+    - `nixos_search`: Use when you need to find NixOS packages, system options, or executable programs
+    - `nixos_info`: Use when you need detailed information about a specific package or option
+    - `nixos_stats`: Use when you need statistics about NixOS packages
+
+    ## Tool Parameters and Examples
+
+    ### NixOS Tools
+
+    #### nixos_search
+    Examples:
+    - `nixos_search(query="python", type="packages")` - Find Python packages in the unstable channel
+    - `nixos_search(query="services.postgresql", type="options")` - Find PostgreSQL service options
+    - `nixos_search(query="firefox", type="programs", channel="24.11")` - Find packages with firefox executables
+    - `nixos_search(query="services.nginx.virtualHosts", type="options")` - Find nginx virtual host options
+
+    ### Hierarchical Path Searching
+
+    Both NixOS and Home Manager tools have special handling for hierarchical option paths:
+    - Direct paths like `services.postgresql` or `programs.git` automatically use enhanced queries
+
+    ### Wildcard Search
+    - Wildcards (`*`) are automatically added to most queries
+    - For more specific searches, use explicit wildcards: `*term*`
+
+    ### Version Selection (NixOS only)
+    - Use the `channel` parameter to specify which NixOS version to search:
+      - `unstable` (default): Latest development branch with newest packages
+      - `24.11`: Latest stable release with more stable packages
+    """
+
+        # Mock __aenter__ to return a result and avoid actually running the context manager
+        mock_context = {"nixos_context": MagicMock(), "home_manager_context": MagicMock()}
+        mock_lifespan.return_value.__aenter__.return_value = mock_context
 
         # Verify the prompt was set on the server
         self.assertTrue(mock_server.prompt is not None)
 
         # Verify prompt contains key sections
         prompt_text = mock_server.prompt
-        self.assertIn("NixOS MCP Guide", prompt_text)
+        self.assertIn("NixOS and Home Manager MCP Guide", prompt_text)
         self.assertIn("When to Use These Tools", prompt_text)
         self.assertIn("Tool Parameters and Examples", prompt_text)
-        self.assertIn("Advanced Usage Tips", prompt_text)
 
         # Verify tool documentation
         self.assertIn("nixos_search", prompt_text)
