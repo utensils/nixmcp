@@ -301,6 +301,279 @@ def home_manager_stats(context=None) -> str:
         return f"Error retrieving statistics: {str(e)}"
 
 
+def home_manager_list_options(context=None) -> str:
+    """
+    List all top-level Home Manager option categories.
+
+    Args:
+        context: Optional context object for dependency injection in tests
+
+    Returns:
+        Formatted list of top-level option categories and their statistics
+    """
+    logger.info("Listing all top-level Home Manager option categories")
+
+    # Use provided context or fallback to global context
+    if context is None:
+        # Import here to avoid circular imports
+        import nixmcp.server
+
+        context = nixmcp.server.home_manager_context
+
+    try:
+        result = context.get_options_list()
+
+        if not result.get("found", False):
+            if "error" in result:
+                return f"Error: {result['error']}"
+            return "No Home Manager options were found."
+
+        options = result.get("options", {})
+
+        if not options:
+            return "No top-level Home Manager option categories were found."
+
+        output = "# Home Manager Top-Level Option Categories\n\n"
+
+        # Calculate totals for summary
+        total_options = sum(opt.get("count", 0) for opt in options.values())
+        total_enable_options = sum(len(opt.get("enable_options", [])) for opt in options.values())
+
+        output += f"Total categories: {len(options)}\n"
+        output += f"Total options: {total_options}\n\n"
+
+        # Sort options by count (descending)
+        sorted_options = sorted(options.items(), key=lambda x: x[1].get("count", 0), reverse=True)
+
+        for name, data in sorted_options:
+            option_count = data.get("count", 0)
+            if option_count == 0:
+                continue  # Skip empty categories
+
+            output += f"## {name}\n\n"
+            output += f"- **Options count**: {option_count}\n"
+
+            # Show type distribution if available
+            types = data.get("types", {})
+            if types:
+                output += "- **Option types**:\n"
+                sorted_types = sorted(types.items(), key=lambda x: x[1], reverse=True)
+                for type_name, count in sorted_types[:5]:  # Show top 5 types
+                    output += f"  - {type_name}: {count}\n"
+
+            # Show enable options if available
+            enable_options = data.get("enable_options", [])
+            if enable_options:
+                output += f"- **Enable options**: {len(enable_options)}\n"
+                # Show a few examples of enable options
+                for i, enable_opt in enumerate(enable_options[:3]):  # Show up to 3 examples
+                    parent = enable_opt.get("parent", "")
+                    desc = enable_opt.get("description", "").split(". ")[0] + "."  # First sentence
+                    output += f"  - {parent}: {desc}\n"
+                if len(enable_options) > 3:
+                    output += f"  - ...and {len(enable_options) - 3} more\n"
+
+            # Add usage example for this category
+            output += f"\n**Usage example for {name}:**\n"
+            output += "```nix\n"
+            output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
+            output += "{ config, pkgs, ... }:\n"
+            output += "{\n"
+
+            # Different example syntax based on category
+            if name == "programs":
+                output += "  programs.<name> = {\n"
+                output += "    enable = true;\n"
+                output += "    # Additional configuration options\n"
+                output += "  };\n"
+            elif name == "services":
+                output += "  services.<name> = {\n"
+                output += "    enable = true;\n"
+                output += "    # Service-specific configuration\n"
+                output += "  };\n"
+            else:
+                output += f"  {name}.<option> = <value>;\n"
+
+            output += "}\n"
+            output += "```\n\n"
+
+            # Add a tip to search for more detailed information
+            output += f"**Tip**: To see all options in this category, use:\n"
+            output += f'`home_manager_options_by_prefix(option_prefix="{name}")`\n\n'
+
+        return output
+
+    except Exception as e:
+        logger.error(f"Error listing Home Manager options: {e}", exc_info=True)
+        return f"Error retrieving options list: {str(e)}"
+
+
+def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
+    """
+    Get all Home Manager options under a specific prefix.
+
+    Args:
+        option_prefix: The option prefix to search for (e.g., "programs", "programs.git")
+        context: Optional context object for dependency injection in tests
+
+    Returns:
+        Formatted list of options under the given prefix
+    """
+    logger.info(f"Getting Home Manager options by prefix '{option_prefix}'")
+
+    # Use provided context or fallback to global context
+    if context is None:
+        # Import here to avoid circular imports
+        import nixmcp.server
+
+        context = nixmcp.server.home_manager_context
+
+    try:
+        result = context.get_options_by_prefix(option_prefix)
+
+        if not result.get("found", False):
+            if "error" in result:
+                return f"Error: {result['error']}"
+            return f"No Home Manager options found with prefix '{option_prefix}'."
+
+        options = result.get("options", [])
+
+        if not options:
+            return f"No Home Manager options found with prefix '{option_prefix}'."
+
+        output = f"# Home Manager Options: {option_prefix}\n\n"
+        output += f"Found {len(options)} options\n\n"
+
+        # Organize options by next hierarchical level
+        if "." in option_prefix:
+            # This is a deeper level, sort options alphabetically
+            options.sort(key=lambda x: x.get("name", ""))
+
+            # Group options by their immediate parent
+            grouped_options = {}
+            for opt in options:
+                name = opt.get("name", "")
+                if name.startswith(option_prefix):
+                    # Get the next path component after the prefix
+                    remainder = name[len(option_prefix) + 1 :]  # +1 for the dot
+                    if "." in remainder:
+                        group = remainder.split(".")[0]
+                        if group not in grouped_options:
+                            grouped_options[group] = []
+                        grouped_options[group].append(opt)
+                    else:
+                        # This is a direct child option
+                        if "_direct" not in grouped_options:
+                            grouped_options["_direct"] = []
+                        grouped_options["_direct"].append(opt)
+
+            # First show direct options if any
+            if "_direct" in grouped_options:
+                output += "## Direct Options\n\n"
+                for opt in grouped_options["_direct"]:
+                    output += f"- **{opt.get('name', '')}**"
+                    if opt.get("type"):
+                        output += f" ({opt.get('type')})"
+                    output += "\n"
+                    if opt.get("description"):
+                        output += f"  {opt.get('description')}\n"
+                output += "\n"
+
+                # Remove the _direct group so it's not repeated
+                del grouped_options["_direct"]
+
+            # Then show grouped options
+            for group, group_opts in sorted(grouped_options.items()):
+                output += f"## {group}\n\n"
+                output += f"**{len(group_opts)}** options - "
+                # Add a tip to dive deeper
+                full_path = f"{option_prefix}.{group}"
+                output += f"To see all options in this group, use:\n"
+                output += f'`home_manager_options_by_prefix(option_prefix="{full_path}")`\n\n'
+
+                # Show a sample of options from this group (up to 3)
+                for opt in group_opts[:3]:
+                    name_parts = opt.get("name", "").split(".")
+                    if len(name_parts) > 0:
+                        short_name = name_parts[-1]
+                        output += f"- **{short_name}**"
+                        if opt.get("type"):
+                            output += f" ({opt.get('type')})"
+                        output += "\n"
+                output += "\n"
+        else:
+            # This is a top-level option, show enable options first if available
+            enable_options = result.get("enable_options", [])
+            if enable_options:
+                output += "## Enable Options\n\n"
+                for enable_opt in enable_options:
+                    parent = enable_opt.get("parent", "")
+                    name = enable_opt.get("name", "")
+                    desc = enable_opt.get("description", "")
+                    output += f"- **{parent}**: {desc}\n"
+                output += "\n"
+
+            # Group other options by their second-level component
+            grouped_options = {}
+            for opt in options:
+                name = opt.get("name", "")
+                parts = name.split(".")
+                if len(parts) > 1 and parts[0] == option_prefix:
+                    group = parts[1] if len(parts) > 1 else "_direct"
+                    if group not in grouped_options:
+                        grouped_options[group] = []
+                    grouped_options[group].append(opt)
+
+            # List groups with option counts
+            if grouped_options:
+                output += "## Option Groups\n\n"
+                for group, group_opts in sorted(grouped_options.items()):
+                    if group == "_direct":
+                        continue
+                    output += f"- **{group}**: {len(group_opts)} options\n"
+                    # Add a tip to dive deeper for groups with significant options
+                    if len(group_opts) > 5:
+                        full_path = f"{option_prefix}.{group}"
+                        output += f'  To see all options, use: `home_manager_options_by_prefix("{full_path}")`\n'
+                output += "\n"
+
+        # Add usage example based on the option prefix
+        parts = option_prefix.split(".")
+        if len(parts) > 0:
+            if parts[0] == "programs" and len(parts) > 1:
+                program_name = parts[1]
+                output += f"## Example Configuration for {program_name}\n\n"
+                output += "```nix\n"
+                output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
+                output += "{ config, pkgs, ... }:\n"
+                output += "{\n"
+                output += f"  programs.{program_name} = {{\n"
+                output += "    enable = true;\n"
+                output += "    # Add configuration options here\n"
+                output += "  };\n"
+                output += "}\n"
+                output += "```\n"
+            elif parts[0] == "services" and len(parts) > 1:
+                service_name = parts[1]
+                output += f"## Example Configuration for {service_name} service\n\n"
+                output += "```nix\n"
+                output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
+                output += "{ config, pkgs, ... }:\n"
+                output += "{\n"
+                output += f"  services.{service_name} = {{\n"
+                output += "    enable = true;\n"
+                output += "    # Add service configuration options here\n"
+                output += "  };\n"
+                output += "}\n"
+                output += "```\n"
+
+        return output
+
+    except Exception as e:
+        logger.error(f"Error getting Home Manager options by prefix: {e}", exc_info=True)
+        return f"Error retrieving options: {str(e)}"
+
+
 def register_home_manager_tools(mcp) -> None:
     """
     Register all Home Manager tools with the MCP server.
@@ -311,3 +584,5 @@ def register_home_manager_tools(mcp) -> None:
     mcp.tool()(home_manager_search)
     mcp.tool()(home_manager_info)
     mcp.tool()(home_manager_stats)
+    mcp.tool()(home_manager_list_options)
+    mcp.tool()(home_manager_options_by_prefix)

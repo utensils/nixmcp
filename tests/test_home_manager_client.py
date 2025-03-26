@@ -1,11 +1,13 @@
 """Tests for the HomeManagerClient in the NixMCP server."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+import threading
+import time
+from unittest.mock import patch, MagicMock, call
 import requests
 
 # Import the HomeManagerClient class
-from nixmcp.server import HomeManagerClient
+from nixmcp.clients.home_manager_client import HomeManagerClient
 
 
 class TestHomeManagerClient(unittest.TestCase):
@@ -359,6 +361,139 @@ class TestHomeManagerClient(unittest.TestCase):
         # Verify result and mock calls
         self.assertEqual(result, self.sample_html)
         self.assertEqual(mock_get.call_count, 2)
+
+    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    def test_load_in_background_avoids_duplicate_loading(self, mock_load_internal):
+        """Test that background loading avoids duplicate loading of data."""
+
+        # Setup mock to simulate a slower loading process
+        def slow_loading_effect(*args, **kwargs):
+            time.sleep(0.2)  # Simulate slow loading
+            return None
+
+        mock_load_internal.side_effect = slow_loading_effect
+
+        # Create client
+        client = HomeManagerClient()
+
+        # Start background loading
+        client.load_in_background()
+
+        # Verify background thread was started
+        self.assertIsNotNone(client.loading_thread)
+        self.assertTrue(client.loading_thread.is_alive())
+
+        # Try starting another background load while first is running
+        client.load_in_background()
+
+        # Wait for the background thread to complete
+        client.loading_thread.join(timeout=1.0)
+
+        # Verify load_data_internal was called exactly once
+        mock_load_internal.assert_called_once()
+
+    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    def test_ensure_loaded_waits_for_background_thread(self, mock_load_internal):
+        """Test that ensure_loaded waits for background thread to complete instead of duplicating work."""
+        # Setup: Create a client and track how many times the load method is called
+        load_count = 0
+
+        def counting_load(*args, **kwargs):
+            nonlocal load_count
+            load_count += 1
+            time.sleep(0.2)  # Simulate loading time
+            # Set the loaded flag manually since we're mocking
+            args[0].is_loaded = True
+
+        mock_load_internal.side_effect = counting_load
+
+        # Create client
+        client = HomeManagerClient()
+
+        # Start background loading
+        client.load_in_background()
+
+        # Immediately call ensure_loaded from another thread
+        def call_ensure_loaded():
+            client.ensure_loaded()
+
+        ensure_thread = threading.Thread(target=call_ensure_loaded)
+        ensure_thread.start()
+
+        # Give both threads time to complete
+        client.loading_thread.join(timeout=1.0)
+        ensure_thread.join(timeout=1.0)
+
+        # Verify that _load_data_internal was called exactly once
+        self.assertEqual(load_count, 1)
+        self.assertEqual(mock_load_internal.call_count, 1)
+
+        # Verify that the data is marked as loaded
+        self.assertTrue(client.is_loaded)
+
+    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    def test_multiple_concurrent_ensure_loaded_calls(self, mock_load_internal):
+        """Test that multiple concurrent calls to ensure_loaded only result in loading once."""
+
+        # Setup: Simulate loading by setting a flag after a delay
+        def simulated_loading(*args, **kwargs):
+            time.sleep(0.2)  # Slow enough to ensure concurrent access
+            args[0].is_loaded = True
+
+        mock_load_internal.side_effect = simulated_loading
+
+        # Create client and reset the loaded flag
+        client = HomeManagerClient()
+        client.is_loaded = False
+
+        # Create multiple threads all calling ensure_loaded
+        threads = []
+        thread_count = 5
+
+        def call_ensure_loaded():
+            client.ensure_loaded()
+
+        for _ in range(thread_count):
+            t = threading.Thread(target=call_ensure_loaded)
+            threads.append(t)
+            t.start()
+
+        # Wait for all threads to complete
+        for t in threads:
+            t.join(timeout=1.0)
+
+        # Verify that loading was only done once
+        self.assertEqual(mock_load_internal.call_count, 1)
+        self.assertTrue(client.is_loaded)
+
+    @patch("requests.get")
+    def test_no_duplicate_http_requests(self, mock_get):
+        """Test that we don't make duplicate HTTP requests when loading Home Manager options."""
+        # Configure mock to return our sample HTML for all URLs
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = self.sample_html
+        mock_get.return_value = mock_response
+
+        # Create client with faster retry settings
+        client = HomeManagerClient()
+        client.retry_delay = 0.01
+
+        # First, start background loading
+        client.load_in_background()
+
+        # Then immediately call a method that requires the data
+        result = client.search_options("git")
+
+        # Wait for background loading to complete
+        if client.loading_thread and client.loading_thread.is_alive():
+            client.loading_thread.join(timeout=1.0)
+
+        # Verify that each URL was only requested once
+        # Even though we called both load_in_background and search_options
+        for url in client.hm_urls.values():
+            matching_calls = [call for call in mock_get.call_args_list if call[0][0] == url]
+            self.assertLessEqual(len(matching_calls), 1, f"URL {url} was requested multiple times")
 
 
 if __name__ == "__main__":

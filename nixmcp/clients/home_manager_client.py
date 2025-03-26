@@ -52,6 +52,8 @@ class HomeManagerClient:
         self.is_loaded = False
         self.loading_error = None
         self.loading_lock = threading.RLock()
+        self.loading_thread = None
+        self.loading_in_progress = False
 
         logger.info("Home Manager client initialized")
 
@@ -294,36 +296,103 @@ class HomeManagerClient:
     def ensure_loaded(self) -> None:
         """Ensure that options are loaded and indices are built."""
         with self.loading_lock:
+            # If data is already loaded, we're good to go
             if self.is_loaded:
                 return
 
+            # If we encountered an error in a previous loading attempt, don't try again
             if self.loading_error:
                 raise Exception(f"Previous loading attempt failed: {self.loading_error}")
 
-            try:
-                logger.info("Loading Home Manager options")
-                options = self.load_all_options()
-                self.build_search_indices(options)
+            # If background loading is in progress, wait a moment and check status
+            if self.loading_in_progress:
+                logger.info("Waiting for background data loading to complete...")
+                # We release the lock temporarily to allow the background thread to finish
+
+        # Exit the lock scope temporarily to allow the background thread to progress
+        # This prevents deadlock between this thread and the background loader
+        if self.loading_thread and self.loading_thread.is_alive():
+            # Exponential backoff waiting for data to load (max ~2 seconds)
+            for attempt in range(10):
+                time.sleep(0.1 * (2 ** min(attempt, 4)))  # 0.1, 0.2, 0.4, 0.8, 1.6, 1.6, ...
+                with self.loading_lock:
+                    if self.is_loaded:
+                        return
+                    if not self.loading_in_progress:
+                        break
+
+        # Re-acquire lock and check if data was loaded while we were waiting
+        with self.loading_lock:
+            if self.is_loaded:
+                return
+
+            # If we get here, either:
+            # 1. No background loading was happening
+            # 2. Background loading was too slow or failed
+            # 3. Another thread attempted loading and failed
+            if self.loading_error:
+                raise Exception(f"Loading attempt failed: {self.loading_error}")
+
+            # Prevent other threads from starting loading while we do it
+            self.loading_in_progress = True
+
+        try:
+            # Do the actual loading outside the lock to prevent deadlocks
+            self._load_data_internal()
+
+            # Update state after loading
+            with self.loading_lock:
                 self.is_loaded = True
-                logger.info("Successfully loaded Home Manager options and built indices")
-            except Exception as e:
+                self.loading_in_progress = False
+        except Exception as e:
+            with self.loading_lock:
                 self.loading_error = str(e)
-                logger.error(f"Failed to load Home Manager options: {str(e)}")
-                raise
+                self.loading_in_progress = False
+            logger.error(f"Failed to load Home Manager options: {str(e)}")
+            raise
 
     def load_in_background(self) -> None:
         """Start loading options in a background thread."""
 
         def _load_data():
             try:
-                self.ensure_loaded()
+                with self.loading_lock:
+                    self.loading_in_progress = True
+
+                # Do the actual loading without holding the lock the entire time
+                # to allow ensure_loaded to check state
+                self._load_data_internal()
+
+                with self.loading_lock:
+                    self.loading_in_progress = False
+                    self.is_loaded = True
+
                 logger.info("Background loading of Home Manager options completed")
             except Exception as e:
+                with self.loading_lock:
+                    self.loading_error = str(e)
+                    self.loading_in_progress = False
                 logger.error(f"Background loading of Home Manager options failed: {str(e)}")
 
         logger.info("Starting background thread for loading Home Manager options")
-        thread = threading.Thread(target=_load_data, daemon=True)
-        thread.start()
+        with self.loading_lock:
+            if self.loading_thread is not None and self.loading_thread.is_alive():
+                logger.info("Background loading thread already running")
+                return
+
+            self.loading_thread = threading.Thread(target=_load_data, daemon=True)
+            self.loading_thread.start()
+
+    def _load_data_internal(self) -> None:
+        """Internal method to load data without modifying state flags."""
+        try:
+            logger.info("Loading Home Manager options")
+            options = self.load_all_options()
+            self.build_search_indices(options)
+            logger.info("Successfully loaded Home Manager options and built indices")
+        except Exception as e:
+            logger.error(f"Failed to load Home Manager options: {str(e)}")
+            raise
 
     def search_options(self, query: str, limit: int = 20) -> Dict[str, Any]:
         """
@@ -365,6 +434,13 @@ class HomeManagerClient:
                     for option_name in self.prefix_index.get(query, set()):
                         if option_name.startswith(query + "."):
                             matches[option_name] = 80  # High score for hierarchical match
+            else:
+                # For top-level prefixes without dots (e.g., "home" or "xdg")
+                # This ensures we find options like "home.file.*" when searching for "home"
+                for option_name in self.options.keys():
+                    # Check if option_name starts with query followed by a dot
+                    if option_name.startswith(query + "."):
+                        matches[option_name] = 75  # High score but not as high as exact matches
 
             # Split query into words for text search
             words = re.findall(r"\w+", query.lower())
