@@ -49,6 +49,7 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
    - Use clear, descriptive function names
    - Add type hints for all parameters and return values
    - Make return type `str` for human-readable output
+   - Include optional `context` parameter for dependency injection in tests
 
 2. **Documentation**:
    - Always include detailed docstrings
@@ -61,10 +62,15 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
    - Include suggestions for how to fix common errors
    - For complex tools, return structured error information as formatted text
 
-4. **Example Tool**:
+4. **Dependency Injection**:
+   - All tool functions should accept an optional context parameter
+   - Fall back to global contexts only when no context is provided
+   - This allows for clean testing without patching global state
+
+5. **Example Tool**:
    ```python
    @mcp.tool()
-   def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> str:
+   def search_nixos(query: str, search_type: str = "packages", limit: int = 10, context=None) -> str:
        """
        Search for NixOS packages or options.
        
@@ -72,13 +78,19 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
            query: The search term
            search_type: Type of search - either "packages", "options", or "programs"
            limit: Maximum number of results to return (default: 10)
+           context: Optional context object for dependency injection in tests
        
        Returns:
            Results formatted as text
        """
+       # Use provided context or fallback to global context
+       if context is None:
+           context = nixos_context
+           
        # Implementation with proper error handling
        try:
-           # Search logic here
+           # Search logic using the context
+           results = context.search_packages(query, limit)
            return formatted_results
        except Exception as e:
            logger.error(f"Error in search_nixos: {e}", exc_info=True)
@@ -127,13 +139,28 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
    - Use `Union[Type1, Type2]` for multiple possible types
    - Use `List[Type]`, `Dict[KeyType, ValueType]` for collections
 
-3. **Common Patterns**:
+3. **Dependency Injection**:
+   - Avoid direct use of global state in function implementations
+   - Always accept optional context parameters in tool functions
+   - Use provided contexts or fall back to global contexts only when necessary
+   - This pattern improves testability and reduces coupling between components
+   - Example:
+     ```python
+     def my_tool(param1: str, param2: int, context=None) -> str:
+         # Use provided context or fall back to global
+         if context is None:
+             context = global_context
+         # Use context instead of global state
+         return context.do_something(param1, param2)
+     ```
+
+4. **Common Patterns**:
    - For search tools, always handle empty results gracefully
    - Include pagination parameters (limit, offset) where appropriate
    - Provide clear formatting of results for human readability
    - Add wildcards or fuzzy matching for improved search experience
 
-4. **Error Handling**:
+5. **Error Handling**:
    - Log all errors with appropriate detail
    - Return user-friendly error messages
    - Include suggestions for resolving errors when possible
@@ -279,12 +306,17 @@ The project includes a comprehensive test suite:
    - Test both success paths and error handling
    - Test caching behavior where applicable
    - Use parameterized tests for different input variations
-4. Test async components:
+4. Test dependency injection:
+   - Always use context injection with mock objects instead of patching global state
+   - Pass mock contexts directly to tool functions using the `context` parameter
+   - Validate mocks are called with the correct arguments
+   - This approach isolates tests and prevents interference between test cases
+5. Test async components:
    - Use pytest-asyncio for testing async code
    - Properly wrap async tests with `async_to_sync` decorator for compatibility
    - Be careful with exception handling tests in async context managers
-5. The test suite is designed to be resilient to API changes by checking response structure rather than exact content
-6. Current target code coverage is approximately 80%
+6. The test suite is designed to be resilient to API changes by checking response structure rather than exact content
+7. Current target code coverage is approximately 80%
 
 ## Package Distribution
 

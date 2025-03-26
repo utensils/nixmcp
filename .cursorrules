@@ -49,6 +49,7 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
    - Use clear, descriptive function names
    - Add type hints for all parameters and return values
    - Make return type `str` for human-readable output
+   - Include optional `context` parameter for dependency injection in tests
 
 2. **Documentation**:
    - Always include detailed docstrings
@@ -61,10 +62,15 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
    - Include suggestions for how to fix common errors
    - For complex tools, return structured error information as formatted text
 
-4. **Example Tool**:
+4. **Dependency Injection**:
+   - All tool functions should accept an optional context parameter
+   - Fall back to global contexts only when no context is provided
+   - This allows for clean testing without patching global state
+
+5. **Example Tool**:
    ```python
    @mcp.tool()
-   def search_nixos(query: str, search_type: str = "packages", limit: int = 10) -> str:
+   def search_nixos(query: str, search_type: str = "packages", limit: int = 10, context=None) -> str:
        """
        Search for NixOS packages or options.
        
@@ -72,13 +78,19 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
            query: The search term
            search_type: Type of search - either "packages", "options", or "programs"
            limit: Maximum number of results to return (default: 10)
+           context: Optional context object for dependency injection in tests
        
        Returns:
            Results formatted as text
        """
+       # Use provided context or fallback to global context
+       if context is None:
+           context = nixos_context
+           
        # Implementation with proper error handling
        try:
-           # Search logic here
+           # Search logic using the context
+           results = context.search_packages(query, limit)
            return formatted_results
        except Exception as e:
            logger.error(f"Error in search_nixos: {e}", exc_info=True)
@@ -127,13 +139,28 @@ When implementing MCP tools with `@mcp.tool()`, follow these rules:
    - Use `Union[Type1, Type2]` for multiple possible types
    - Use `List[Type]`, `Dict[KeyType, ValueType]` for collections
 
-3. **Common Patterns**:
+3. **Dependency Injection**:
+   - Avoid direct use of global state in function implementations
+   - Always accept optional context parameters in tool functions
+   - Use provided contexts or fall back to global contexts only when necessary
+   - This pattern improves testability and reduces coupling between components
+   - Example:
+     ```python
+     def my_tool(param1: str, param2: int, context=None) -> str:
+         # Use provided context or fall back to global
+         if context is None:
+             context = global_context
+         # Use context instead of global state
+         return context.do_something(param1, param2)
+     ```
+
+4. **Common Patterns**:
    - For search tools, always handle empty results gracefully
    - Include pagination parameters (limit, offset) where appropriate
    - Provide clear formatting of results for human readability
    - Add wildcards or fuzzy matching for improved search experience
 
-4. **Error Handling**:
+5. **Error Handling**:
    - Log all errors with appropriate detail
    - Return user-friendly error messages
    - Include suggestions for resolving errors when possible
@@ -249,21 +276,47 @@ https://nix-community.github.io/home-manager/nixos-options.xhtml
 https://nix-community.github.io/home-manager/nix-darwin-options.xhtml
 ```
 
-2. HTML documentation is parsed and indexed in memory for fast searching.
+2. HTML documentation is parsed and indexed in memory for fast searching:
+   - Parses options from `<div class="variablelist">` elements containing `<dl>/<dt>/<dd>` elements
+   - Extracts option names, types, descriptions, defaults, and examples
+   - Automatically categorizes options based on document structure and headings
 
-3. Background loading is used to avoid blocking server startup.
+3. Multiple specialized indexes for search:
+   - Inverted index for text search across option names and descriptions
+   - Prefix index for hierarchical path matches (e.g., programs.git.*)
+   - Hierarchical index for path component matching
 
-4. Results include option metadata such as type, description, default values and examples.
+4. Background loading is used to avoid blocking server startup.
 
-5. Data is automatically refreshed when the server restarts to ensure current documentation.
+5. Results include option metadata such as type, description, default values and examples.
+
+6. Related options are automatically suggested based on hierarchical paths.
+
+7. Data is automatically refreshed when the server restarts to ensure current documentation.
 
 ### Testing
 The project includes a comprehensive test suite:
 
 1. Tests are written using pytest and include code coverage reporting
-2. Tests make real API calls to the Elasticsearch endpoints rather than using mocks
-3. Tests are designed to be resilient to API changes and handle various response patterns
-4. Current code coverage is approximately 72%
+2. Use a balanced approach to testing:
+   - Use mocks for external service dependencies (like Elasticsearch and Home Manager docs)  
+   - Create integration tests with real API calls for critical paths
+3. Test structure recommendations:
+   - Create dedicated test files for each major component (e.g., ElasticsearchClient, HomeManagerClient)
+   - Test both success paths and error handling
+   - Test caching behavior where applicable
+   - Use parameterized tests for different input variations
+4. Test dependency injection:
+   - Always use context injection with mock objects instead of patching global state
+   - Pass mock contexts directly to tool functions using the `context` parameter
+   - Validate mocks are called with the correct arguments
+   - This approach isolates tests and prevents interference between test cases
+5. Test async components:
+   - Use pytest-asyncio for testing async code
+   - Properly wrap async tests with `async_to_sync` decorator for compatibility
+   - Be careful with exception handling tests in async context managers
+6. The test suite is designed to be resilient to API changes by checking response structure rather than exact content
+7. Current target code coverage is approximately 80%
 
 ## Package Distribution
 

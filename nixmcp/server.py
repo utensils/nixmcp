@@ -2080,7 +2080,7 @@ def home_manager_stats_resource():
 
 # Add MCP tools for searching and retrieving information
 @mcp.tool()
-def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable") -> str:
+def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable", context=None) -> str:
     """
     Search for NixOS packages, options, or programs.
 
@@ -2089,6 +2089,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
         type: What to search for - "packages", "options", or "programs"
         limit: Maximum number of results to return (default: 20)
         channel: NixOS channel to search (default: "unstable", can also be "24.11")
+        context: Optional context object for dependency injection in tests
 
     Returns:
         Results formatted as tex
@@ -2099,8 +2100,12 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
     if type.lower() not in valid_types:
         return f"Error: Invalid type. Must be one of: {', '.join(valid_types)}"
 
+    # Use provided context or fallback to global context
+    if context is None:
+        context = nixos_context
+    
     # Set the channel for the search
-    nixos_context.es_client.set_channel(channel)
+    context.es_client.set_channel(channel)
     logger.info(f"Using channel: {channel}")
 
     try:
@@ -2115,7 +2120,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
             query = wildcard_query
 
         if type.lower() == "packages":
-            results = nixos_context.search_packages(query, limit)
+            results = context.search_packages(query, limit)
             packages = results.get("packages", [])
 
             if not packages:
@@ -2142,7 +2147,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
                 service_name = service_parts[1] if len(service_parts) > 1 else ""
                 logger.info(f"Detected services module path, service name: {service_name}")
 
-            results = nixos_context.search_options(query, limit)
+            results = context.search_options(query, limit)
             options = results.get("options", [])
 
             if not options:
@@ -2190,7 +2195,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
             return output
 
         else:  # programs
-            results = nixos_context.search_programs(query, limit)
+            results = context.search_programs(query, limit)
             packages = results.get("packages", [])
 
             if not packages:
@@ -2219,7 +2224,7 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
 
 
 @mcp.tool()
-def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> str:
+def nixos_info(name: str, type: str = "package", channel: str = "unstable", context=None) -> str:
     """
     Get detailed information about a NixOS package or option.
 
@@ -2227,6 +2232,7 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
         name: The name of the package or option
         type: Either "package" or "option"
         channel: NixOS channel to search (default: "unstable", can also be "24.11")
+        context: Optional context object for dependency injection in tests
 
     Returns:
         Detailed information formatted as tex
@@ -2236,13 +2242,17 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
     if type.lower() not in ["package", "option"]:
         return "Error: 'type' must be 'package' or 'option'"
 
+    # Use provided context or fallback to global context
+    if context is None:
+        context = nixos_context
+    
     # Set the channel for the search
-    nixos_context.es_client.set_channel(channel)
+    context.es_client.set_channel(channel)
     logger.info(f"Using channel: {channel}")
 
     try:
         if type.lower() == "package":
-            info = nixos_context.get_package(name)
+            info = context.get_package(name)
 
             if not info.get("found", False):
                 return f"Package '{name}' not found."
@@ -2272,7 +2282,7 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
             return output
 
         else:  # option
-            info = nixos_context.get_option(name)
+            info = context.get_option(name)
 
             if not info.get("found", False):
                 if info.get("is_service_path", False):
@@ -2377,17 +2387,24 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable") -> s
 
 
 @mcp.tool()
-def nixos_stats() -> str:
+def nixos_stats(context=None) -> str:
     """
     Get statistics about available NixOS packages.
 
+    Args:
+        context: Optional context object for dependency injection in tests
+        
     Returns:
         Statistics about NixOS packages
     """
     logger.info("Getting package statistics")
 
+    # Use provided context or fallback to global context
+    if context is None:
+        context = nixos_context
+
     try:
-        results = nixos_context.get_package_stats()
+        results = context.get_package_stats()
 
         if "error" in results:
             return f"Error getting statistics: {results['error']}"
@@ -2430,18 +2447,23 @@ def nixos_stats() -> str:
 
 
 @mcp.tool()
-def home_manager_search(query: str, limit: int = 20) -> str:
+def home_manager_search(query: str, limit: int = 20, context=None) -> str:
     """
     Search for Home Manager options.
 
     Args:
         query: The search term
         limit: Maximum number of results to return (default: 20)
+        context: Optional context object for dependency injection in tests
 
     Returns:
         Results formatted as tex
     """
     logger.info(f"Searching for Home Manager options with query '{query}'")
+
+    # Use provided context or fallback to global context
+    if context is None:
+        context = home_manager_context
 
     try:
         # Add wildcards if not present and not a special query
@@ -2450,7 +2472,7 @@ def home_manager_search(query: str, limit: int = 20) -> str:
             logger.info(f"Adding wildcards to query: {wildcard_query}")
             query = wildcard_query
 
-        results = home_manager_context.search_options(query, limit)
+        results = context.search_options(query, limit)
         options = results.get("options", [])
 
         if not options:
@@ -2504,20 +2526,25 @@ def home_manager_search(query: str, limit: int = 20) -> str:
 
 
 @mcp.tool()
-def home_manager_info(name: str) -> str:
+def home_manager_info(name: str, context=None) -> str:
     """
     Get detailed information about a Home Manager option.
 
     Args:
         name: The name of the option
+        context: Optional context object for dependency injection in tests
 
     Returns:
         Detailed information formatted as tex
     """
     logger.info(f"Getting Home Manager option information for: {name}")
 
+    # Use provided context or fallback to global context
+    if context is None:
+        context = home_manager_context
+
     try:
-        info = home_manager_context.get_option(name)
+        info = context.get_option(name)
 
         if not info.get("found", False):
             output = f"# Option '{name}' not found\n\n"
@@ -2625,17 +2652,24 @@ def home_manager_info(name: str) -> str:
 
 
 @mcp.tool()
-def home_manager_stats() -> str:
+def home_manager_stats(context=None) -> str:
     """
     Get statistics about Home Manager options.
+
+    Args:
+        context: Optional context object for dependency injection in tests
 
     Returns:
         Statistics about Home Manager options
     """
     logger.info("Getting Home Manager option statistics")
 
+    # Use provided context or fallback to global context
+    if context is None:
+        context = home_manager_context
+
     try:
-        stats = home_manager_context.get_stats()
+        stats = context.get_stats()
 
         if "error" in stats:
             return f"Error getting statistics: {stats['error']}"

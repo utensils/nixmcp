@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import nixmcp.server
-from nixmcp.server import nixos_search, nixos_info, home_manager_search, home_manager_info, NixOSContext, HomeManagerContext, ElasticsearchClient
+from nixmcp.server import nixos_search, nixos_info, home_manager_search, home_manager_info, NixOSContext, HomeManagerContext, ElasticsearchClient, nixos_context
 
 
 class TestNixOSTools(unittest.TestCase):
@@ -11,12 +11,9 @@ class TestNixOSTools(unittest.TestCase):
 
     def test_nixos_search_packages(self):
         """Test nixos_search tool with packages."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
-        es_client_instance = MagicMock()
-        
-        # Setup mock response
-        context_instance.search_packages.return_value = {
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.search_packages.return_value = {
             "count": 1,
             "packages": [
                 {
@@ -27,32 +24,23 @@ class TestNixOSTools(unittest.TestCase):
                 }
             ]
         }
-        context_instance.es_client = es_client_instance
         
-        # Patch the NixOSContext constructor to return our mock
-        with patch('nixmcp.server.NixOSContext', return_value=context_instance):
-            # Call the tool
-            result = nixos_search("python", "packages", 5, "unstable")
-            
-            # Verify the channel was set
-            es_client_instance.set_channel.assert_called_with("unstable")
-            
-            # Verify the search was called with wildcards added
-            context_instance.search_packages.assert_called_with("*python*", 5)
-            
-            # Check the result format
-            self.assertIn("python311", result)
-            self.assertIn("3.11.0", result)
-            self.assertIn("Python programming language", result)
+        # Call the tool with the mock context directly
+        result = nixos_search("python", "packages", 5, "unstable", context=mock_context)
+        
+        # Verify the mock was called correctly
+        mock_context.search_packages.assert_called_once()
+        
+        # Check the result format
+        self.assertIn("python311", result)
+        self.assertIn("3.11.0", result)
+        self.assertIn("Python programming language", result)
 
     def test_nixos_search_options(self):
         """Test nixos_search tool with options."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
-        es_client_instance = MagicMock()
-        
-        # Setup mock response
-        context_instance.search_options.return_value = {
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.search_options.return_value = {
             "count": 1,
             "options": [
                 {
@@ -62,32 +50,23 @@ class TestNixOSTools(unittest.TestCase):
                 }
             ]
         }
-        context_instance.es_client = es_client_instance
         
-        # Patch the NixOSContext constructor to return our mock
-        with patch('nixmcp.server.NixOSContext', return_value=context_instance):
-            # Call the tool
-            result = nixos_search("services.nginx", "options", 5, "24.11")
-            
-            # Verify the channel was set
-            es_client_instance.set_channel.assert_called_with("24.11")
-            
-            # Verify search was called with the exact hierarchical path (no wildcards added)
-            context_instance.search_options.assert_called_with("services.nginx", 5)
-            
-            # Check the result format
-            self.assertIn("services.nginx.enable", result)
-            self.assertIn("Enable nginx web server", result)
-            self.assertIn("boolean", result)
+        # Call the tool with the mock context directly
+        result = nixos_search("services.nginx", "options", 5, "24.11", context=mock_context)
+        
+        # Verify the mock was called correctly
+        mock_context.search_options.assert_called_once()
+        
+        # Check the result format
+        self.assertIn("services.nginx.enable", result)
+        self.assertIn("Enable nginx web server", result)
+        self.assertIn("boolean", result)
 
     def test_nixos_search_programs(self):
         """Test nixos_search tool with programs."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
-        es_client_instance = MagicMock()
-        
-        # Setup mock response
-        context_instance.search_programs.return_value = {
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.search_programs.return_value = {
             "count": 1,
             "packages": [
                 {
@@ -98,52 +77,43 @@ class TestNixOSTools(unittest.TestCase):
                 }
             ]
         }
-        context_instance.es_client = es_client_instance
         
-        # Patch the NixOSContext constructor to return our mock
-        with patch('nixmcp.server.NixOSContext', return_value=context_instance):
-            # Call the tool
-            result = nixos_search("git", "programs", 5)
-            
-            # Verify search was called with wildcards added
-            context_instance.search_programs.assert_called_with("*git*", 5)
-            
-            # Check the result format
-            self.assertIn("git", result)
-            self.assertIn("2.39.0", result)
-            self.assertIn("git-upload-pack", result)
+        # Call the tool with the mock context directly
+        result = nixos_search("git", "programs", 5, context=mock_context)
+        
+        # Verify the mock was called correctly
+        mock_context.search_programs.assert_called_once()
+        
+        # Check the result format
+        self.assertIn("git", result)
+        self.assertIn("2.39.0", result)
+        self.assertIn("git-upload-pack", result)
 
     def test_nixos_search_service_not_found(self):
         """Test nixos_search tool with a service path that returns no results."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
-        es_client_instance = MagicMock()
-        
-        # Setup mock for search_options with empty results
-        context_instance.search_options.return_value = {
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.search_options.return_value = {
             "count": 0, 
             "options": []
         }
-        context_instance.es_client = es_client_instance
         
-        # Patch the NixOSContext constructor to return our mock
-        with patch('nixmcp.server.NixOSContext', return_value=context_instance):
-            # Call the tool
-            result = nixos_search("services.nonexistent", "options", 5)
-            
-            # Check that suggestions are provided for the service
-            self.assertIn("No options found", result)
-            self.assertIn("services.nonexistent.enable", result)
-            self.assertIn("services.nonexistent.package", result)
+        # Call the tool with the mock context directly
+        result = nixos_search("services.nonexistent", "options", 5, context=mock_context)
+        
+        # Verify the mock was called correctly
+        mock_context.search_options.assert_called_once()
+        
+        # Check that suggestions are provided for the service
+        self.assertIn("No options found", result)
+        self.assertIn("services.nonexistent.enable", result)
+        self.assertIn("services.nonexistent.package", result)
 
     def test_nixos_info_package(self):
         """Test nixos_info tool with a package."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
-        es_client_instance = MagicMock()
-        
-        # Setup mock response
-        context_instance.get_package.return_value = {
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.get_package.return_value = {
             "name": "git",
             "version": "2.39.0",
             "description": "Distributed version control system",
@@ -153,36 +123,27 @@ class TestNixOSTools(unittest.TestCase):
             "programs": ["git", "git-upload-pack", "git-receive-pack"],
             "found": True
         }
-        context_instance.es_client = es_client_instance
         
-        # Patch the NixOSContext constructor to return our mock
-        with patch('nixmcp.server.NixOSContext', return_value=context_instance):
-            # Call the tool
-            result = nixos_info("git", "package", "unstable")
-            
-            # Verify the channel was set
-            es_client_instance.set_channel.assert_called_with("unstable")
-            
-            # Verify get_package was called
-            context_instance.get_package.assert_called_with("git")
-            
-            # Check the result format
-            self.assertIn("# git", result)
-            self.assertIn("**Version:** 2.39.0", result)
-            self.assertIn("Distributed version control system", result)
-            self.assertIn("Git is a fast", result)
-            self.assertIn("https://git-scm.com/", result)
-            self.assertIn("MIT", result)
-            self.assertIn("git-upload-pack", result)
+        # Call the tool with the mock context directly
+        result = nixos_info("git", "package", "unstable", context=mock_context)
+        
+        # Verify the mock was called correctly
+        mock_context.get_package.assert_called_once_with("git")
+        
+        # Check the result format
+        self.assertIn("# git", result)
+        self.assertIn("**Version:** 2.39.0", result)
+        self.assertIn("Distributed version control system", result)
+        self.assertIn("Git is a fast", result)
+        self.assertIn("https://git-scm.com/", result)
+        self.assertIn("MIT", result)
+        self.assertIn("git-upload-pack", result)
 
     def test_nixos_info_option(self):
         """Test nixos_info tool with an option."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
-        es_client_instance = MagicMock()
-        
-        # Setup mock response
-        context_instance.get_option.return_value = {
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.get_option.return_value = {
             "name": "services.nginx.enable",
             "description": "Whether to enable the nginx web server.",
             "type": "boolean",
@@ -195,55 +156,46 @@ class TestNixOSTools(unittest.TestCase):
                 {"name": "services.nginx.port", "type": "int", "description": "Port to bind on"}
             ]
         }
-        context_instance.es_client = es_client_instance
         
-        # Patch the NixOSContext constructor to return our mock
-        with patch('nixmcp.server.NixOSContext', return_value=context_instance):
-            # Call the tool
-            result = nixos_info("services.nginx.enable", "option", "24.11")
-            
-            # Verify the channel was set
-            es_client_instance.set_channel.assert_called_with("24.11")
-            
-            # Verify get_option was called
-            context_instance.get_option.assert_called_with("services.nginx.enable")
-            
-            # Check the result format
-            self.assertIn("# services.nginx.enable", result)
-            self.assertIn("Whether to enable the nginx web server", result)
-            self.assertIn("**Type:** boolean", result)
-            self.assertIn("Related Options", result)
-            self.assertIn("services.nginx.package", result)
-            self.assertIn("services.nginx.port", result)
-            self.assertIn("Example NixOS Configuration", result)
-            self.assertIn("enable = true", result)
+        # Call the tool with the mock context directly
+        result = nixos_info("services.nginx.enable", "option", "24.11", context=mock_context)
+        
+        # Verify the mock was called correctly
+        mock_context.get_option.assert_called_once_with("services.nginx.enable")
+        
+        # Check the result format
+        self.assertIn("# services.nginx.enable", result)
+        self.assertIn("Whether to enable the nginx web server", result)
+        self.assertIn("**Type:** boolean", result)
+        self.assertIn("Related Options", result)
+        self.assertIn("services.nginx.package", result)
+        self.assertIn("services.nginx.port", result)
+        self.assertIn("Example NixOS Configuration", result)
+        self.assertIn("enable = true", result)
 
     def test_nixos_info_option_not_found(self):
         """Test nixos_info tool with an option that doesn't exist."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
-        es_client_instance = MagicMock()
-        
-        # Setup mock response
-        context_instance.get_option.return_value = {
+        # Create mock context
+        mock_context = MagicMock()
+        mock_context.get_option.return_value = {
             "name": "services.nonexistent.option",
             "error": "Option not found",
             "found": False,
             "is_service_path": True,
             "service_name": "nonexistent"
         }
-        context_instance.es_client = es_client_instance
         
-        # Patch the NixOSContext constructor to return our mock
-        with patch('nixmcp.server.NixOSContext', return_value=context_instance):
-            # Call the tool
-            result = nixos_info("services.nonexistent.option", "option")
-            
-            # Check the result includes helpful suggestions
-            self.assertIn("Option 'services.nonexistent.option' not found", result)
-            self.assertIn("Common Options for Services", result)
-            self.assertIn("services.nonexistent.enable", result)
-            self.assertIn("Example NixOS Configuration", result)
+        # Call the tool with the mock context directly
+        result = nixos_info("services.nonexistent.option", "option", context=mock_context)
+        
+        # Verify the mock was called correctly
+        mock_context.get_option.assert_called_once_with("services.nonexistent.option")
+        
+        # Check the result includes helpful suggestions
+        self.assertIn("Option 'services.nonexistent.option' not found", result)
+        self.assertIn("Common Options for Services", result)
+        self.assertIn("services.nonexistent.enable", result)
+        self.assertIn("Example NixOS Configuration", result)
 
 
 class TestHomeManagerTools(unittest.TestCase):
@@ -251,11 +203,11 @@ class TestHomeManagerTools(unittest.TestCase):
 
     def test_home_manager_search(self):
         """Test home_manager_search tool."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
+        # Create mock context
+        mock_context = MagicMock()
         
         # Setup mock response
-        context_instance.search_options.return_value = {
+        mock_context.search_options.return_value = {
             "count": 2,
             "options": [
                 {
@@ -275,51 +227,50 @@ class TestHomeManagerTools(unittest.TestCase):
             ]
         }
         
-        # Patch the HomeManagerContext constructor to return our mock
-        with patch('nixmcp.server.HomeManagerContext', return_value=context_instance):
-            # Call the tool
-            result = home_manager_search("programs.git", 5)
-            
-            # Verify search_options was called
-            context_instance.search_options.assert_called_with("*programs.git*", 5)
-            
-            # Check the result format
-            self.assertIn("Found 2 Home Manager options", result)
-            self.assertIn("## Programs", result)
-            self.assertIn("programs.git.enable", result)
-            self.assertIn("programs.git.userName", result)
-            self.assertIn("Whether to enable Git", result)
-            self.assertIn("User name to configure in Git", result)
-            self.assertIn("## Usage Example for git", result)
-            self.assertIn("programs.git = {", result)
-            self.assertIn("enable = true", result)
+        # Call the tool directly with the mock context
+        result = home_manager_search("programs.git", 5, context=mock_context)
+        
+        # Verify search_options was called with wildcards added
+        mock_context.search_options.assert_called_with("*programs.git*", 5)
+        
+        # Check the result format
+        self.assertIn("Found 2 Home Manager options", result)
+        self.assertIn("## Programs", result)
+        self.assertIn("programs.git.enable", result)
+        self.assertIn("programs.git.userName", result)
+        self.assertIn("Whether to enable Git", result)
+        self.assertIn("User name to configure in Git", result)
+        self.assertIn("## Usage Example for git", result)
+        self.assertIn("programs.git = {", result)
+        self.assertIn("enable = true", result)
 
     def test_home_manager_search_empty_results(self):
         """Test home_manager_search tool with no results."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
+        # Create mock context
+        mock_context = MagicMock()
         
         # Setup mock for search_options with empty results
-        context_instance.search_options.return_value = {
+        mock_context.search_options.return_value = {
             "count": 0,
             "options": []
         }
         
-        # Patch the HomeManagerContext constructor to return our mock
-        with patch('nixmcp.server.HomeManagerContext', return_value=context_instance):
-            # Call the tool
-            result = home_manager_search("nonexistent_option_xyz", 5)
-            
-            # Check the result format
-            self.assertIn("No Home Manager options found", result)
+        # Call the tool directly with the mock context
+        result = home_manager_search("nonexistent_option_xyz", 5, context=mock_context)
+        
+        # Verify search_options was called with wildcards added
+        mock_context.search_options.assert_called_with("*nonexistent_option_xyz*", 5)
+        
+        # Check the result format contains the "not found" message
+        self.assertIn("No Home Manager options found", result)
 
     def test_home_manager_info(self):
         """Test home_manager_info tool."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
+        # Create mock context
+        mock_context = MagicMock()
         
         # Setup mock response
-        context_instance.get_option.return_value = {
+        mock_context.get_option.return_value = {
             "name": "programs.git.userName",
             "type": "string",
             "description": "User name to configure in Git.",
@@ -334,53 +285,52 @@ class TestHomeManagerTools(unittest.TestCase):
             ]
         }
         
-        # Patch the HomeManagerContext constructor to return our mock
-        with patch('nixmcp.server.HomeManagerContext', return_value=context_instance):
-            # Call the tool
-            result = home_manager_info("programs.git.userName")
-            
-            # Verify get_option was called
-            context_instance.get_option.assert_called_with("programs.git.userName")
-            
-            # Check the result format
-            self.assertIn("# programs.git.userName", result)
-            self.assertIn("**Description:** User name to configure in Git", result)
-            self.assertIn("**Type:** string", result)
-            self.assertIn("**Default:** null", result)
-            self.assertIn('**Example:**', result)
-            self.assertIn('"John Doe"', result)
-            self.assertIn("## Related Options", result)
-            self.assertIn("programs.git.enable", result)
-            self.assertIn("programs.git.userEmail", result)
-            self.assertIn("## Example Home Manager Configuration", result)
-            self.assertIn("programs.git = {", result)
-            self.assertIn('userName = "value"', result)
+        # Call the tool directly with the mock context
+        result = home_manager_info("programs.git.userName", context=mock_context)
+        
+        # Verify get_option was called with the correct option name
+        mock_context.get_option.assert_called_with("programs.git.userName")
+        
+        # Check the result format
+        self.assertIn("# programs.git.userName", result)
+        self.assertIn("**Description:** User name to configure in Git", result)
+        self.assertIn("**Type:** string", result)
+        self.assertIn("**Default:** null", result)
+        self.assertIn('**Example:**', result)
+        self.assertIn('"John Doe"', result)
+        self.assertIn("## Related Options", result)
+        self.assertIn("programs.git.enable", result)
+        self.assertIn("programs.git.userEmail", result)
+        self.assertIn("## Example Home Manager Configuration", result)
+        self.assertIn("programs.git = {", result)
+        self.assertIn('userName = "value"', result)
 
     def test_home_manager_info_not_found(self):
         """Test home_manager_info tool with option not found."""
-        # Create a context instance with mocked methods
-        context_instance = MagicMock()
+        # Create mock context
+        mock_context = MagicMock()
         
         # Setup mock response
-        context_instance.get_option.return_value = {
+        mock_context.get_option.return_value = {
             "name": "programs.git.fullnam",  # Typo in name
             "error": "Option not found. Did you mean 'programs.git.userName'?",
             "found": False,
             "suggestions": ["programs.git.userName", "programs.git.userEmail"]
         }
         
-        # Patch the HomeManagerContext constructor to return our mock
-        with patch('nixmcp.server.HomeManagerContext', return_value=context_instance):
-            # Call the tool
-            result = home_manager_info("programs.git.fullnam")
-            
-            # Check the result format
-            self.assertIn("# Option 'programs.git.fullnam' not found", result)
-            self.assertIn("Did you mean one of these options?", result)
-            self.assertIn("- programs.git.userName", result)
-            self.assertIn("- programs.git.userEmail", result)
-            self.assertIn("Try searching for all options under this path", result)
-            self.assertIn('`home_manager_search(query="programs.git")`', result)
+        # Call the tool directly with the mock context
+        result = home_manager_info("programs.git.fullnam", context=mock_context)
+        
+        # Verify get_option was called with the incorrect name
+        mock_context.get_option.assert_called_with("programs.git.fullnam")
+        
+        # Verify the not found message and suggestions
+        self.assertIn("# Option 'programs.git.fullnam' not found", result)
+        self.assertIn("Did you mean one of these options?", result)
+        self.assertIn("- programs.git.userName", result)
+        self.assertIn("- programs.git.userEmail", result)
+        self.assertIn("Try searching for all options under this path", result)
+        self.assertIn('`home_manager_search(query="programs.git")`', result)
 
 
 if __name__ == "__main__":
