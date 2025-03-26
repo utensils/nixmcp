@@ -76,6 +76,16 @@ home_manager_context = HomeManagerContext()
 async def app_lifespan(mcp_server: FastMCP):
     logger.info("Initializing NixMCP server")
 
+    # Eagerly load Home Manager data during server startup
+    # instead of waiting for background loading
+    logger.info("Eagerly loading Home Manager data...")
+    try:
+        home_manager_context.ensure_loaded()
+        logger.info("Home Manager data successfully loaded at startup")
+    except Exception as e:
+        logger.warning(f"Failed to eagerly load Home Manager data: {str(e)}")
+        logger.info("Falling back to background loading mechanism")
+
     # Add prompt to guide assistants on using the MCP tools
     mcp_server.prompt = """
     # NixOS and Home Manager MCP Guide

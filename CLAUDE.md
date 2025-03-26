@@ -67,7 +67,9 @@ The codebase follows a modular architecture:
 
 ### Context Management
 - Use lifespan context manager for resource initialization
-- Initialize shared resources at startup and clean up on shutdown
+- Initialize shared resources at startup and clean up on shutdown:
+  - Home Manager data is eagerly loaded during server startup
+  - 10-second timeout with fallback to background loading for resilience
 - Pass contexts to resources and tools that need them
 - Prefer dependency injection over global state access
 
@@ -160,7 +162,10 @@ Both tools above support the `channel` parameter with values:
   - Provides fallback mechanisms and error handling
   - Tracks detailed cache statistics for monitoring
 - Options are indexed in memory with specialized search indices
-- Background loading avoids blocking server startup
+- Eager loading during server startup ensures data is immediately available:
+  - 10-second timeout prevents hanging if there are loading issues
+  - Falls back to background loading if eager loading fails
+  - Maintains resilience with background loading as a safety net
 - Related options are automatically suggested based on hierarchical paths
 
 ## Configuration

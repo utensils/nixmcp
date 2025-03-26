@@ -22,7 +22,18 @@ class HomeManagerContext:
         logger.info("HomeManagerContext initialized")
 
         # Start loading the data in the background
+        # This serves as a fallback in case eager loading fails
         self.hm_client.load_in_background()
+
+    def ensure_loaded(self):
+        """Ensure that data is loaded and available.
+
+        This method can be called to eagerly load data during server initialization
+        instead of relying on the background loading mechanism.
+        """
+        logger.info("Ensuring Home Manager data is loaded...")
+        self.hm_client.ensure_loaded()
+        logger.info("Home Manager data is now loaded and available")
 
     def get_status(self) -> Dict[str, Any]:
         """Get the status of the Home Manager context."""

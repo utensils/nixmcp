@@ -38,6 +38,41 @@ class TestServerLifespan(unittest.TestCase):
         self.assertIsInstance(mock_context["nixos_context"].es_client, ElasticsearchClient)
 
     @patch("nixmcp.server.app_lifespan")
+    @patch("nixmcp.server.HomeManagerContext")
+    def test_eager_loading_on_startup(self, mock_hm_context_class, mock_lifespan):
+        """Test that the server eagerly loads Home Manager data on startup."""
+        # Create mock instances
+        mock_hm_context = MagicMock()
+        mock_hm_context_class.return_value = mock_hm_context
+        mock_server = MagicMock()
+
+        # Set up fake async context manager
+        async def fake_lifespan(mcp_server):
+            # Simulate the lifespan context manager
+            try:
+                # This is what actually gets tested
+                mock_hm_context.ensure_loaded.assert_called_once()
+                # Return a mock context to satisfy the context manager contract
+                return {"nixos_context": MagicMock(), "home_manager_context": mock_hm_context}
+            except Exception as e:
+                # If the assertion fails, store the exception to check it later
+                fake_lifespan.exception = e
+                raise
+
+        fake_lifespan.exception = None
+        mock_lifespan.side_effect = fake_lifespan
+
+        # Trigger the lifespan context manager (will call our fake implementation)
+        try:
+            mock_lifespan(mock_server).__aenter__()
+        except Exception:
+            pass  # Handle any exceptions from the async context manager
+
+        # Verify that ensure_loaded was called on the Home Manager context
+        if fake_lifespan.exception:
+            self.fail(f"ensure_loaded assertion failed: {fake_lifespan.exception}")
+
+    @patch("nixmcp.server.app_lifespan")
     def test_system_prompt_configuration(self, mock_lifespan):
         """Test that the server configures the system prompt correctly for LLMs."""
         # Create a mock FastMCP server

@@ -507,6 +507,14 @@ class TestHomeManagerContext(unittest.TestCase):
         """Clean up after the test."""
         self.client_patcher.stop()
 
+    def test_ensure_loaded(self):
+        """Test the eager loading functionality."""
+        # Call ensure_loaded
+        self.context.ensure_loaded()
+
+        # Verify the client's ensure_loaded was called
+        self.mock_client.ensure_loaded.assert_called_once()
+
     def test_get_status(self):
         """Test getting status."""
         # Configure the mock
