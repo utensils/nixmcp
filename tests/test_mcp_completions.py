@@ -46,7 +46,7 @@ async def test_mcp_completion_method():
         mock_handle.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         # Register the completion method handler
-        @mcp.tool("completion_complete")
+        @mcp.tool("completion/complete")
         async def mcp_handle_completion(params: dict) -> dict:
             """Handle MCP completion requests."""
             # Pass the request to the mocked completion handler using the predefined mocks
@@ -59,7 +59,7 @@ async def test_mcp_completion_method():
         }
 
         # Call the method handler directly
-        result = await mcp.methods["completion_complete"](params)
+        result = await mcp.methods["completion/complete"](params)
 
         # Verify handle_completion was called with correct parameters (use the same mock objects)
         mock_handle.assert_called_once_with(params, mock_nixos_context, mock_home_manager_context)

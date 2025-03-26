@@ -337,8 +337,8 @@ register_nixos_tools(mcp)
 register_home_manager_tools(mcp)
 
 
-# Register completion method
-@mcp.tool("completion_complete")
+# Register completion method - must use tool decorator, not method
+@mcp.tool("completion/complete")
 async def mcp_handle_completion(params: dict) -> dict:
     """Handle MCP completion requests."""
     logger.info("Received completion request")
