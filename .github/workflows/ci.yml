@@ -94,10 +94,6 @@ jobs:
         run: |
           # Use nix develop to set up environment and run tests
           nix develop --command setup
-          
-          # Explicitly install beautifulsoup4 to fix CI issue
-          nix develop --command bash -c "source .venv/bin/activate && pip install beautifulsoup4"
-          
           nix develop --command run-tests
           
       - name: Upload coverage reports to Codecov

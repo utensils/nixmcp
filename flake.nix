@@ -219,7 +219,21 @@
                   # Install the package in development mode if needed
                   if ! python -c "import nixmcp" &>/dev/null; then
                     echo "Installing nixmcp in development mode..."
-                    pip install -e .
+                    if command -v uv >/dev/null 2>&1; then
+                      uv pip install -e .
+                    else
+                      pip install -e .
+                    fi
+                  fi
+                  
+                  # Ensure all required dependencies are installed
+                  if ! python -c "import bs4" &>/dev/null; then
+                    echo "Installing BeautifulSoup and other package dependencies..."
+                    if command -v uv >/dev/null 2>&1; then
+                      uv pip install beautifulsoup4
+                    else
+                      pip install beautifulsoup4
+                    fi
                   fi
                   
                   # Run pytest with proper configuration
