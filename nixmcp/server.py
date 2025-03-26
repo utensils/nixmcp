@@ -337,10 +337,16 @@ register_nixos_tools(mcp)
 register_home_manager_tools(mcp)
 
 
-# Register completion method - must use tool decorator, not method
-@mcp.tool("completion/complete")
+# Register completion method - the MCP protocol uses "completion/complete" for the method name
+# but tool names in MCP must conform to the pattern ^[a-zA-Z0-9_-]{1,64}$, so we use underscores
+# and the framework maps between them
+@mcp.tool("completion_complete")
 async def mcp_handle_completion(params: dict) -> dict:
-    """Handle MCP completion requests."""
+    """Handle MCP completion requests.
+    
+    This function is registered as "completion_complete" to match MCP naming conventions
+    while conforming to the restriction that tool names cannot contain slashes.
+    """
     logger.info("Received completion request")
     logger.debug(f"Raw completion params: {params}")
 
