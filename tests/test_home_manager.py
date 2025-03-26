@@ -5,7 +5,7 @@ import time
 import threading
 
 # Import the server module
-from server import HomeManagerClient, HomeManagerContext
+from nixmcp.server import HomeManagerClient, HomeManagerContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -35,35 +35,44 @@ class TestHomeManagerClient(unittest.TestCase):
         self.mock_requests_get = self.requests_get_patcher.start()
         
         # Set up a mock response for HTML content
+        # Use the actual variablelist/dl/dt/dd structure from Home Manager docs
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = """
         <html>
             <body>
-                <h3>Test Category</h3>
-                <table class="option-table">
-                    <tr>
-                        <th>Option</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                        <th>Default</th>
-                        <th>Example</th>
-                    </tr>
-                    <tr>
-                        <td>programs.git.enable</td>
-                        <td>boolean</td>
-                        <td>Whether to enable Git.</td>
-                        <td>false</td>
-                        <td>true</td>
-                    </tr>
-                    <tr>
-                        <td>programs.git.userName</td>
-                        <td>string</td>
-                        <td>Your Git username.</td>
-                        <td>null</td>
-                        <td>"John Doe"</td>
-                    </tr>
-                </table>
+                <div class="variablelist">
+                    <dl class="variablelist">
+                        <dt>
+                            <span class="term">
+                                <a id="opt-programs.git.enable"></a>
+                                <a class="term" href="options.xhtml#opt-programs.git.enable">
+                                    <code class="option">programs.git.enable</code>
+                                </a>
+                            </span>
+                        </dt>
+                        <dd>
+                            <p>Whether to enable Git.</p>
+                            <p><span class="emphasis"><em>Type:</em></span> boolean</p>
+                            <p><span class="emphasis"><em>Default:</em></span> false</p>
+                            <p><span class="emphasis"><em>Example:</em></span> true</p>
+                        </dd>
+                        <dt>
+                            <span class="term">
+                                <a id="opt-programs.git.userName"></a>
+                                <a class="term" href="options.xhtml#opt-programs.git.userName">
+                                    <code class="option">programs.git.userName</code>
+                                </a>
+                            </span>
+                        </dt>
+                        <dd>
+                            <p>Your Git username.</p>
+                            <p><span class="emphasis"><em>Type:</em></span> string</p>
+                            <p><span class="emphasis"><em>Default:</em></span> null</p>
+                            <p><span class="emphasis"><em>Example:</em></span> "John Doe"</p>
+                        </dd>
+                    </dl>
+                </div>
             </body>
         </html>
         """
@@ -95,7 +104,7 @@ class TestHomeManagerClient(unittest.TestCase):
         
         # Verify the content was returned
         self.assertIsNotNone(content)
-        self.assertIn("<table class=\"option-table\">", content)
+        self.assertIn("<div class=\"variablelist\">", content)
     
     def test_parse_html(self):
         """Test parsing HTML content."""
@@ -113,7 +122,7 @@ class TestHomeManagerClient(unittest.TestCase):
         self.assertEqual(option1["description"], "Whether to enable Git.")
         self.assertEqual(option1["default"], "false")
         self.assertEqual(option1["example"], "true")
-        self.assertEqual(option1["category"], "Test Category")
+        self.assertEqual(option1["category"], "Uncategorized") # No h3 heading in our mock HTML
         self.assertEqual(option1["source"], "test")
         
         # Check the second option
@@ -232,6 +241,99 @@ class TestHomeManagerClient(unittest.TestCase):
         self.assertEqual(results["count"], 2)
         self.assertEqual(len(results["options"]), 2)
     
+    def test_hierarchical_path_searching(self):
+        """Test searching for options with hierarchical paths."""
+        # Create sample options with hierarchical paths
+        options = [
+            # Git options
+            {
+                "name": "programs.git.enable",
+                "type": "boolean",
+                "description": "Whether to enable Git.",
+                "category": "Version Control"
+            },
+            {
+                "name": "programs.git.userName",
+                "type": "string",
+                "description": "Your Git username.",
+                "category": "Version Control"
+            },
+            {
+                "name": "programs.git.userEmail",
+                "type": "string",
+                "description": "Your Git email.",
+                "category": "Version Control"
+            },
+            {
+                "name": "programs.git.signing.key",
+                "type": "string",
+                "description": "GPG key to use for signing commits.",
+                "category": "Version Control"
+            },
+            {
+                "name": "programs.git.signing.signByDefault",
+                "type": "boolean",
+                "description": "Whether to sign commits by default.",
+                "category": "Version Control"
+            },
+            # Firefox options
+            {
+                "name": "programs.firefox.enable",
+                "type": "boolean",
+                "description": "Whether to enable Firefox.",
+                "category": "Web Browsers"
+            },
+            {
+                "name": "programs.firefox.package",
+                "type": "package",
+                "description": "Firefox package to use.",
+                "category": "Web Browsers"
+            },
+            {
+                "name": "programs.firefox.profiles.default.id",
+                "type": "string",
+                "description": "Firefox default profile ID.",
+                "category": "Web Browsers"
+            },
+            {
+                "name": "programs.firefox.profiles.default.settings",
+                "type": "attribute set",
+                "description": "Firefox default profile settings.",
+                "category": "Web Browsers"
+            }
+        ]
+        
+        # Build the indices
+        self.client.build_search_indices(options)
+        self.client.is_loaded = True
+        
+        # Test nested hierarchical path search
+        results = self.client.search_options("programs.git.signing")
+        
+        # Verify the results
+        self.assertEqual(results["count"], 2)
+        self.assertEqual(len(results["options"]), 2)
+        self.assertIn(results["options"][0]["name"], ["programs.git.signing.key", "programs.git.signing.signByDefault"])
+        self.assertIn(results["options"][1]["name"], ["programs.git.signing.key", "programs.git.signing.signByDefault"])
+        
+        # Test deep hierarchical path with wildcard
+        results = self.client.search_options("programs.firefox.profiles.*")
+        
+        # Verify the results
+        self.assertEqual(results["count"], 2)
+        self.assertEqual(len(results["options"]), 2)
+        self.assertIn(results["options"][0]["name"], ["programs.firefox.profiles.default.id", "programs.firefox.profiles.default.settings"])
+        self.assertIn(results["options"][1]["name"], ["programs.firefox.profiles.default.id", "programs.firefox.profiles.default.settings"])
+        
+        # Test specific nested path segment
+        results = self.client.search_options("programs.firefox.profiles.default")
+        
+        # Verify the results
+        self.assertEqual(results["count"], 2)
+        self.assertEqual(len(results["options"]), 2)
+        self.assertEqual(results["options"][0]["name"], "programs.firefox.profiles.default.id")
+        self.assertEqual(results["options"][1]["name"], "programs.firefox.profiles.default.settings")
+    
     def test_get_option(self):
         """Test getting a specific option."""
         # Create sample options
@@ -249,7 +351,7 @@ class TestHomeManagerClient(unittest.TestCase):
                 "type": "string",
                 "description": "Your Git username.",
                 "category": "Version Control",
-                "default": null,
+                "default": None,
                 "example": "\"John Doe\""
             }
         ]
@@ -343,7 +445,7 @@ class TestHomeManagerContext(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         # Create a mock for the HomeManagerClient
-        self.client_patcher = patch('server.HomeManagerClient')
+        self.client_patcher = patch('nixmcp.server.HomeManagerClient')
         self.MockClient = self.client_patcher.start()
         
         # Create a mock client instance
@@ -424,11 +526,11 @@ class TestHomeManagerTools(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         # Create a mock for the HomeManagerContext
-        self.context_patcher = patch('server.home_manager_context')
+        self.context_patcher = patch('nixmcp.server.home_manager_context')
         self.mock_context = self.context_patcher.start()
         
         # Import the tool functions
-        from server import home_manager_search, home_manager_info, home_manager_stats
+        from nixmcp.server import home_manager_search, home_manager_info, home_manager_stats
         self.search_tool = home_manager_search
         self.info_tool = home_manager_info
         self.stats_tool = home_manager_stats

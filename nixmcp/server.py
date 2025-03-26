@@ -238,70 +238,98 @@ class HomeManagerClient:
             logger.info(f"Parsing HTML content for {doc_type}")
             soup = BeautifulSoup(html, 'html.parser')
             
-            # The options are in a table with class 'option-table'
-            option_tables = soup.find_all('table', class_='option-table')
+            # Find the variablelist that contains the options
+            variablelist = soup.find(class_='variablelist')
             
-            if not option_tables:
-                logger.warning(f"No option tables found in {doc_type} HTML")
+            if not variablelist:
+                logger.warning(f"No variablelist found in {doc_type} HTML")
+                return []
+                
+            # Find the definition list that contains all the options
+            dl = variablelist.find('dl')
+            
+            if not dl:
+                logger.warning(f"No definition list found in {doc_type} HTML")
                 return []
             
-            for table in option_tables:
-                # Extract the category heading above the table
-                category_heading = table.find_previous('h3')
-                category = category_heading.text.strip() if category_heading else "Uncategorized"
+            # Get all dt (term) elements - these contain option names
+            dt_elements = dl.find_all('dt')
+            
+            if not dt_elements:
+                logger.warning(f"No option terms found in {doc_type} HTML")
+                return []
                 
-                # Parse each row in the table
-                rows = table.find_all('tr')
-                current_option = None
-                
-                for row in rows:
-                    # Headers have th elements
-                    if row.find('th'):
-                        continue
-                    
-                    # Get all td elements in the row
-                    cells = row.find_all('td')
-                    
-                    if len(cells) == 0:
+            # Process each term (dt) and its description (dd)
+            for dt in dt_elements:
+                try:
+                    # Find the term span that contains the option name
+                    term_span = dt.find('span', class_='term')
+                    if not term_span:
                         continue
                         
-                    # Format differences based on which document we're parsing
-                    if len(cells) >= 3:
-                        # Get the option name (first column)
-                        option_name_cell = cells[0]
-                        option_name = option_name_cell.get_text(strip=True)
+                    # Find the code element with the option name
+                    code = term_span.find('code')
+                    if not code:
+                        continue
+                    
+                    # Get the option name
+                    option_name = code.text.strip()
+                    
+                    # Find the associated description element
+                    dd = dt.find_next_sibling('dd')
+                    if not dd:
+                        continue
                         
-                        # Get option type (second column)
-                        option_type = cells[1].get_text(strip=True) if len(cells) > 1 else ""
+                    # Get paragraphs from the description
+                    p_elements = dd.find_all('p')
+                    
+                    # Extract description, type, default, and example
+                    description = ""
+                    option_type = ""
+                    default_value = None
+                    example_value = None
+                    
+                    # First paragraph is typically the description
+                    if p_elements and len(p_elements) > 0:
+                        description = p_elements[0].text.strip()
                         
-                        # Get option description (third column)
-                        description = cells[2].get_text(strip=True) if len(cells) > 2 else ""
+                    # Look for type info in subsequent paragraphs
+                    for p in p_elements[1:]:
+                        text = p.text.strip()
                         
-                        # Get default value if available (fourth column)
-                        default = cells[3].get_text(strip=True) if len(cells) > 3 else None
-                        
-                        # Get example if available (fifth column)
-                        example = cells[4].get_text(strip=True) if len(cells) > 4 else None
-                        
-                        # Create option record
-                        option = {
-                            "name": option_name,
-                            "type": option_type,
-                            "description": description,
-                            "default": default,
-                            "example": example,
-                            "category": category,
-                            "source": doc_type,
-                        }
-                        
-                        options.append(option)
-                        current_option = option
-                    else:
-                        # This row might be a continuation of a previous option's description
-                        if current_option:
-                            # Append text to the current option's description
-                            additional_text = " ".join([c.get_text(strip=True) for c in cells])
-                            current_option["description"] += " " + additional_text
+                        # Extract type
+                        if "Type:" in text:
+                            option_type = text.split("Type:")[1].strip()
+                            
+                        # Extract default value
+                        elif "Default:" in text:
+                            default_value = text.split("Default:")[1].strip()
+                            
+                        # Extract example
+                        elif "Example:" in text:
+                            example_value = text.split("Example:")[1].strip()
+                    
+                    # Determine the category
+                    # Use the previous heading or a default category
+                    category_heading = dt.find_previous('h3')
+                    category = category_heading.text.strip() if category_heading else "Uncategorized"
+                            
+                    # Create the option record
+                    option = {
+                        "name": option_name,
+                        "type": option_type,
+                        "description": description,
+                        "default": default_value,
+                        "example": example_value,
+                        "category": category,
+                        "source": doc_type,
+                    }
+                    
+                    options.append(option)
+                    
+                except Exception as e:
+                    logger.warning(f"Error parsing option in {doc_type}: {str(e)}")
+                    continue
             
             logger.info(f"Parsed {len(options)} options from {doc_type}")
             return options
