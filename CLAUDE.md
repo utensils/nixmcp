@@ -34,10 +34,10 @@ The codebase follows a modular architecture:
 - `nixmcp/__main__.py` - Entry point for direct execution
 - `nixmcp/cache/` - Caching components:
   - `simple_cache.py` - In-memory caching with TTL and size limits
-  - `html_cache.py` - Cross-platform filesystem caching for HTML content
+  - `html_cache.py` - Multi-format filesystem caching (HTML, JSON, binary data)
 - `nixmcp/clients/` - API clients:
   - `elasticsearch_client.py` - Client for NixOS Elasticsearch API
-  - `home_manager_client.py` - Client for parsing Home Manager docs
+  - `home_manager_client.py` - Client for parsing and caching Home Manager docs
   - `html_client.py` - HTTP client with filesystem caching
 - `nixmcp/contexts/` - Application contexts (NixOSContext, HomeManagerContext)
 - `nixmcp/resources/` - MCP resource definitions
@@ -156,16 +156,23 @@ Both tools above support the `channel` parameter with values:
 
 ### Home Manager Documentation (Home Manager features)
 - Fetches and parses HTML docs from nix-community.github.io/home-manager/
-- HTML content is cached to disk using a cross-platform filesystem cache:
+- Multi-level caching system for improved performance and resilience:
+  - HTML content cache to filesystem using cross-platform cache paths
+  - Processed in-memory data structures persisted to disk cache
+  - Option data serialized to both JSON and binary formats for complex structures
   - Uses OS-specific standard cache locations
   - Implements proper TTL expiration of cached content
-  - Provides fallback mechanisms and error handling
+  - Provides comprehensive fallback mechanisms and error handling
   - Tracks detailed cache statistics for monitoring
 - Options are indexed in memory with specialized search indices
-- Eager loading during server startup ensures data is immediately available:
+- Enhanced eager loading during server startup:
+  - First tries to load from serialized memory cache (fastest)
+  - If that fails, loads from HTML cache (medium speed)
+  - If both fail, fetches fresh HTML from web (slowest)
   - 10-second timeout prevents hanging if there are loading issues
-  - Falls back to background loading if eager loading fails
-  - Maintains resilience with background loading as a safety net
+  - Falls back to background loading if all methods fail
+  - Maintains resilience with multiple fallback mechanisms
+  - Supports force refresh to bypass cache when needed
 - Related options are automatically suggested based on hierarchical paths
 
 ## Configuration
@@ -179,6 +186,11 @@ Both tools above support the `channel` parameter with values:
 - Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
 - macOS: `~/Library/Caches/nixmcp/`
 - Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
+
+### Cache File Types
+- `*.html` - Raw HTML content from Home Manager documentation
+- `*.data.json` - Serialized structured data (options metadata, statistics)
+- `*.data.pickle` - Binary serialized complex data structures (search indices, default dictionaries, sets)
 
 ## Testing
 - Use pytest with code coverage reporting (target: 80%)

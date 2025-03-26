@@ -204,13 +204,23 @@ NIXMCP_CACHE_DIR=/path/to/dir # Optional: Custom directory for filesystem cache 
 NIXMCP_CACHE_TTL=86400        # Optional: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
 ```
 
-### Cache Directory Locations
+### Cache System
 
 By default, NixMCP uses OS-specific standard locations for caching:
 
 - Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
 - macOS: `~/Library/Caches/nixmcp/`
 - Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
+
+The cache system stores multiple types of data:
+- Raw HTML content from Home Manager documentation
+- Serialized structured data (options metadata, statistics)
+- Binary serialized complex data structures (search indices, dictionaries)
+
+The enhanced caching system provides:
+- Faster startup times through serialized in-memory data
+- Reduced network dependencies for offline operation
+- Multiple fallback mechanisms for improved resilience
 
 ### NixOS Channel Support
 
@@ -378,10 +388,10 @@ NixMCP is organized into a modular structure for better maintainability and test
 
 - `nixmcp/cache/` - Caching components for better performance:
   - `simple_cache.py` - In-memory caching with TTL and size limits
-  - `html_cache.py` - Cross-platform file-based caching for HTML content
+  - `html_cache.py` - Multi-format filesystem caching (HTML, JSON, binary data)
 - `nixmcp/clients/` - API clients for Elasticsearch and Home Manager documentation:
   - `elasticsearch_client.py` - Client for the NixOS Elasticsearch API
-  - `home_manager_client.py` - Client for parsing Home Manager documentation
+  - `home_manager_client.py` - Client for parsing and caching Home Manager data
   - `html_client.py` - HTTP client with filesystem caching for web content
 - `nixmcp/contexts/` - Context objects that manage application state
 - `nixmcp/resources/` - MCP resource definitions for NixOS and Home Manager
@@ -413,16 +423,22 @@ For Home Manager options, NixMCP implements what can only be described as a crim
 
 3. Background loading to avoid blocking server startup (because waiting for this monstrosity to initialize would test anyone's patience)
 
-4. Cross-platform filesystem caching for HTML content:
-   - Reduces network requests by caching HTML content on disk
+4. Multi-level caching system for improved performance and resilience:
+   - HTML content cache to filesystem using cross-platform cache paths
+   - Processed in-memory data structures persisted to disk cache
+   - Option data serialized to both JSON and binary formats for complex structures
    - Uses platform-specific standard cache locations:
      - Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
      - macOS: `~/Library/Caches/nixmcp/`
      - Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
-   - Implements MD5 hashing of URLs for cache filenames
+   - Implements MD5 hashing of cache keys for filenames
+   - Supports multiple cache file types:
+     - `*.html` - Raw HTML content
+     - `*.data.json` - Serialized structured data
+     - `*.data.pickle` - Binary serialized complex data structures
    - Automatic TTL-based expiration to refresh content
-   - Proper error handling and fallback mechanisms
-   - Cache statistics tracking for monitoring performance
+   - Comprehensive error handling and fallback mechanisms
+   - Detailed cache statistics tracking for monitoring performance
 
 ## What is Model Context Protocol?
 

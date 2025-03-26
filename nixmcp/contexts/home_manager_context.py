@@ -8,9 +8,8 @@ from typing import Dict, Any
 # Get logger
 logger = logging.getLogger("nixmcp")
 
-# Import HomeManagerClient and helpers
+# Import HomeManagerClient
 from nixmcp.clients.home_manager_client import HomeManagerClient
-from nixmcp.utils.helpers import check_loading_status
 
 
 class HomeManagerContext:
@@ -25,15 +24,24 @@ class HomeManagerContext:
         # This serves as a fallback in case eager loading fails
         self.hm_client.load_in_background()
 
-    def ensure_loaded(self):
+    def ensure_loaded(self, force_refresh: bool = False):
         """Ensure that data is loaded and available.
 
         This method can be called to eagerly load data during server initialization
         instead of relying on the background loading mechanism.
+
+        Args:
+            force_refresh: Whether to bypass cache and force a refresh from the web
         """
         logger.info("Ensuring Home Manager data is loaded...")
-        self.hm_client.ensure_loaded()
+        self.hm_client.ensure_loaded(force_refresh=force_refresh)
         logger.info("Home Manager data is now loaded and available")
+
+    def invalidate_cache(self):
+        """Invalidate the disk cache for Home Manager data."""
+        logger.info("Invalidating Home Manager data cache...")
+        self.hm_client.invalidate_cache()
+        logger.info("Home Manager data cache invalidated")
 
     def get_status(self) -> Dict[str, Any]:
         """Get the status of the Home Manager context."""
@@ -69,37 +77,68 @@ class HomeManagerContext:
                 "loaded": False,
             }
 
-    @check_loading_status
     def search_options(self, query: str, limit: int = 10) -> Dict[str, Any]:
         """Search for Home Manager options."""
-        return self.hm_client.search_options(query, limit)
+        try:
+            # Try to search without forcing a load
+            return self.hm_client.search_options(query, limit)
+        except Exception as e:
+            # If data isn't loaded yet, return a graceful loading message
+            logger.warning(f"Could not search options - data still loading: {str(e)}")
+            return {
+                "count": 0,
+                "options": [],
+                "loading": True,
+                "error": "Home Manager data is still loading in the background. Please try again in a few seconds.",
+                "found": False,
+            }
 
-    @check_loading_status
     def get_option(self, option_name: str) -> Dict[str, Any]:
         """Get information about a specific Home Manager option."""
-        result = self.hm_client.get_option(option_name)
+        try:
+            # Try to get option without forcing a load
+            result = self.hm_client.get_option(option_name)
 
-        # Ensure name is included in result for error messages
-        if not result.get("found", False) and "name" not in result:
-            result["name"] = option_name
+            # Ensure name is included in result for error messages
+            if not result.get("found", False) and "name" not in result:
+                result["name"] = option_name
 
-        return result
+            return result
+        except Exception as e:
+            # If data isn't loaded yet, return a graceful loading message
+            logger.warning(f"Could not get option - data still loading: {str(e)}")
+            return {
+                "name": option_name,
+                "loading": True,
+                "error": "Home Manager data is still loading in the background. Please try again in a few seconds.",
+                "found": False,
+            }
 
-    @check_loading_status
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about Home Manager options."""
-        result = self.hm_client.get_stats()
+        try:
+            # Try to get stats without forcing a load
+            result = self.hm_client.get_stats()
 
-        # Ensure we have a default value for total_options if not found
-        if not result.get("found", True) and "total_options" not in result:
-            result["total_options"] = 0
+            # Ensure we have a default value for total_options if not found
+            if not result.get("found", True) and "total_options" not in result:
+                result["total_options"] = 0
 
-        return result
+            return result
+        except Exception as e:
+            # If data isn't loaded yet, return a graceful loading message
+            logger.warning(f"Could not get stats - data still loading: {str(e)}")
+            return {
+                "total_options": 0,
+                "loading": True,
+                "error": "Home Manager data is still loading in the background. Please try again in a few seconds.",
+                "found": False,
+            }
 
-    @check_loading_status
     def get_options_list(self) -> Dict[str, Any]:
         """Get a hierarchical list of all top-level Home Manager options."""
         try:
+            # Try to get options list without forcing a load
             top_level_options = [
                 "programs",
                 "services",
@@ -155,7 +194,6 @@ class HomeManagerContext:
             logger.error(f"Error getting Home Manager options list: {str(e)}")
             return {"error": f"Failed to get options list: {str(e)}", "found": False}
 
-    @check_loading_status
     def get_options_by_prefix(self, option_prefix: str) -> Dict[str, Any]:
         """Get all options under a specific option prefix."""
         try:
@@ -203,5 +241,14 @@ class HomeManagerContext:
             }
 
         except Exception as e:
-            logger.error(f"Error getting Home Manager options by prefix '{option_prefix}': {str(e)}")
-            return {"error": f"Failed to get options with prefix '{option_prefix}': {str(e)}", "found": False}
+            logger.warning(f"Error getting Home Manager options by prefix '{option_prefix}': {str(e)}")
+            return {
+                "prefix": option_prefix,
+                "options": [],
+                "count": 0,
+                "types": {},
+                "enable_options": [],
+                "loading": True,
+                "error": "Home Manager data is still loading in the background. Please try again in a few seconds.",
+                "found": False,
+            }

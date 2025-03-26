@@ -47,6 +47,12 @@ class HomeManagerClient:
         self.prefix_index = defaultdict(set)  # Prefix -> set of option names
         self.hierarchical_index = defaultdict(set)  # Hierarchical parts -> set of option names
 
+        # Version for cache compatibility
+        self.data_version = "1.0.0"
+
+        # Cache key for data
+        self.cache_key = f"home_manager_data_v{self.data_version}"
+
         # Request timeout settings
         self.connect_timeout = 5.0  # seconds
         self.read_timeout = 15.0  # seconds
@@ -320,61 +326,78 @@ class HomeManagerClient:
         logger.info(f"Loaded a total of {len(all_options)} options from all sources")
         return all_options
 
-    def ensure_loaded(self) -> None:
-        """Ensure that options are loaded and indices are built."""
+    def ensure_loaded(self, force_refresh: bool = False) -> None:
+        """Ensure that options are loaded and indices are built.
+
+        Args:
+            force_refresh: Whether to bypass cache and force a refresh from the web
+        """
         # First check if already loaded without acquiring the lock
         # This is a quick check to avoid lock contention
-        if self.is_loaded:
+        if self.is_loaded and not force_refresh:
             return
 
         # Check if we know there was a loading error without acquiring the lock
-        if self.loading_error:
+        if self.loading_error and not force_refresh:
             raise Exception(f"Previous loading attempt failed: {self.loading_error}")
 
         # Check if background loading is in progress without the lock first
-        if self.loading_in_progress:
+        if self.loading_in_progress and not force_refresh:
             logger.info("Waiting for background data loading to complete...")
             # Wait outside of lock to prevent deadlock
-            max_wait = 10  # seconds
+            max_wait = 3  # seconds - reduced from 10 to prevent blocking for too long
             start_time = time.time()
 
             # Wait with timeout for background loading to complete
             while self.loading_in_progress and time.time() - start_time < max_wait:
-                time.sleep(0.2)
+                time.sleep(0.05)  # Reduced sleep time for more frequent checks
                 if self.is_loaded:
                     return
 
             # Double-check loading state with the lock after waiting
             with self.loading_lock:
-                if self.is_loaded:
+                if self.is_loaded and not force_refresh:
                     return
-                elif self.loading_in_progress and self.loading_thread and self.loading_thread.is_alive():
+                # Split complex condition into parts to avoid linting issues
+                in_progress = self.loading_in_progress
+                has_thread = self.loading_thread
+                thread_alive = has_thread and self.loading_thread.is_alive()
+                no_force = not force_refresh
+                if in_progress and has_thread and thread_alive and no_force:
                     # Still loading but we've waited long enough - raise exception with timeout
                     raise Exception("Timed out waiting for background loading to complete")
-                elif self.loading_error:
+                elif self.loading_error and not force_refresh:
                     raise Exception(f"Loading failed: {self.loading_error}")
 
         # At this point, either:
         # 1. No background loading was happening
         # 2. Background loading finished or failed while we were waiting
+        # 3. We're forcing a refresh
         with self.loading_lock:
             # Double-check loaded state after acquiring lock
-            if self.is_loaded:
+            if self.is_loaded and not force_refresh:
                 return
 
-            if self.loading_error:
+            if self.loading_error and not force_refresh:
                 raise Exception(f"Loading attempt failed: {self.loading_error}")
 
-            # If another background load is now in progress, wait for it
-            if self.loading_in_progress:
+            # If another background load is now in progress and we're not forcing refresh, wait for it
+            if self.loading_in_progress and not force_refresh:
                 # Release the lock and retry from the beginning
                 # This avoids the case where we'd try to load while another thread is already loading
                 pass  # The lock is released automatically when we exit the 'with' block
                 # Recurse with a small delay to let the other thread make progress
-                time.sleep(0.1)
-                return self.ensure_loaded()
+                time.sleep(0.01)
+                return self.ensure_loaded(force_refresh=False)
 
-            # No loading in progress, we'll do it ourselves
+            # If we're forcing a refresh, invalidate the cache
+            if force_refresh:
+                logger.info("Forced refresh requested, invalidating cache")
+                self.invalidate_cache()
+                self.is_loaded = False
+                self.loading_error = None
+
+            # No loading in progress or forced refresh, we'll do it ourselves
             self.loading_in_progress = True
 
         try:
@@ -392,6 +415,21 @@ class HomeManagerClient:
                 self.loading_in_progress = False
             logger.error(f"Failed to load Home Manager options: {str(e)}")
             raise
+
+    def invalidate_cache(self) -> None:
+        """Invalidate the disk cache for Home Manager data."""
+        try:
+            logger.info(f"Invalidating Home Manager data cache with key {self.cache_key}")
+            self.html_client.cache.invalidate_data(self.cache_key)
+
+            # Also invalidate HTML caches
+            for url in self.hm_urls.values():
+                self.html_client.cache.invalidate(url)
+
+            logger.info("Home Manager data cache invalidated")
+        except Exception as e:
+            logger.error(f"Failed to invalidate Home Manager data cache: {str(e)}")
+            # Continue execution, don't fail on cache invalidation errors
 
     def load_in_background(self) -> None:
         """Start loading options in a background thread."""
@@ -453,12 +491,116 @@ class HomeManagerClient:
             self.loading_in_progress = True
             self.loading_thread.start()
 
+    def _save_in_memory_data(self) -> bool:
+        """Save in-memory data structures to disk cache.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            logger.info("Saving Home Manager data structures to disk cache")
+
+            # Convert set objects to lists for JSON serialization
+            serializable_data = {
+                "options_count": len(self.options),
+                "options": self.options,
+                "timestamp": time.time(),
+            }
+
+            # Save the basic metadata as JSON
+            self.html_client.cache.set_data(self.cache_key, serializable_data)
+
+            # For complex data structures like defaultdict and sets,
+            # use binary serialization with pickle
+            binary_data = {
+                "options_by_category": self.options_by_category,
+                "inverted_index": {k: list(v) for k, v in self.inverted_index.items()},
+                "prefix_index": {k: list(v) for k, v in self.prefix_index.items()},
+                "hierarchical_index": {str(k): list(v) for k, v in self.hierarchical_index.items()},
+            }
+
+            self.html_client.cache.set_binary_data(self.cache_key, binary_data)
+            logger.info(f"Successfully saved Home Manager data to disk cache with key {self.cache_key}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save Home Manager data to disk cache: {str(e)}")
+            return False
+
+    def _load_from_cache(self) -> bool:
+        """Attempt to load data from disk cache.
+
+        Returns:
+            bool: True if successfully loaded from cache, False otherwise
+        """
+        try:
+            logger.info("Attempting to load Home Manager data from disk cache")
+
+            # Load the basic metadata
+            data, metadata = self.html_client.cache.get_data(self.cache_key)
+            if not data or not metadata.get("cache_hit", False):
+                logger.info(f"No cached data found for key {self.cache_key}")
+                return False
+
+            # Check if we have the binary data as well
+            binary_data, binary_metadata = self.html_client.cache.get_binary_data(self.cache_key)
+            if not binary_data or not binary_metadata.get("cache_hit", False):
+                logger.info(f"No cached binary data found for key {self.cache_key}")
+                return False
+
+            # Load basic options data
+            self.options = data["options"]
+
+            # Load complex data structures
+            self.options_by_category = binary_data["options_by_category"]
+
+            # Convert lists back to sets for the indices
+            self.inverted_index = defaultdict(set)
+            for k, v in binary_data["inverted_index"].items():
+                self.inverted_index[k] = set(v)
+
+            self.prefix_index = defaultdict(set)
+            for k, v in binary_data["prefix_index"].items():
+                self.prefix_index[k] = set(v)
+
+            # Handle tuple keys in hierarchical_index
+            self.hierarchical_index = defaultdict(set)
+            for k_str, v in binary_data["hierarchical_index"].items():
+                # Convert string representation back to tuple
+                # Expected format is like "('parent', 'child')"
+                # Remove the tuple syntax and split by comma
+                k_str = k_str.strip("()")
+                if "," in k_str:
+                    parts = k_str.split(",")
+                    # Handle empty string in first part
+                    if len(parts) == 2:
+                        first = parts[0].strip("' \"")
+                        second = parts[1].strip("' \"")
+                        key = (first, second)
+                        self.hierarchical_index[key] = set(v)
+
+            logger.info(f"Successfully loaded Home Manager data from disk cache with {len(self.options)} options")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load Home Manager data from disk cache: {str(e)}")
+            return False
+
     def _load_data_internal(self) -> None:
         """Internal method to load data without modifying state flags."""
         try:
-            logger.info("Loading Home Manager options")
+            # First try to load from cache
+            if self._load_from_cache():
+                self.is_loaded = True
+                logger.info("Successfully loaded Home Manager data from disk cache")
+                return
+
+            # If cache loading failed, load from web
+            logger.info("Loading Home Manager options from web")
             options = self.load_all_options()
             self.build_search_indices(options)
+
+            # Save to cache for next time
+            self._save_in_memory_data()
+
             logger.info("Successfully loaded Home Manager options and built indices")
         except Exception as e:
             logger.error(f"Failed to load Home Manager options: {str(e)}")
@@ -476,15 +618,24 @@ class HomeManagerClient:
             Dict containing search results and metadata
         """
         try:
-            # Try to avoid ensure_loaded if we're already loaded
+            # Check if loaded without trying to ensure loading
             if not self.is_loaded:
-                try:
-                    # Set a timeout to ensure this doesn't get stuck
-                    # We'll add a timeout so our tests don't hang forever
-                    self.ensure_loaded()
-                except Exception as e:
-                    logger.error(f"Failed to load data for search_options: {str(e)}")
-                    return {"count": 0, "options": [], "error": f"Failed to load data: {str(e)}", "found": False}
+                logger.warning(f"Search request received while data is still loading: {query}")
+                if self.loading_in_progress:
+                    return {
+                        "count": 0,
+                        "options": [],
+                        "loading": True,
+                        "error": "Home Manager data is still loading. Please try again in a few seconds.",
+                        "found": False,
+                    }
+                elif self.loading_error:
+                    return {
+                        "count": 0,
+                        "options": [],
+                        "error": f"Failed to load data: {self.loading_error}",
+                        "found": False,
+                    }
 
             logger.info(f"Searching Home Manager options for: {query}")
             query = query.strip()
@@ -601,14 +752,18 @@ class HomeManagerClient:
             Dict containing option details
         """
         try:
-            # Try to avoid ensure_loaded if we're already loaded
+            # Check if loaded without trying to ensure loading
             if not self.is_loaded:
-                try:
-                    # Set a timeout to ensure this doesn't get stuck
-                    self.ensure_loaded()
-                except Exception as e:
-                    logger.error(f"Failed to load data for get_option: {str(e)}")
-                    return {"name": option_name, "error": f"Failed to load data: {str(e)}", "found": False}
+                logger.warning(f"Option request received while data is still loading: {option_name}")
+                if self.loading_in_progress:
+                    return {
+                        "name": option_name,
+                        "loading": True,
+                        "error": "Home Manager data is still loading. Please try again in a few seconds.",
+                        "found": False,
+                    }
+                elif self.loading_error:
+                    return {"name": option_name, "error": f"Failed to load data: {self.loading_error}", "found": False}
 
             logger.info(f"Getting Home Manager option: {option_name}")
 
@@ -683,14 +838,18 @@ class HomeManagerClient:
             Dict containing statistics
         """
         try:
-            # Try to avoid ensure_loaded if we're already loaded
+            # Check if loaded without trying to ensure loading
             if not self.is_loaded:
-                try:
-                    # Set a timeout to ensure this doesn't get stuck
-                    self.ensure_loaded()
-                except Exception as e:
-                    logger.error(f"Failed to load data for get_stats: {str(e)}")
-                    return {"total_options": 0, "error": f"Failed to load data: {str(e)}", "found": False}
+                logger.warning("Stats request received while data is still loading")
+                if self.loading_in_progress:
+                    return {
+                        "total_options": 0,
+                        "loading": True,
+                        "error": "Home Manager data is still loading. Please try again in a few seconds.",
+                        "found": False,
+                    }
+                elif self.loading_error:
+                    return {"total_options": 0, "error": f"Failed to load data: {self.loading_error}", "found": False}
 
             logger.info("Getting Home Manager option statistics")
 
