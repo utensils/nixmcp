@@ -121,27 +121,40 @@ class TestHomeManagerDocStructure(unittest.TestCase):
 
     def test_extract_sample_options(self):
         """Extract a few sample options to verify the structure."""
-        # Only run if we have already fetched the docs
-        if not self.soups:
-            self.test_fetch_docs_and_analyze_structure()
+        # Instead of calling test_fetch_docs_and_analyze_structure, fetch a single URL directly
+        # This avoids dependency between tests and potential hanging
 
-        # Process the options structure
-        for source, soup in self.soups.items():
+        # We'll just use the main options URL for this test
+        url = "https://nix-community.github.io/home-manager/options.xhtml"
+        source = "options"
+
+        try:
+            logger.info(f"Fetching {source} documentation from {url}")
+
+            # Use a timeout to prevent hanging
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+
+            # Parse HTML
+            soup = BeautifulSoup(response.text, "html.parser")
+
             logger.info(f"Extracting sample options from {source}")
 
             # The variablelist contains the options
             variablelist = soup.find(class_="variablelist")
             if not variablelist:
                 logger.warning(f"No variablelist found in {source}")
-                continue
+                self.skipTest("No variablelist found in the HTML structure")
+                return
 
             # Find all definition terms (dt) which contain the option names
             dl = variablelist.find("dl")
             if not dl:
                 logger.warning(f"No definition list found in {source}")
-                continue
+                self.skipTest("No definition list found in the HTML structure")
+                return
 
-            # Get all dt elements (terms) and dd elements (descriptions)
+            # Get all dt elements (terms)
             dt_elements = dl.find_all("dt")
 
             # Process a few options
@@ -164,13 +177,18 @@ class TestHomeManagerDocStructure(unittest.TestCase):
                 if not dd:
                     continue
 
-                # Get type info which is in the last paragraph with emphasis
-                type_elem = dd.find("span", class_="emphasis")
-                option_type = type_elem.text if type_elem else "unknown"
+                # Get type info which is in a paragraph with emphasis
+                type_text = None
+                p_elements = dd.find_all("p")
+                for p in p_elements:
+                    if "Type:" in p.text:
+                        type_text = p.text.split("Type:")[1].strip() if "Type:" in p.text else "unknown"
+                        break
+
+                option_type = type_text or "unknown"
 
                 # Description is in the first paragraph
                 description = ""
-                p_elements = dd.find_all("p")
                 if p_elements:
                     description = p_elements[0].text
 
@@ -182,17 +200,16 @@ class TestHomeManagerDocStructure(unittest.TestCase):
                 options_found += 1
 
             self.assertGreater(options_found, 0, f"No options extracted from {source}")
-
             logger.info(f"Successfully extracted {options_found} sample options from {source}")
+
+        except requests.RequestException as e:
+            logger.warning(f"Could not fetch Home Manager docs: {e}")
+            self.skipTest(f"Network error fetching Home Manager docs: {e}")
+        except Exception as e:
+            logger.error(f"Error extracting options: {e}")
+            self.fail(f"Failed to extract options: {e}")
 
 
 if __name__ == "__main__":
     # Add a direct test run that prints results
-    test = TestHomeManagerDocStructure()
-    test.setUp()  # Initialize the test
-
-    print("\n---- RUNNING STRUCTURE ANALYSIS ----\n")
-    test.test_fetch_docs_and_analyze_structure()
-    print("\n---- RUNNING OPTION EXTRACTION ----\n")
-    test.test_extract_sample_options()
-    print("\n---- TESTS COMPLETED ----\n")
+    unittest.main(verbosity=2)

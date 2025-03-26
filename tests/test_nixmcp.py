@@ -629,7 +629,7 @@ class TestMCPResources(unittest.TestCase):
             "status": "ok",
             "version": "1.0.0",
             "name": "NixMCP",
-            "description": "NixOS HTTP-based Model Context Protocol Server",
+            "description": "NixOS Model Context Protocol Server",
             "cache_stats": {
                 "size": 100,
                 "max_size": 500,

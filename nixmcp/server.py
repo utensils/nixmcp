@@ -306,11 +306,13 @@ async def app_lifespan(mcp_server: FastMCP):
 
 
 # Create the MCP server with the lifespan handler
+from nixmcp import __version__
+
 logger.info("Creating FastMCP server instance")
 mcp = FastMCP(
     "NixMCP",
-    version="0.1.2",
-    description="NixOS HTTP-based Model Context Protocol Server",
+    version=__version__,
+    description="NixOS Model Context Protocol Server",
     lifespan=app_lifespan,
 )
 

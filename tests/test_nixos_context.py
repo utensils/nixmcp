@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 from nixmcp.contexts.nixos_context import NixOSContext
+from nixmcp import __version__
 
 
 class TestNixOSContext(unittest.TestCase):
@@ -43,7 +44,7 @@ class TestNixOSContext(unittest.TestCase):
                 },
                 {
                     "name": "neovim",
-                    "version": "0.9.1",
+                    "version": __version__,
                     "description": "Vim text editor fork focused on extensibility and usability",
                     "programs": ["nvim"],
                 },

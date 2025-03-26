@@ -11,6 +11,9 @@ logger = logging.getLogger("nixmcp")
 # Import ElasticsearchClient
 from nixmcp.clients.elasticsearch_client import ElasticsearchClient
 
+# Import version
+from nixmcp import __version__
+
 
 class NixOSContext:
     """Provides NixOS resources to AI models."""
@@ -24,9 +27,9 @@ class NixOSContext:
         """Get the status of the NixMCP server."""
         return {
             "status": "ok",
-            "version": "0.1.1",
+            "version": __version__,
             "name": "NixMCP",
-            "description": "NixOS HTTP-based Model Context Protocol Server",
+            "description": "NixOS Model Context Protocol Server",
             "server_type": "http",
             "cache_stats": self.es_client.cache.get_stats(),
         }

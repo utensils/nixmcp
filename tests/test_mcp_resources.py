@@ -4,6 +4,9 @@ from unittest.mock import patch
 # Import base test class
 from tests import NixMCPTestBase
 
+# Import for consistent test version
+from nixmcp import __version__
+
 # Import from the new modular structure
 from nixmcp.contexts.nixos_context import NixOSContext
 from nixmcp.resources.nixos_resources import (
@@ -29,9 +32,9 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
         with patch.object(NixOSContext, "get_status") as mock_status:
             mock_status.return_value = {
                 "status": "ok",
-                "version": "0.1.0",
+                "version": __version__,
                 "name": "NixMCP",
-                "description": "NixOS HTTP-based Model Context Protocol Server",
+                "description": "NixOS Model Context Protocol Server",
                 "server_type": "http",
                 "cache_stats": {
                     "size": 100,
@@ -48,7 +51,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
 
             # Verify the structure of the response
             self.assertEqual(result["status"], "ok")
-            self.assertEqual(result["version"], "0.1.0")
+            self.assertEqual(result["version"], __version__)
             self.assertEqual(result["name"], "NixMCP")
             self.assertIn("description", result)
             self.assertIn("cache_stats", result)
