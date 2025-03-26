@@ -14,6 +14,24 @@ When updating rules:
 ## Project Overview
 NixMCP is a Model Context Protocol (MCP) server for NixOS resources and Home Manager configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, and Home Manager user configuration options. Communication happens over standard input/output streams using a JSON-based message format.
 
+## Project Structure
+The codebase follows a modular architecture:
+
+- `nixmcp/cache/` - Caching components (SimpleCache)
+- `nixmcp/clients/` - API clients (ElasticsearchClient, HomeManagerClient)
+- `nixmcp/contexts/` - Application contexts (NixOSContext, HomeManagerContext)
+- `nixmcp/resources/` - MCP resource definitions 
+- `nixmcp/tools/` - MCP tool implementations
+- `nixmcp/utils/` - Utility functions and helpers
+- `nixmcp/logging.py` - Centralized logging configuration
+- `nixmcp/server.py` - Main entry point and FastMCP server implementation
+
+This modular approach allows for better:
+- Organization of code by responsibility
+- Isolation during testing
+- Separation of concerns
+- Maintainability and extensibility
+
 ## MCP Implementation Guidelines
 
 ### Resource Definitions

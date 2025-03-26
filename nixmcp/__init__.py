@@ -6,3 +6,7 @@ system options, and Home Manager configuration options.
 """
 
 __version__ = "0.1.2"
+
+# Import main components for easier access
+from nixmcp.contexts.nixos_context import NixOSContext
+from nixmcp.contexts.home_manager_context import HomeManagerContext

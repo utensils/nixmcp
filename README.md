@@ -15,6 +15,7 @@ NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, sys
 - Support for hierarchical paths like programs.git.* and services.postgresql.*
 - Related options and contextual suggestions for better discoverability
 - Background fetching and caching of documentation
+- Modular code architecture for better maintainability and testing
 
 Using the FastMCP framework, the server provides MCP endpoints for accessing the NixOS Elasticsearch API for system resources and an integrated parser for Home Manager documentation to deliver accurate information about packages and options.
 
@@ -213,7 +214,7 @@ For local development and testing with Claude Desktop, add this configuration to
         "--isolated",
         "--with-requirements",
         "<path-to-cloned-repo>/requirements.txt",
-        "<path-to-cloned-repo>/nixmcp/server.py"
+        "<path-to-cloned-repo>/nixmcp"
       ],
       "cwd": "<path-to-cloned-repo>",
       "env": {
@@ -300,6 +301,25 @@ Get details about Git username configuration:
 The LLM will automatically fetch the requested information through the MCP server and use the appropriate tools based on whether you're asking about NixOS system-level configuration or Home Manager user-level configuration.
 
 ## Implementation Details
+
+### Code Architecture
+
+NixMCP is organized into a modular structure for better maintainability and testing:
+
+- `nixmcp/cache/` - Caching components for better performance
+- `nixmcp/clients/` - API clients for Elasticsearch and Home Manager documentation
+- `nixmcp/contexts/` - Context objects that manage application state
+- `nixmcp/resources/` - MCP resource definitions for NixOS and Home Manager
+- `nixmcp/tools/` - MCP tool implementations for searching and retrieving data
+- `nixmcp/utils/` - Utility functions and helpers
+- `nixmcp/logging.py` - Centralized logging configuration
+- `nixmcp/server.py` - Main entry point and server initialization
+
+This modular approach makes it easier to:
+- Understand specific components
+- Test individual modules in isolation
+- Extend functionality with new features
+- Maintain clean separation of concerns
 
 ### NixOS API Integration
 
