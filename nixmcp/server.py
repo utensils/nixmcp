@@ -314,6 +314,7 @@ mcp = FastMCP(
     version=__version__,
     description="NixOS Model Context Protocol Server",
     lifespan=app_lifespan,
+    capabilities=["resources", "tools", "completions"],  # Add completion capability
 )
 
 
@@ -326,11 +327,24 @@ def get_home_manager_context():
     return home_manager_context
 
 
+# Import completion handler
+from nixmcp.completions import handle_completion
+
 # Register all resources and tools
 register_nixos_resources(mcp, get_nixos_context)
 register_home_manager_resources(mcp, get_home_manager_context)
 register_nixos_tools(mcp)
 register_home_manager_tools(mcp)
+
+
+# Register completion method
+@mcp.tool("completion_complete")
+async def mcp_handle_completion(params: dict) -> dict:
+    """Handle MCP completion requests."""
+    logger.info("Received completion request")
+
+    # Pass the request to our completion handler
+    return await handle_completion(params, nixos_context, home_manager_context)
 
 
 if __name__ == "__main__":
