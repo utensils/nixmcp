@@ -6,7 +6,6 @@ import re
 import time
 import logging
 import threading
-import requests
 from typing import Dict, List, Any
 from collections import defaultdict
 from bs4 import BeautifulSoup
@@ -14,9 +13,8 @@ from bs4 import BeautifulSoup
 # Get logger
 logger = logging.getLogger("nixmcp")
 
-# Import SimpleCache and version
+# Import SimpleCache
 from nixmcp.cache.simple_cache import SimpleCache
-from nixmcp import __version__
 
 
 class HomeManagerClient:
@@ -60,47 +58,33 @@ class HomeManagerClient:
 
     def fetch_url(self, url: str) -> str:
         """Fetch HTML content from a URL with caching and error handling."""
-        cache_key = f"html:{url}"
-        cached_content = self.cache.get(cache_key)
+        # Import here to avoid circular imports
+        from nixmcp.utils.helpers import make_http_request
 
-        if cached_content:
-            logger.debug(f"Cache hit for URL: {url}")
-            return cached_content
+        # Use the shared HTTP utility function for the request
+        result = make_http_request(
+            url=url,
+            method="GET",
+            timeout=(self.connect_timeout, self.read_timeout),
+            max_retries=self.max_retries,
+            retry_delay=self.retry_delay,
+            cache=self.cache,
+        )
 
-        logger.debug(f"Cache miss for URL: {url}")
+        # Check for errors
+        if "error" in result:
+            error_msg = result["error"]
+            logger.error(f"Error fetching URL {url}: {error_msg}")
+            raise Exception(f"Failed to fetch URL: {error_msg}")
 
-        for attempt in range(self.max_retries):
-            try:
-                logger.info(f"Fetching URL: {url} (attempt {attempt + 1})")
-                response = requests.get(
-                    url,
-                    timeout=(self.connect_timeout, self.read_timeout),
-                    headers={"User-Agent": f"NixMCP/{__version__}", "Accept-Encoding": "gzip, deflate"},
-                )
-                response.raise_for_status()
+        # Handle text responses
+        if "text" in result:
+            return result["text"]
 
-                # Cache the HTML content
-                content = response.text
-                self.cache.set(cache_key, content)
-                return content
-
-            except requests.exceptions.ConnectionError:
-                logger.error(f"Connection error for URL: {url}")
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay * (2**attempt))  # Exponential backoff
-                    continue
-                raise
-            except requests.exceptions.Timeout:
-                logger.error(f"Request timeout for URL: {url}")
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay * (2**attempt))
-                    continue
-                raise
-            except Exception as e:
-                logger.error(f"Error fetching URL: {url} - {str(e)}")
-                raise
-
-        raise Exception(f"Failed to fetch URL after {self.max_retries} attempts: {url}")
+        # If we get here, we have a JSON response but need text
+        # Convert it to a string as a fallback
+        logger.warning(f"Unexpected response format from {url}, converting to string")
+        return str(result)
 
     def parse_html(self, html: str, doc_type: str) -> List[Dict[str, Any]]:
         """Parse Home Manager HTML documentation and extract options."""

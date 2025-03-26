@@ -89,24 +89,35 @@ class TestHomeManagerClient(unittest.TestCase):
         """Clean up after the test."""
         self.requests_get_patcher.stop()
 
-    def test_fetch_url(self):
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_fetch_url(self, mock_make_request):
         """Test fetching HTML content from a URL."""
+        # Prepare the mock response for our utility
+        mock_response_html = """
+        <html>
+            <body>
+                <div class="variablelist">
+                    <dl class="variablelist">
+                        <!-- Option content -->
+                    </dl>
+                </div>
+            </body>
+        </html>
+        """
+        mock_make_request.return_value = {"text": mock_response_html}
+
         # Fetch a URL
         url = "https://example.com/options.xhtml"
         content = self.client.fetch_url(url)
 
-        # Verify the mock was called with correct parameters
-        self.mock_requests_get.assert_called_once()
-        call_args = self.mock_requests_get.call_args
+        # Verify make_http_request was called with the right parameters
+        mock_make_request.assert_called_once()
+        args, kwargs = mock_make_request.call_args
 
-        # Check URL and timeout separately
-        self.assertEqual(call_args[0][0], url)
-        self.assertEqual(call_args[1]["timeout"], (self.client.connect_timeout, self.client.read_timeout))
-
-        # Check headers partially (without hardcoding version)
-        self.assertIn("User-Agent", call_args[1]["headers"])
-        self.assertTrue(call_args[1]["headers"]["User-Agent"].startswith("NixMCP/"))
-        self.assertEqual(call_args[1]["headers"]["Accept-Encoding"], "gzip, deflate")
+        # Check params
+        self.assertEqual(kwargs["url"], url)
+        self.assertEqual(kwargs["method"], "GET")
+        self.assertEqual(kwargs["timeout"], (self.client.connect_timeout, self.client.read_timeout))
 
         # Verify the content was returned
         self.assertIsNotNone(content)

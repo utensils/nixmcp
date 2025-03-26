@@ -3,18 +3,14 @@ Elasticsearch client for accessing NixOS resources.
 """
 
 import os
-import json
-import time
 import logging
-import requests
 from typing import Dict, Any
 
 # Get logger
 logger = logging.getLogger("nixmcp")
 
-# Import SimpleCache and version
+# Import SimpleCache
 from nixmcp.cache.simple_cache import SimpleCache
-from nixmcp import __version__
 
 
 class ElasticsearchClient:
@@ -55,64 +51,34 @@ class ElasticsearchClient:
 
     def safe_elasticsearch_query(self, endpoint: str, query_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute an Elasticsearch query with robust error handling and retries."""
-        cache_key = f"{endpoint}:{json.dumps(query_data)}"
-        cached_result = self.cache.get(cache_key)
+        # Import here to avoid circular imports
+        from nixmcp.utils.helpers import make_http_request
 
-        if cached_result:
-            logger.debug(f"Cache hit for query: {cache_key[:100]}...")
-            return cached_result
+        # Use the shared HTTP utility function
+        result = make_http_request(
+            url=endpoint,
+            method="POST",
+            json_data=query_data,
+            auth=self.es_auth,
+            timeout=(self.connect_timeout, self.read_timeout),
+            max_retries=self.max_retries,
+            retry_delay=self.retry_delay,
+            cache=self.cache,
+        )
 
-        logger.debug(f"Cache miss for query: {cache_key[:100]}...")
+        # Handle Elasticsearch-specific error cases
+        if "error" in result:
+            if "details" in result and isinstance(result["details"], dict):
+                # Extract Elasticsearch error details if available
+                es_error = result["details"].get("error", {})
+                if isinstance(es_error, dict) and "reason" in es_error:
+                    result["error"] = f"Elasticsearch error: {es_error['reason']}"
 
-        for attempt in range(self.max_retries):
-            try:
-                response = requests.post(
-                    endpoint,
-                    json=query_data,
-                    auth=self.es_auth,
-                    headers={
-                        "Content-Type": "application/json",
-                        "User-Agent": f"NixMCP/{__version__}",
-                        "Accept-Encoding": "gzip, deflate",
-                    },
-                    timeout=(self.connect_timeout, self.read_timeout),
-                )
+            # Add prefix to generic errors
+            elif result["error"] == "Request failed with status 400":
+                result["error"] = "Invalid query syntax"
 
-                # Handle different status codes
-                if response.status_code == 400:
-                    logger.warning(f"Bad query: {query_data}")
-                    return {"error": "Invalid query syntax", "details": response.json()}
-                elif response.status_code == 401 or response.status_code == 403:
-                    logger.error("Authentication failure")
-                    return {"error": "Authentication failed"}
-                elif response.status_code >= 500:
-                    logger.error(f"Elasticsearch server error: {response.status_code}")
-                    if attempt < self.max_retries - 1:
-                        wait_time = self.retry_delay * (2**attempt)  # Exponential backoff
-                        logger.info(f"Retrying in {wait_time} seconds...")
-                        time.sleep(wait_time)
-                        continue
-                    return {"error": "Elasticsearch server error"}
-
-                response.raise_for_status()
-                result = response.json()
-
-                # Cache successful result
-                self.cache.set(cache_key, result)
-                return result
-
-            except requests.exceptions.ConnectionError:
-                logger.error("Connection error")
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay)
-                    continue
-                return {"error": "Failed to connect to Elasticsearch"}
-            except requests.exceptions.Timeout:
-                logger.error("Request timeout")
-                return {"error": "Request timed out"}
-            except Exception as e:
-                logger.error(f"Error executing query: {str(e)}")
-                return {"error": f"Query error: {str(e)}"}
+        return result
 
     def search_packages(self, query: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
         """

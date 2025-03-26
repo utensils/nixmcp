@@ -2,8 +2,13 @@
 Helper functions for NixMCP.
 """
 
+import time
 import logging
-from typing import Optional, Callable, TypeVar
+import requests
+from typing import Optional, Callable, TypeVar, Dict, Any, Tuple
+
+# Import version for user agent
+from nixmcp import __version__
 
 # Get logger
 logger = logging.getLogger("nixmcp")
@@ -112,3 +117,135 @@ def check_loading_status(func: Callable) -> Callable:
         return func(self, *args, **kwargs)
 
     return wrapper
+
+
+def make_http_request(
+    url: str,
+    method: str = "GET",
+    json_data: Optional[Dict[str, Any]] = None,
+    auth: Optional[Tuple[str, str]] = None,
+    timeout: Tuple[float, float] = (5.0, 15.0),
+    max_retries: int = 3,
+    retry_delay: float = 1.0,
+    cache: Optional[Any] = None,
+    headers: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """Make an HTTP request with robust error handling and retries.
+
+    This is a common utility function to standardize HTTP requests across the codebase.
+    It handles retries with exponential backoff, caching, error handling, and logging.
+
+    Args:
+        url: The URL to request
+        method: HTTP method (GET or POST)
+        json_data: JSON data to send (for POST requests)
+        auth: Optional authentication tuple (username, password)
+        timeout: Tuple of (connect_timeout, read_timeout) in seconds
+        max_retries: Maximum number of retry attempts
+        retry_delay: Initial delay between retries in seconds
+        cache: Optional cache instance (must have get/set methods)
+        headers: Optional custom headers to include in the request
+
+    Returns:
+        Dict containing either the JSON response or an error message
+    """
+    # Check if result is in cache
+    cache_key = None
+    if cache is not None:
+        method_key = method.lower()
+        data_key = "" if json_data is None else f":{str(json_data)}"
+        cache_key = f"{method_key}:{url}{data_key}"
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            logger.debug(f"Cache hit for request: {cache_key[:100]}...")
+            return cached_result
+        logger.debug(f"Cache miss for request: {cache_key[:100]}...")
+
+    # Common headers
+    default_headers = {
+        "User-Agent": f"NixMCP/{__version__}",
+        "Accept-Encoding": "gzip, deflate",
+    }
+
+    # Add content-type for JSON requests
+    if json_data is not None:
+        default_headers["Content-Type"] = "application/json"
+
+    # Merge default headers with custom headers if provided
+    request_headers = headers if headers is not None else {}
+    for key, value in default_headers.items():
+        if key not in request_headers:
+            request_headers[key] = value
+
+    for attempt in range(max_retries):
+        try:
+            # Make the request
+            if method.upper() == "POST":
+                response = requests.post(url, json=json_data, auth=auth, headers=request_headers, timeout=timeout)
+            else:  # Default to GET
+                response = requests.get(url, auth=auth, headers=request_headers, timeout=timeout)
+
+            # Handle 4xx client errors
+            if 400 <= response.status_code < 500:
+                logger.warning(f"Client error ({response.status_code}) for URL: {url}")
+                error_result = {"error": f"Request failed with status {response.status_code}"}
+
+                # For 401/403, provide authentication error
+                if response.status_code in (401, 403):
+                    error_result["error"] = "Authentication failed"
+
+                # For 400 bad request, try to include response body for more details
+                if response.status_code == 400:
+                    try:
+                        error_result["details"] = response.json()
+                    except Exception:
+                        pass
+
+                return error_result
+
+            # Handle 5xx server errors with retry
+            if response.status_code >= 500:
+                logger.error(f"Server error ({response.status_code}) for URL: {url}")
+                if attempt < max_retries - 1:
+                    wait_time = retry_delay * (2**attempt)  # Exponential backoff
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                    continue
+                return {"error": f"Server error ({response.status_code})"}
+
+            # Handle successful responses
+            response.raise_for_status()  # Raise for any other error codes
+
+            # Try to parse JSON response
+            try:
+                result = response.json()
+                # Cache successful result if cache is available
+                if cache is not None and cache_key is not None:
+                    cache.set(cache_key, result)
+                return result
+            except (ValueError, AttributeError):
+                # If not JSON, return text content
+                return {"text": response.text}
+
+        except requests.exceptions.ConnectionError:
+            logger.error(f"Connection error for URL: {url}")
+            if attempt < max_retries - 1:
+                wait_time = retry_delay * (2**attempt)  # Exponential backoff
+                time.sleep(wait_time)
+                continue
+            return {"error": "Failed to connect to server"}
+
+        except requests.exceptions.Timeout:
+            logger.error(f"Request timeout for URL: {url}")
+            if attempt < max_retries - 1:
+                wait_time = retry_delay * (2**attempt)  # Exponential backoff
+                time.sleep(wait_time)
+                continue
+            return {"error": "Request timed out"}
+
+        except Exception as e:
+            logger.error(f"Error making request to {url}: {str(e)}")
+            return {"error": f"Request error: {str(e)}"}
+
+    # We should never reach here, but just in case
+    return {"error": f"Request failed after {max_retries} attempts"}

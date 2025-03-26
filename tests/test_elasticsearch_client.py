@@ -1,8 +1,7 @@
 """Tests for the ElasticsearchClient in the NixMCP server."""
 
 import unittest
-from unittest.mock import patch, MagicMock
-import requests
+from unittest.mock import patch
 
 # Import the ElasticsearchClient class
 from nixmcp.server import ElasticsearchClient
@@ -31,11 +30,11 @@ class TestElasticsearchClient(unittest.TestCase):
         client.set_channel("invalid-channel")
         self.assertIn("unstable", client.es_packages_url)
 
-    @patch("requests.post")
-    def test_connection_error_handling(self, mock_post):
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_connection_error_handling(self, mock_make_request):
         """Test handling of connection errors."""
         # Simulate a connection error
-        mock_post.side_effect = requests.exceptions.ConnectionError("Failed to connect")
+        mock_make_request.return_value = {"error": "Failed to connect to server"}
 
         # Attempt to search packages
         result = self.client.search_packages("python")
@@ -44,11 +43,11 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertIn("error", result)
         self.assertIn("connect", result["error"].lower())
 
-    @patch("requests.post")
-    def test_timeout_error_handling(self, mock_post):
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_timeout_error_handling(self, mock_make_request):
         """Test handling of timeout errors."""
         # Simulate a timeout error
-        mock_post.side_effect = requests.exceptions.Timeout("Request timed out")
+        mock_make_request.return_value = {"error": "Request timed out"}
 
         # Attempt to search packages
         result = self.client.search_packages("python")
@@ -57,13 +56,11 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertIn("error", result)
         self.assertIn("timed out", result["error"].lower())
 
-    @patch("requests.post")
-    def test_server_error_handling(self, mock_post):
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_server_error_handling(self, mock_make_request):
         """Test handling of server errors (5xx)."""
         # Simulate a server error
-        mock_response = MagicMock()
-        mock_response.status_code = 500
-        mock_post.return_value = mock_response
+        mock_make_request.return_value = {"error": "Server error (500)"}
 
         # Attempt to search packages
         result = self.client.search_packages("python")
@@ -72,13 +69,11 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertIn("error", result)
         self.assertIn("server error", result["error"].lower())
 
-    @patch("requests.post")
-    def test_authentication_error_handling(self, mock_post):
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_authentication_error_handling(self, mock_make_request):
         """Test handling of authentication errors."""
         # Simulate auth errors
-        mock_response = MagicMock()
-        mock_response.status_code = 401
-        mock_post.return_value = mock_response
+        mock_make_request.return_value = {"error": "Authentication failed"}
 
         # Attempt to search packages
         result = self.client.search_packages("python")
@@ -87,29 +82,24 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertIn("error", result)
         self.assertIn("authentication", result["error"].lower())
 
-    @patch("requests.post")
-    def test_bad_query_handling(self, mock_post):
+    @patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
+    def test_bad_query_handling(self, mock_safe_query):
         """Test handling of bad query syntax."""
-        # Simulate a bad query response
-        mock_response = MagicMock()
-        mock_response.status_code = 400
-        mock_response.json.return_value = {"error": "Bad query syntax"}
-        mock_post.return_value = mock_response
+        # Simulate a bad query response directly from safe_elasticsearch_query
+        mock_safe_query.return_value = {"error": "Invalid query syntax"}
 
         # Attempt to search packages
         result = self.client.search_packages("invalid:query:syntax")
 
         # Check the result
         self.assertIn("error", result)
-        self.assertIn("invalid query", result["error"].lower())
+        self.assertEqual("Invalid query syntax", result["error"])
 
-    @patch("requests.post")
-    def test_search_packages_with_wildcard(self, mock_post):
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_search_packages_with_wildcard(self, mock_make_request):
         """Test searching packages with wildcard pattern."""
         # Mock successful response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_make_request.return_value = {
             "hits": {
                 "total": {"value": 1},
                 "hits": [
@@ -126,7 +116,6 @@ class TestElasticsearchClient(unittest.TestCase):
                 ],
             }
         }
-        mock_post.return_value = mock_response
 
         # Test with wildcard query
         result = self.client.search_packages("python*")
@@ -138,9 +127,12 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertEqual(result["packages"][0]["name"], "python311")
         self.assertEqual(result["packages"][0]["version"], "3.11.0")
 
-        # Verify the query used the wildcard
-        args, kwargs = mock_post.call_args
-        query_data = kwargs.get("json")
+        # Verify the query structure (we can check the args passed to our mock)
+        args, kwargs = mock_make_request.call_args
+        self.assertEqual(kwargs.get("method"), "POST")
+        self.assertIsNotNone(kwargs.get("json_data"))
+
+        query_data = kwargs.get("json_data")
         self.assertIn("query", query_data)
         # Check for wildcard handling in the query structure
         if "query_string" in query_data["query"]:
@@ -148,57 +140,52 @@ class TestElasticsearchClient(unittest.TestCase):
         elif "bool" in query_data["query"]:
             self.assertIn("should", query_data["query"]["bool"])
 
-    @patch("requests.post")
-    def test_get_option_related_options(self, mock_post):
+    @patch("nixmcp.utils.helpers.make_http_request")
+    def test_get_option_related_options(self, mock_make_request):
         """Test fetching related options for service paths."""
-        # First mock response for the main option
-        main_response = MagicMock()
-        main_response.status_code = 200
-        main_response.json.return_value = {
-            "hits": {
-                "total": {"value": 1},
-                "hits": [
-                    {
-                        "_source": {
-                            "option_name": "services.postgresql.enable",
-                            "option_description": "Enable PostgreSQL service",
-                            "option_type": "boolean",
-                            "type": "option",
+        # Set up response sequence for main option and related options
+        mock_make_request.side_effect = [
+            # First response for the main option
+            {
+                "hits": {
+                    "total": {"value": 1},
+                    "hits": [
+                        {
+                            "_source": {
+                                "option_name": "services.postgresql.enable",
+                                "option_description": "Enable PostgreSQL service",
+                                "option_type": "boolean",
+                                "type": "option",
+                            }
                         }
-                    }
-                ],
-            }
-        }
-
-        # Second mock response for related options
-        related_response = MagicMock()
-        related_response.status_code = 200
-        related_response.json.return_value = {
-            "hits": {
-                "total": {"value": 2},
-                "hits": [
-                    {
-                        "_source": {
-                            "option_name": "services.postgresql.package",
-                            "option_description": "Package to use",
-                            "option_type": "package",
-                            "type": "option",
-                        }
-                    },
-                    {
-                        "_source": {
-                            "option_name": "services.postgresql.port",
-                            "option_description": "Port to use",
-                            "option_type": "int",
-                            "type": "option",
-                        }
-                    },
-                ],
-            }
-        }
-
-        # Configure mock to return different responses on consecutive calls
-        mock_post.side_effect = [main_response, related_response]
+                    ],
+                }
+            },
+            # Second response for related options
+            {
+                "hits": {
+                    "total": {"value": 2},
+                    "hits": [
+                        {
+                            "_source": {
+                                "option_name": "services.postgresql.package",
+                                "option_description": "Package to use",
+                                "option_type": "package",
+                                "type": "option",
+                            }
+                        },
+                        {
+                            "_source": {
+                                "option_name": "services.postgresql.port",
+                                "option_description": "Port to use",
+                                "option_type": "int",
+                                "type": "option",
+                            }
+                        },
+                    ],
+                }
+            },
+        ]
 
         # Test getting an option with related options
         result = self.client.get_option("services.postgresql.enable")
@@ -221,7 +208,7 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertEqual(result["service_name"], "postgresql")
 
         # Verify that two requests were made (one for main option, one for related)
-        self.assertEqual(mock_post.call_count, 2)
+        self.assertEqual(mock_make_request.call_count, 2)
 
 
 if __name__ == "__main__":
