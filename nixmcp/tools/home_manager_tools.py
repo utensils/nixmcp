@@ -3,7 +3,6 @@ MCP tools for Home Manager.
 """
 
 import logging
-from typing import Dict, Any, Optional
 
 # Get logger
 logger = logging.getLogger("nixmcp")

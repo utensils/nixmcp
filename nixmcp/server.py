@@ -24,8 +24,6 @@ The server connects to the NixOS search Elasticsearch API with these details:
 Based on the official NixOS search implementation.
 """
 
-import os
-from typing import Dict, Any
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
@@ -39,15 +37,15 @@ from nixmcp.resources.home_manager_resources import register_home_manager_resour
 from nixmcp.tools.nixos_tools import register_nixos_tools
 from nixmcp.tools.home_manager_tools import register_home_manager_tools
 
-# Compatibility imports for tests
-# These imports allow the existing tests to work without needing immediate updates
-from nixmcp.clients.elasticsearch_client import ElasticsearchClient
-from nixmcp.clients.home_manager_client import HomeManagerClient
-from nixmcp.cache.simple_cache import SimpleCache
-from nixmcp.utils.helpers import create_wildcard_query
-from nixmcp.tools.nixos_tools import nixos_search, nixos_info, nixos_stats
-from nixmcp.tools.home_manager_tools import home_manager_search, home_manager_info, home_manager_stats
-from nixmcp.resources.nixos_resources import (
+# Compatibility imports for tests - these are used by tests
+# but unused in the actual server code (suppressed from linting)
+from nixmcp.clients.elasticsearch_client import ElasticsearchClient  # noqa: F401
+from nixmcp.clients.home_manager_client import HomeManagerClient  # noqa: F401
+from nixmcp.cache.simple_cache import SimpleCache  # noqa: F401
+from nixmcp.utils.helpers import create_wildcard_query  # noqa: F401
+from nixmcp.tools.nixos_tools import nixos_search, nixos_info, nixos_stats  # noqa: F401
+from nixmcp.tools.home_manager_tools import home_manager_search, home_manager_info, home_manager_stats  # noqa: F401
+from nixmcp.resources.nixos_resources import (  # noqa: F401
     nixos_status_resource,
     package_resource,
     search_packages_resource,
@@ -56,7 +54,7 @@ from nixmcp.resources.nixos_resources import (
     search_programs_resource,
     package_stats_resource,
 )
-from nixmcp.resources.home_manager_resources import (
+from nixmcp.resources.home_manager_resources import (  # noqa: F401
     home_manager_status_resource,
     home_manager_search_options_resource,
     home_manager_option_resource,

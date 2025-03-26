@@ -3,7 +3,7 @@ MCP resources for NixOS.
 """
 
 import logging
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Callable
 
 # Get logger
 logger = logging.getLogger("nixmcp")

@@ -7,7 +7,7 @@ import json
 import time
 import logging
 import requests
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 # Get logger
 logger = logging.getLogger("nixmcp")
