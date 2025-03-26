@@ -342,14 +342,20 @@ register_home_manager_tools(mcp)
 async def mcp_handle_completion(params: dict) -> dict:
     """Handle MCP completion requests."""
     logger.info("Received completion request")
+    logger.debug(f"Raw completion params: {params}")
 
-    # Pass the request to our completion handler
-    result = await handle_completion(params, nixos_context, home_manager_context)
-    
-    # Log the completion results at DEBUG level
-    logger.debug(f"Completion result: {result}")
-    
-    return result
+    try:
+        # Pass the request to our completion handler
+        result = await handle_completion(params, nixos_context, home_manager_context)
+        
+        # Log the completion results at DEBUG level
+        logger.debug(f"Completion result: {result}")
+        
+        return result
+    except Exception as e:
+        # Log exceptions in completion handling
+        logger.error(f"Error in completion handler: {e}", exc_info=True)
+        return {"items": []}
 
 
 if __name__ == "__main__":
