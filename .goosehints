@@ -525,6 +525,6 @@ The project supports [uv](https://github.com/astral-sh/uv), a faster alternative
 - Code quality tools:
   - Use Black for code formatting with line-length=120
   - Use Flake8 for linting to catch issues like unused imports
-  - Flake8 configuration: max-line-length=120, ignore=E402 (for test files with path manipulation)
+  - Flake8 configuration: max-line-length=120, ignore=E402,E203 (E402 for imports not at top of file, E203 for whitespace before ':' which conflicts with Black's formatting)
   - Run full test suite with coverage to monitor test quality
   - Extract common logic into helper functions to reduce duplication

@@ -42,7 +42,7 @@ line-length = 120
 
 [tool.flake8]
 max-line-length = 120
-ignore = ["E402"]
+ignore = ["E402", "E203"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
