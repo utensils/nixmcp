@@ -8,8 +8,9 @@ from typing import Dict, Any
 # Get logger
 logger = logging.getLogger("nixmcp")
 
-# Import HomeManagerClient
+# Import HomeManagerClient and helpers
 from nixmcp.clients.home_manager_client import HomeManagerClient
+from nixmcp.utils.helpers import check_loading_status
 
 
 class HomeManagerContext:
@@ -57,133 +58,37 @@ class HomeManagerContext:
                 "loaded": False,
             }
 
+    @check_loading_status
     def search_options(self, query: str, limit: int = 10) -> Dict[str, Any]:
         """Search for Home Manager options."""
-        # Check if data is still being loaded
-        with self.hm_client.loading_lock:
-            if not self.hm_client.is_loaded and self.hm_client.loading_in_progress:
-                # Return a loading status instead of waiting indefinitely
-                return {
-                    "loading": True,
-                    "error": "Home Manager data is still being loaded. Please try again in a moment.",
-                    "found": False,
-                    "count": 0,
-                    "options": [],
-                }
-
-            # If loading failed, report the error
-            if self.hm_client.loading_error:
-                return {
-                    "loading": False,
-                    "error": f"Failed to load Home Manager data: {self.hm_client.loading_error}",
-                    "found": False,
-                    "count": 0,
-                    "options": [],
-                }
-
-        # Ensure we have the client and it's not loading
-        if not hasattr(self, "hm_client") or not self.hm_client:
-            return {
-                "loading": False,
-                "error": "Home Manager client not initialized",
-                "found": False,
-                "count": 0,
-                "options": [],
-            }
-
         return self.hm_client.search_options(query, limit)
 
+    @check_loading_status
     def get_option(self, option_name: str) -> Dict[str, Any]:
         """Get information about a specific Home Manager option."""
-        # Check if data is still being loaded
-        with self.hm_client.loading_lock:
-            if not self.hm_client.is_loaded and self.hm_client.loading_in_progress:
-                # Return a loading status instead of waiting indefinitely
-                return {
-                    "loading": True,
-                    "error": "Home Manager data is still being loaded. Please try again in a moment.",
-                    "found": False,
-                    "name": option_name,
-                }
+        result = self.hm_client.get_option(option_name)
 
-            # If loading failed, report the error
-            if self.hm_client.loading_error:
-                return {
-                    "loading": False,
-                    "error": f"Failed to load Home Manager data: {self.hm_client.loading_error}",
-                    "found": False,
-                    "name": option_name,
-                }
+        # Ensure name is included in result for error messages
+        if not result.get("found", False) and "name" not in result:
+            result["name"] = option_name
 
-        # Ensure we have the client and it's not loading
-        if not hasattr(self, "hm_client") or not self.hm_client:
-            return {
-                "loading": False,
-                "error": "Home Manager client not initialized",
-                "found": False,
-                "name": option_name,
-            }
+        return result
 
-        return self.hm_client.get_option(option_name)
-
+    @check_loading_status
     def get_stats(self) -> Dict[str, Any]:
         """Get statistics about Home Manager options."""
-        # Check if data is still being loaded
-        with self.hm_client.loading_lock:
-            if not self.hm_client.is_loaded and self.hm_client.loading_in_progress:
-                # Return a loading status instead of waiting indefinitely
-                return {
-                    "loading": True,
-                    "error": "Home Manager data is still being loaded. Please try again in a moment.",
-                    "found": False,
-                    "total_options": 0,
-                }
+        result = self.hm_client.get_stats()
 
-            # If loading failed, report the error
-            if self.hm_client.loading_error:
-                return {
-                    "loading": False,
-                    "error": f"Failed to load Home Manager data: {self.hm_client.loading_error}",
-                    "found": False,
-                    "total_options": 0,
-                }
+        # Ensure we have a default value for total_options if not found
+        if not result.get("found", True) and "total_options" not in result:
+            result["total_options"] = 0
 
-        # Ensure we have the client and it's not loading
-        if not hasattr(self, "hm_client") or not self.hm_client:
-            return {
-                "loading": False,
-                "error": "Home Manager client not initialized",
-                "found": False,
-                "total_options": 0,
-            }
+        return result
 
-        return self.hm_client.get_stats()
-
+    @check_loading_status
     def get_options_list(self) -> Dict[str, Any]:
         """Get a hierarchical list of all top-level Home Manager options."""
         try:
-            # Check if data is still being loaded
-            with self.hm_client.loading_lock:
-                if not self.hm_client.is_loaded and self.hm_client.loading_in_progress:
-                    # Return a loading status instead of waiting indefinitely
-                    return {
-                        "loading": True,
-                        "error": "Home Manager data is still being loaded. Please try again in a moment.",
-                        "found": False,
-                    }
-
-                # If loading failed, report the error
-                if self.hm_client.loading_error:
-                    return {
-                        "loading": False,
-                        "error": f"Failed to load Home Manager data: {self.hm_client.loading_error}",
-                        "found": False,
-                    }
-
-                # Ensure the client is loaded and ready
-                if not self.hm_client.is_loaded:
-                    return {"loading": False, "error": "Home Manager client data is not loaded", "found": False}
-
             top_level_options = [
                 "programs",
                 "services",
@@ -239,31 +144,10 @@ class HomeManagerContext:
             logger.error(f"Error getting Home Manager options list: {str(e)}")
             return {"error": f"Failed to get options list: {str(e)}", "found": False}
 
+    @check_loading_status
     def get_options_by_prefix(self, option_prefix: str) -> Dict[str, Any]:
         """Get all options under a specific option prefix."""
         try:
-            # Check if data is still being loaded
-            with self.hm_client.loading_lock:
-                if not self.hm_client.is_loaded and self.hm_client.loading_in_progress:
-                    # Return a loading status instead of waiting indefinitely
-                    return {
-                        "loading": True,
-                        "error": "Home Manager data is still being loaded. Please try again in a moment.",
-                        "found": False,
-                    }
-
-                # If loading failed, report the error
-                if self.hm_client.loading_error:
-                    return {
-                        "loading": False,
-                        "error": f"Failed to load Home Manager data: {self.hm_client.loading_error}",
-                        "found": False,
-                    }
-
-                # Ensure the client is loaded and ready
-                if not self.hm_client.is_loaded:
-                    return {"loading": False, "error": "Home Manager client data is not loaded", "found": False}
-
             # Search with wildcard to get all options under this prefix
             search_query = f"{option_prefix}.*"
             search_results = self.hm_client.search_options(search_query, limit=500)

@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger("nixmcp")
 
 # Import utility functions
-from nixmcp.utils.helpers import create_wildcard_query
+from nixmcp.utils.helpers import create_wildcard_query, get_context_or_fallback
 
 
 def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: str = "unstable", context=None) -> str:
@@ -31,12 +31,8 @@ def nixos_search(query: str, type: str = "packages", limit: int = 20, channel: s
     if type.lower() not in valid_types:
         return f"Error: Invalid type. Must be one of: {', '.join(valid_types)}"
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.nixos_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "nixos_context")
 
     # Set the channel for the search
     context.es_client.set_channel(channel)
@@ -175,12 +171,8 @@ def nixos_info(name: str, type: str = "package", channel: str = "unstable", cont
     if type.lower() not in ["package", "option"]:
         return "Error: 'type' must be 'package' or 'option'"
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.nixos_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "nixos_context")
 
     # Set the channel for the search
     context.es_client.set_channel(channel)
@@ -334,12 +326,8 @@ def nixos_stats(context=None) -> str:
     """
     logger.info("Getting package statistics")
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.nixos_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "nixos_context")
 
     try:
         results = context.get_package_stats()

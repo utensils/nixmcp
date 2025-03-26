@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger("nixmcp")
 
 # Import utility functions
-from nixmcp.utils.helpers import create_wildcard_query
+from nixmcp.utils.helpers import create_wildcard_query, get_context_or_fallback
 
 
 def home_manager_search(query: str, limit: int = 20, context=None) -> str:
@@ -25,12 +25,8 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
     """
     logger.info(f"Searching for Home Manager options with query '{query}'")
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.home_manager_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "home_manager_context")
 
     try:
         # Add wildcards if not present and not a special query
@@ -105,12 +101,8 @@ def home_manager_info(name: str, context=None) -> str:
     """
     logger.info(f"Getting Home Manager option information for: {name}")
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.home_manager_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "home_manager_context")
 
     try:
         info = context.get_option(name)
@@ -232,12 +224,8 @@ def home_manager_stats(context=None) -> str:
     """
     logger.info("Getting Home Manager option statistics")
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.home_manager_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "home_manager_context")
 
     try:
         stats = context.get_stats()
@@ -313,12 +301,8 @@ def home_manager_list_options(context=None) -> str:
     """
     logger.info("Listing all top-level Home Manager option categories")
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.home_manager_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "home_manager_context")
 
     try:
         result = context.get_options_list()
@@ -421,12 +405,8 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
     """
     logger.info(f"Getting Home Manager options by prefix '{option_prefix}'")
 
-    # Use provided context or fallback to global context
-    if context is None:
-        # Import here to avoid circular imports
-        import nixmcp.server
-
-        context = nixmcp.server.home_manager_context
+    # Get context using the helper function
+    context = get_context_or_fallback(context, "home_manager_context")
 
     try:
         result = context.get_options_by_prefix(option_prefix)
