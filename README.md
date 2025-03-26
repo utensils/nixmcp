@@ -9,6 +9,8 @@
 
 NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, and Home Manager configuration options to AI models. It provides up-to-date information about both NixOS and Home Manager resources, reducing hallucinations and outdated information.
 
+> **NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
+
 ## Quick Start: For the Impatient Nixer
 
 Look, we both know you're just going to skim this README and then complain when things don't work. So here's the bare minimum you need to add to your MCP configuration file to get started. Copy, paste, and get back to your regularly scheduled yak shaving:
@@ -44,6 +46,8 @@ There. Was that so hard? Now your AI assistant can actually give you correct inf
 - Support for hierarchical paths like programs.git.* and services.postgresql.*
 - Related options and contextual suggestions for better discoverability
 - Background fetching and caching of documentation
+
+> **Future Feature:** IDE-style completions (MCP completion/complete protocol) will be added once the MCP SDK implementation is ready.
 
 ## MCP Implementation
 

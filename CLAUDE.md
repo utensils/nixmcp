@@ -25,6 +25,8 @@ This ensures the codebase remains cohesive and maintainable.
 ## Project Overview
 NixMCP is a Model Context Protocol (MCP) server for NixOS resources and Home Manager configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, and Home Manager user configuration options. Communication happens over standard input/output streams using a JSON-based message format.
 
+**NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
+
 ## Project Structure
 The codebase follows a modular architecture:
 

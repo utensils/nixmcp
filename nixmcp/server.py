@@ -314,7 +314,7 @@ mcp = FastMCP(
     version=__version__,
     description="NixOS Model Context Protocol Server",
     lifespan=app_lifespan,
-    capabilities=["resources", "tools", "completions"],  # Add completion capability
+    capabilities=["resources", "tools"],  # "completions" capability disabled until SDK implementation
 )
 
 
@@ -327,8 +327,8 @@ def get_home_manager_context():
     return home_manager_context
 
 
-# Import completion handler
-from nixmcp.completions import handle_completion
+# Import completion handler (temporarily disabled)
+# from nixmcp.completions import handle_completion
 
 # Register all resources and tools
 register_nixos_resources(mcp, get_nixos_context)
@@ -337,16 +337,19 @@ register_nixos_tools(mcp)
 register_home_manager_tools(mcp)
 
 
+# Completion support is temporarily disabled until the MCP SDK fully implements it
+# The MCP spec includes "completion/complete" but it's not yet implemented in the SDK
+"""
 # Register completion method - the MCP protocol uses "completion/complete" for the method name
 # but tool names in MCP must conform to the pattern ^[a-zA-Z0-9_-]{1,64}$, so we use underscores
 # and the framework maps between them
 @mcp.tool("completion_complete")
 async def mcp_handle_completion(params: dict) -> dict:
-    """Handle MCP completion requests.
+    ""Handle MCP completion requests.
     
     This function is registered as "completion_complete" to match MCP naming conventions
     while conforming to the restriction that tool names cannot contain slashes.
-    """
+    ""
     logger.info("Received completion request")
     logger.debug(f"Raw completion params: {params}")
 
@@ -362,6 +365,7 @@ async def mcp_handle_completion(params: dict) -> dict:
         # Log exceptions in completion handling
         logger.error(f"Error in completion handler: {e}", exc_info=True)
         return {"items": []}
+"""
 
 
 if __name__ == "__main__":
