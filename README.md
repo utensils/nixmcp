@@ -127,24 +127,8 @@ Add the following to your MCP configuration file:
 {
   "mcpServers": {
     "nixos": {
-      "command": "python",
-      "args": ["-m", "nixmcp"],
-      "env": {
-        "LOG_LEVEL": "INFO"
-      }
-    }
-  }
-}
-```
-
-Alternatively, if you're using `uvx`, make sure you install the package with explicit dependencies:
-
-```json
-{
-  "mcpServers": {
-    "nixos": {
       "command": "uvx",
-      "args": ["--install-deps", "nixmcp"],
+      "args": ["nixmcp"],
       "env": {
         "LOG_LEVEL": "INFO"
       }
