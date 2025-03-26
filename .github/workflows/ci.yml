@@ -3,9 +3,16 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags-ignore:
+      - 'v*'  # Don't run CI workflow when pushing version tags (publish will handle it)
   pull_request:
     branches: [ main ]
   workflow_dispatch:  # Allow manual trigger
+
+# Ensure we don't run this workflow concurrently for the same push/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'  # Push events to tags matching v*, i.e. v1.0, v20.15.10
 
+# Ensure we don't run this workflow concurrently for the same tag
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-publish:
     name: Build and publish to PyPI
