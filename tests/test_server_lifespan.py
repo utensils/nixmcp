@@ -19,10 +19,7 @@ class TestServerLifespan(unittest.TestCase):
     def test_lifespan_initialization(self, mock_lifespan):
         """Test that the lifespan context manager initializes correctly."""
         # Create a mock context
-        mock_context = {
-            "nixos_context": NixOSContext(),
-            "home_manager_context": MagicMock()
-        }
+        mock_context = {"nixos_context": NixOSContext(), "home_manager_context": MagicMock()}
 
         # Configure the mock to return our context
         mock_lifespan.return_value.__aenter__.return_value = mock_context

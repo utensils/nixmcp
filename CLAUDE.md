@@ -271,9 +271,20 @@ https://nix-community.github.io/home-manager/nix-darwin-options.xhtml
 The project includes a comprehensive test suite:
 
 1. Tests are written using pytest and include code coverage reporting
-2. Tests make real API calls to the Elasticsearch endpoints rather than using mocks
-3. Tests are designed to be resilient to API changes and handle various response patterns
-4. Current code coverage is approximately 72%
+2. Use a balanced approach to testing:
+   - Use mocks for external service dependencies (like Elasticsearch and Home Manager docs)  
+   - Create integration tests with real API calls for critical paths
+3. Test structure recommendations:
+   - Create dedicated test files for each major component (e.g., ElasticsearchClient, HomeManagerClient)
+   - Test both success paths and error handling
+   - Test caching behavior where applicable
+   - Use parameterized tests for different input variations
+4. Test async components:
+   - Use pytest-asyncio for testing async code
+   - Properly wrap async tests with `async_to_sync` decorator for compatibility
+   - Be careful with exception handling tests in async context managers
+5. The test suite is designed to be resilient to API changes by checking response structure rather than exact content
+6. Current target code coverage is approximately 80%
 
 ## Package Distribution
 
