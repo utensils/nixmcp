@@ -32,12 +32,19 @@ The codebase follows a modular architecture:
 
 - `nixmcp/__init__.py` - Package version and metadata
 - `nixmcp/__main__.py` - Entry point for direct execution
-- `nixmcp/cache/` - Caching components (SimpleCache)
-- `nixmcp/clients/` - API clients (ElasticsearchClient, HomeManagerClient)
+- `nixmcp/cache/` - Caching components:
+  - `simple_cache.py` - In-memory caching with TTL and size limits
+  - `html_cache.py` - Cross-platform filesystem caching for HTML content
+- `nixmcp/clients/` - API clients:
+  - `elasticsearch_client.py` - Client for NixOS Elasticsearch API
+  - `home_manager_client.py` - Client for parsing Home Manager docs
+  - `html_client.py` - HTTP client with filesystem caching
 - `nixmcp/contexts/` - Application contexts (NixOSContext, HomeManagerContext)
 - `nixmcp/resources/` - MCP resource definitions
 - `nixmcp/tools/` - MCP tool implementations
-- `nixmcp/utils/` - Utility functions and helpers
+- `nixmcp/utils/` - Utility functions and helpers:
+  - `cache_helpers.py` - Cross-platform cache directory management
+  - `helpers.py` - General utility functions
 - `nixmcp/logging.py` - Centralized logging configuration
 - `nixmcp/server.py` - FastMCP server implementation
 
@@ -147,6 +154,11 @@ Both tools above support the `channel` parameter with values:
 
 ### Home Manager Documentation (Home Manager features)
 - Fetches and parses HTML docs from nix-community.github.io/home-manager/
+- HTML content is cached to disk using a cross-platform filesystem cache:
+  - Uses OS-specific standard cache locations
+  - Implements proper TTL expiration of cached content
+  - Provides fallback mechanisms and error handling
+  - Tracks detailed cache statistics for monitoring
 - Options are indexed in memory with specialized search indices
 - Background loading avoids blocking server startup
 - Related options are automatically suggested based on hierarchical paths
@@ -154,7 +166,14 @@ Both tools above support the `channel` parameter with values:
 ## Configuration
 - `LOG_LEVEL`: Set logging level (default: INFO)
 - `LOG_FILE`: Optional log file path (default: logs to stdout/stderr)
+- `NIXMCP_CACHE_DIR`: Custom directory for filesystem cache (default: OS-specific standard location)
+- `NIXMCP_CACHE_TTL`: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
 - Environment variables for Elasticsearch API credentials (see above)
+
+### Cache Directory Locations
+- Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
+- macOS: `~/Library/Caches/nixmcp/`
+- Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
 
 ## Testing
 - Use pytest with code coverage reporting (target: 80%)

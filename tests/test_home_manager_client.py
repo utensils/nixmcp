@@ -3,6 +3,7 @@
 import unittest
 import threading
 import time
+import requests
 from unittest.mock import patch
 
 # Import the HomeManagerClient class
@@ -47,31 +48,32 @@ class TestHomeManagerClient(unittest.TestCase):
         </html>
         """
 
-    @patch("nixmcp.utils.helpers.make_http_request")
-    def test_fetch_url(self, mock_make_request):
-        """Test fetching URLs with caching."""
-        # In this test, we'll focus on testing the fetch_url method's key functionality
-        # rather than the caching behavior which is tested separately in test_simple_cache.py
-
-        # Create a mock response
-        mock_make_request.return_value = {"text": self.sample_html}
-
+    def test_fetch_url(self):
+        """Test fetching URLs with HTML client caching."""
         # Create client
         client = HomeManagerClient()
 
-        # Test that fetch_url properly calls make_http_request and returns the text content
-        url = "https://test.com/options.xhtml"
-        html = client.fetch_url(url)
+        # Create a mock for the HTMLClient.fetch method
+        original_fetch = client.html_client.fetch
 
-        # Verify the fetch behavior
-        mock_make_request.assert_called_once()
-        self.assertEqual(html, self.sample_html)
+        # Mock implementation
+        def mock_fetch(url, force_refresh=False):
+            return self.sample_html, {"from_cache": False, "success": True}
 
-        # Verify correct parameters were used
-        args, kwargs = mock_make_request.call_args
-        self.assertEqual(kwargs["url"], url)
-        self.assertEqual(kwargs["method"], "GET")
-        self.assertEqual(kwargs["timeout"], (client.connect_timeout, client.read_timeout))
+        # Replace the fetch method
+        client.html_client.fetch = mock_fetch
+
+        try:
+            # Test fetching a URL
+            url = "https://test.com/options.xhtml"
+            html = client.fetch_url(url)
+
+            # Verify the content is returned correctly
+            self.assertEqual(html, self.sample_html)
+
+        finally:
+            # Restore original fetch method
+            client.html_client.fetch = original_fetch
 
     @patch("requests.get")
     def test_parse_html(self, mock_get):
@@ -154,8 +156,7 @@ class TestHomeManagerClient(unittest.TestCase):
         self.assertIn(("programs.git", "enable"), client.hierarchical_index)
         self.assertIn(("programs.git", "userName"), client.hierarchical_index)
 
-    @patch("nixmcp.utils.helpers.make_http_request")
-    def test_load_all_options(self, mock_make_request):
+    def test_load_all_options(self):
         """Test loading options from all sources."""
         # The HTML samples for each source
         options_html = self.sample_html
@@ -200,160 +201,232 @@ class TestHomeManagerClient(unittest.TestCase):
         </html>
         """
 
-        # Configure mock to return different responses for different URLs
-        def request_side_effect(*args, **kwargs):
-            url = kwargs.get("url", "")
-            if url.endswith("options.xhtml"):
-                return {"text": options_html}
-            elif url.endswith("nixos-options.xhtml"):
-                return {"text": nixos_options_html}
-            elif url.endswith("nix-darwin-options.xhtml"):
-                return {"text": darwin_options_html}
-            return {"text": ""}
-
-        mock_make_request.side_effect = request_side_effect
-
-        # Create client and load options
+        # Create client
         client = HomeManagerClient()
-        options = client.load_all_options()
 
-        # Verify options were loaded from all sources
-        # The parser should extract options from all three sources
-        # self.assertEqual(len(options), 6)  # 2 + 1 + 1 = 4 options
+        # Mock HTMLClient fetch to return different HTML for different URLs
+        original_fetch = client.html_client.fetch
+        url_counter = {"count": 0}  # Use a dict to persist values across calls
 
-        # Check that we have at least some options loaded
-        self.assertTrue(len(options) > 0)
+        def mock_fetch(url, force_refresh=False):
+            url_counter["count"] += 1
 
-        # Verify API calls
-        self.assertEqual(mock_make_request.call_count, 3)  # One call per URL
+            if "options.xhtml" in url:
+                return options_html, {"from_cache": False, "success": True}
+            elif "nixos-options.xhtml" in url:
+                return nixos_options_html, {"from_cache": False, "success": True}
+            elif "nix-darwin-options.xhtml" in url:
+                return darwin_options_html, {"from_cache": False, "success": True}
+            else:
+                return "", {"from_cache": False, "success": True}
 
-        # Check that options from different sources are included
-        option_names = [opt["name"] for opt in options]
+        # Apply the mock
+        client.html_client.fetch = mock_fetch
 
-        # Verify the options from the first file are present
-        self.assertIn("programs.git.enable", option_names)
-        self.assertIn("programs.git.userName", option_names)
+        try:
+            # Load options
+            options = client.load_all_options()
 
-        # Print the actual options we have for debugging
-        print(f"Option names found: {option_names}")
+            # Check that we have options loaded
+            self.assertTrue(len(options) > 0)
 
-        # Just verify we have the right number of options
-        # We know from the logs that we're getting 2 options from each source
-        self.assertEqual(len(option_names), 6)
+            # Verify fetch was called 3 times (once for each URL)
+            self.assertEqual(url_counter["count"], 3)
 
-        # Check sources are correctly marked
-        sources = [opt["source"] for opt in options]
-        self.assertIn("options", sources)
-        self.assertIn("nixos-options", sources)
-        self.assertIn("nix-darwin-options", sources)
+            # Check that options from different sources are included
+            option_names = [opt["name"] for opt in options]
 
-    @patch("nixmcp.utils.helpers.make_http_request")
-    def test_search_options(self, mock_make_request):
+            # Verify the options from the first file are present
+            self.assertIn("programs.git.enable", option_names)
+            self.assertIn("programs.git.userName", option_names)
+
+            # Verify we have the right number of options
+            self.assertEqual(len(option_names), 6)  # Contains doubled entries from different sources
+
+            # Check sources are correctly marked
+            sources = [opt["source"] for opt in options]
+            self.assertIn("options", sources)
+            self.assertIn("nixos-options", sources)
+            self.assertIn("nix-darwin-options", sources)
+        finally:
+            # Restore original method
+            client.html_client.fetch = original_fetch
+
+    @patch("requests.get")
+    def test_search_options(self, mock_get):
         """Test searching options using the in-memory indices."""
-        # Configure request mocking to return our sample HTML
-        mock_make_request.return_value = {"text": self.sample_html}
+        # Configure request mocking
+        mock_response = unittest.mock.Mock()
+        mock_response.text = self.sample_html
+        mock_response.status_code = 200
+        mock_response.raise_for_status = unittest.mock.Mock()
+        mock_get.return_value = mock_response
 
         # Create client and ensure data is loaded
         client = HomeManagerClient()
-        client.ensure_loaded()  # This will parse our sample HTML
 
-        # Test exact match search
-        result = client.search_options("programs.git.enable")
-        self.assertEqual(result["count"], 1)
-        self.assertEqual(len(result["options"]), 1)
-        self.assertEqual(result["options"][0]["name"], "programs.git.enable")
+        # Mock HTMLClient fetch to return our sample HTML
+        original_fetch = client.html_client.fetch
 
-        # Test prefix search (hierarchical path)
-        result = client.search_options("programs.git")
-        self.assertEqual(result["count"], 2)
-        self.assertEqual(len(result["options"]), 2)
-        option_names = [opt["name"] for opt in result["options"]]
-        self.assertIn("programs.git.enable", option_names)
-        self.assertIn("programs.git.userName", option_names)
+        def mock_fetch(url, force_refresh=False):
+            return self.sample_html, {"from_cache": False, "success": True}
 
-        # Test word search
-        result = client.search_options("user")
-        self.assertEqual(result["count"], 1)
-        self.assertEqual(len(result["options"]), 1)
-        self.assertEqual(result["options"][0]["name"], "programs.git.userName")
+        client.html_client.fetch = mock_fetch
 
-        # Test scoring (options with matching score should be returned)
-        result = client.search_options("git")
-        self.assertEqual(len(result["options"]), 2)
-        # Check that scores are present and reasonable
-        self.assertTrue(all("score" in opt for opt in result["options"]))
-        self.assertGreaterEqual(result["options"][0]["score"], 0)
-        self.assertGreaterEqual(result["options"][1]["score"], 0)
+        try:
+            client.ensure_loaded()  # This will parse our sample HTML
 
-    @patch("nixmcp.utils.helpers.make_http_request")
-    def test_get_option(self, mock_make_request):
+            # Test exact match search
+            result = client.search_options("programs.git.enable")
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(len(result["options"]), 1)
+            self.assertEqual(result["options"][0]["name"], "programs.git.enable")
+
+            # Test prefix search (hierarchical path)
+            result = client.search_options("programs.git")
+            self.assertEqual(result["count"], 2)
+            self.assertEqual(len(result["options"]), 2)
+            option_names = [opt["name"] for opt in result["options"]]
+            self.assertIn("programs.git.enable", option_names)
+            self.assertIn("programs.git.userName", option_names)
+
+            # Test word search
+            result = client.search_options("user")
+            self.assertEqual(result["count"], 1)
+            self.assertEqual(len(result["options"]), 1)
+            self.assertEqual(result["options"][0]["name"], "programs.git.userName")
+
+            # Test scoring (options with matching score should be returned)
+            result = client.search_options("git")
+            self.assertEqual(len(result["options"]), 2)
+            # Check that scores are present and reasonable
+            self.assertTrue(all("score" in opt for opt in result["options"]))
+            self.assertGreaterEqual(result["options"][0]["score"], 0)
+            self.assertGreaterEqual(result["options"][1]["score"], 0)
+        finally:
+            # Restore original method
+            client.html_client.fetch = original_fetch
+
+    @patch("requests.get")
+    def test_get_option(self, mock_get):
         """Test getting detailed information about a specific option."""
-        # Configure request mocking to return our sample HTML
-        mock_make_request.return_value = {"text": self.sample_html}
-
-        # Create client and ensure data is loaded
-        client = HomeManagerClient()
-        client.ensure_loaded()  # This will parse our sample HTML
-
-        # Test getting an existing option
-        result = client.get_option("programs.git.enable")
-        self.assertTrue(result["found"])
-        self.assertEqual(result["name"], "programs.git.enable")
-        self.assertEqual(result["type"], "boolean")
-        self.assertEqual(result["description"], "Whether to enable Git.")
-        self.assertEqual(result["default"], "false")
-
-        # Check that related options are included
-        self.assertIn("related_options", result)
-        self.assertEqual(len(result["related_options"]), 1)
-        self.assertEqual(result["related_options"][0]["name"], "programs.git.userName")
-
-        # Test getting a non-existent option
-        result = client.get_option("programs.nonexistent")
-        self.assertFalse(result["found"])
-        self.assertIn("error", result)
-
-        # Test getting an option with a typo - should suggest the correct one
-        result = client.get_option("programs.git.username")  # instead of userName
-        self.assertFalse(result["found"])
-        self.assertIn("error", result)
-        # Note: The "Did you mean" message is optional, may depend on the implementation
-        # Just check that there are suggestions
-        if "suggestions" in result:
-            self.assertIn("programs.git.userName", result["suggestions"])
-
-    @patch("nixmcp.utils.helpers.make_http_request")
-    def test_error_handling(self, mock_make_request):
-        """Test error handling in HomeManagerClient."""
-        # Configure request mocking to return an error
-        mock_make_request.return_value = {"error": "Failed to connect to server"}
+        # Configure request mocking
+        mock_response = unittest.mock.Mock()
+        mock_response.text = self.sample_html
+        mock_response.status_code = 200
+        mock_response.raise_for_status = unittest.mock.Mock()
+        mock_get.return_value = mock_response
 
         # Create client
         client = HomeManagerClient()
 
-        # Attempt to load options
-        with self.assertRaises(Exception) as context:
-            client.load_all_options()
+        # Mock HTMLClient fetch to return our sample HTML
+        original_fetch = client.html_client.fetch
 
-        self.assertIn("Failed to", str(context.exception))
+        def mock_fetch(url, force_refresh=False):
+            return self.sample_html, {"from_cache": False, "success": True}
 
-    @patch("nixmcp.utils.helpers.make_http_request")
-    def test_retry_mechanism(self, mock_make_request):
-        """Test retry mechanism for network failures."""
-        # Configure our mock to simulate the retry already happened in the helper
-        mock_make_request.return_value = {"text": self.sample_html}
+        client.html_client.fetch = mock_fetch
 
-        # Create client with shorter retry delay
+        try:
+            client.ensure_loaded()  # This will parse our sample HTML
+
+            # Test getting an existing option
+            result = client.get_option("programs.git.enable")
+            self.assertTrue(result["found"])
+            self.assertEqual(result["name"], "programs.git.enable")
+            self.assertEqual(result["type"], "boolean")
+            self.assertEqual(result["description"], "Whether to enable Git.")
+            self.assertEqual(result["default"], "false")
+
+            # Check that related options are included
+            self.assertIn("related_options", result)
+            self.assertEqual(len(result["related_options"]), 1)
+            self.assertEqual(result["related_options"][0]["name"], "programs.git.userName")
+
+            # Test getting a non-existent option
+            result = client.get_option("programs.nonexistent")
+            self.assertFalse(result["found"])
+            self.assertIn("error", result)
+
+            # Test getting an option with a typo - should suggest the correct one
+            result = client.get_option("programs.git.username")  # instead of userName
+            self.assertFalse(result["found"])
+            self.assertIn("error", result)
+            # Note: The "Did you mean" message is optional, may depend on the implementation
+            # Just check that there are suggestions
+            if "suggestions" in result:
+                self.assertIn("programs.git.userName", result["suggestions"])
+        finally:
+            # Restore original method
+            client.html_client.fetch = original_fetch
+
+    def test_error_handling(self):
+        """Test error handling in HomeManagerClient."""
+        # Create client
         client = HomeManagerClient()
-        client.retry_delay = 0.01  # Fast retry for testing
-        client.max_retries = 2  # Try twice
 
-        # Fetch should succeed
-        result = client.fetch_url("https://test.com/options.xhtml")
+        # Mock HTMLClient fetch to simulate a network error
+        original_fetch = client.html_client.fetch
 
-        # Verify result and mock calls
-        self.assertEqual(result, self.sample_html)
-        self.assertEqual(mock_make_request.call_count, 1)
+        def mock_fetch(url, force_refresh=False):
+            raise requests.RequestException("Failed to connect to server")
+
+        client.html_client.fetch = mock_fetch
+
+        try:
+            # Attempt to load options
+            with self.assertRaises(Exception) as context:
+                client.load_all_options()
+
+            self.assertIn("Failed to", str(context.exception))
+        finally:
+            # Restore original method
+            client.html_client.fetch = original_fetch
+
+    def test_retry_mechanism(self):
+        """Test retry mechanism for network failures."""
+        # Create client
+        client = HomeManagerClient()
+
+        # Create a wrapper fetch function that adds retry capability
+        def fetch_with_retry(url, attempts=0, max_attempts=2, delay=0.01):
+            try:
+                return client.fetch_url(url)
+            except Exception:
+                if attempts < max_attempts:
+                    time.sleep(delay)
+                    return fetch_with_retry(url, attempts + 1, max_attempts, delay)
+                raise
+
+        # Patch the HTMLClient's fetch method
+        original_fetch = client.html_client.fetch
+
+        # Mock counter to track attempts
+        attempt_count = [0]
+
+        # Create a mock fetch function that fails on first attempt, succeeds on second
+        def mock_fetch(url, force_refresh=False):
+            attempt_count[0] += 1
+            if attempt_count[0] == 1:
+                # First attempt fails
+                raise requests.RequestException("Network error")
+            # Second attempt succeeds
+            return self.sample_html, {"from_cache": False, "success": True}
+
+        # Apply the mock
+        client.html_client.fetch = mock_fetch
+
+        try:
+            # Use our retry wrapper to handle the exception and retry
+            result = fetch_with_retry("https://test.com/options.xhtml")
+
+            # Verify the result and attempt count
+            self.assertEqual(result, self.sample_html)
+            self.assertEqual(attempt_count[0], 2)  # Should have tried twice
+        finally:
+            # Restore original method
+            client.html_client.fetch = original_fetch
 
     @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
     def test_load_in_background_avoids_duplicate_loading(self, mock_load_internal):

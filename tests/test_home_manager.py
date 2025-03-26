@@ -89,10 +89,9 @@ class TestHomeManagerClient(unittest.TestCase):
         """Clean up after the test."""
         self.requests_get_patcher.stop()
 
-    @patch("nixmcp.utils.helpers.make_http_request")
-    def test_fetch_url(self, mock_make_request):
+    def test_fetch_url(self):
         """Test fetching HTML content from a URL."""
-        # Prepare the mock response for our utility
+        # Prepare mock HTML content
         mock_response_html = """
         <html>
             <body>
@@ -104,24 +103,39 @@ class TestHomeManagerClient(unittest.TestCase):
             </body>
         </html>
         """
-        mock_make_request.return_value = {"text": mock_response_html}
 
-        # Fetch a URL
-        url = "https://example.com/options.xhtml"
-        content = self.client.fetch_url(url)
+        # Save the original fetch method
+        original_fetch = self.client.html_client.fetch
 
-        # Verify make_http_request was called with the right parameters
-        mock_make_request.assert_called_once()
-        args, kwargs = mock_make_request.call_args
+        # Create a mock fetch method
+        mock_fetch_called = False
+        test_url = None
 
-        # Check params
-        self.assertEqual(kwargs["url"], url)
-        self.assertEqual(kwargs["method"], "GET")
-        self.assertEqual(kwargs["timeout"], (self.client.connect_timeout, self.client.read_timeout))
+        def mock_fetch(url, force_refresh=False):
+            nonlocal mock_fetch_called, test_url
+            mock_fetch_called = True
+            test_url = url
+            return mock_response_html, {"success": True, "from_cache": False}
 
-        # Verify the content was returned
-        self.assertIsNotNone(content)
-        self.assertIn('<div class="variablelist">', content)
+        # Replace the fetch method with our mock
+        try:
+            self.client.html_client.fetch = mock_fetch
+
+            # Fetch a URL
+            url = "https://example.com/options.xhtml"
+            content = self.client.fetch_url(url)
+
+            # Verify our mock was called
+            self.assertTrue(mock_fetch_called, "HTML client fetch method was not called")
+            self.assertEqual(test_url, url)
+
+            # Verify the content was returned
+            self.assertIsNotNone(content)
+            self.assertIn('<div class="variablelist">', content)
+
+        finally:
+            # Restore the original fetch method
+            self.client.html_client.fetch = original_fetch
 
     def test_parse_html(self):
         """Test parsing HTML content."""

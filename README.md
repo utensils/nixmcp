@@ -46,6 +46,10 @@ There. Was that so hard? Now your AI assistant can actually give you correct inf
 - Support for hierarchical paths like programs.git.* and services.postgresql.*
 - Related options and contextual suggestions for better discoverability
 - Background fetching and caching of documentation
+- Cross-platform filesystem caching of HTML content in OS-appropriate locations:
+  - Reduces network requests and improves performance
+  - Respects platform-specific cache directories
+  - Implements proper TTL expiration and cache management
 
 > **Future Feature:** IDE-style completions (MCP completion/complete protocol) will be added once the MCP SDK implementation is ready.
 
@@ -194,9 +198,19 @@ With this configuration:
 You can customize the server behavior with these environment variables:
 
 ```
-LOG_LEVEL=INFO        # Log level (DEBUG, INFO, WARNING, ERROR)
-NIX_MCP_LOG=/path/log # Optional: If set to a non-empty value, logs to this file; otherwise logs only to console
+LOG_LEVEL=INFO                # Log level (DEBUG, INFO, WARNING, ERROR)
+NIX_MCP_LOG=/path/log         # Optional: If set to a non-empty value, logs to this file; otherwise logs only to console
+NIXMCP_CACHE_DIR=/path/to/dir # Optional: Custom directory for filesystem cache (default: OS-specific standard location)
+NIXMCP_CACHE_TTL=86400        # Optional: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
 ```
+
+### Cache Directory Locations
+
+By default, NixMCP uses OS-specific standard locations for caching:
+
+- Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
+- macOS: `~/Library/Caches/nixmcp/`
+- Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
 
 ### NixOS Channel Support
 
@@ -362,12 +376,19 @@ The LLM will automatically fetch the requested information through the MCP serve
 
 NixMCP is organized into a modular structure for better maintainability and testing:
 
-- `nixmcp/cache/` - Caching components for better performance
-- `nixmcp/clients/` - API clients for Elasticsearch and Home Manager documentation
+- `nixmcp/cache/` - Caching components for better performance:
+  - `simple_cache.py` - In-memory caching with TTL and size limits
+  - `html_cache.py` - Cross-platform file-based caching for HTML content
+- `nixmcp/clients/` - API clients for Elasticsearch and Home Manager documentation:
+  - `elasticsearch_client.py` - Client for the NixOS Elasticsearch API
+  - `home_manager_client.py` - Client for parsing Home Manager documentation
+  - `html_client.py` - HTTP client with filesystem caching for web content
 - `nixmcp/contexts/` - Context objects that manage application state
 - `nixmcp/resources/` - MCP resource definitions for NixOS and Home Manager
 - `nixmcp/tools/` - MCP tool implementations for searching and retrieving data
-- `nixmcp/utils/` - Utility functions and helpers
+- `nixmcp/utils/` - Utility functions and helpers:
+  - `cache_helpers.py` - Cross-platform cache directory management
+  - `helpers.py` - Common utility functions
 - `nixmcp/logging.py` - Centralized logging configuration
 - `nixmcp/server.py` - Main entry point and server initialization
 
@@ -391,6 +412,17 @@ For Home Manager options, NixMCP implements what can only be described as a crim
    - Result scoring and relevance ranking (based on an algorithm best described as "vibes-based sorting")
 
 3. Background loading to avoid blocking server startup (because waiting for this monstrosity to initialize would test anyone's patience)
+
+4. Cross-platform filesystem caching for HTML content:
+   - Reduces network requests by caching HTML content on disk
+   - Uses platform-specific standard cache locations:
+     - Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
+     - macOS: `~/Library/Caches/nixmcp/`
+     - Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
+   - Implements MD5 hashing of URLs for cache filenames
+   - Automatic TTL-based expiration to refresh content
+   - Proper error handling and fallback mechanisms
+   - Cache statistics tracking for monitoring performance
 
 ## What is Model Context Protocol?
 

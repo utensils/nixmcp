@@ -3,6 +3,7 @@ Home Manager HTML parser and search engine.
 """
 
 import re
+import os
 import time
 import logging
 import threading
@@ -13,8 +14,9 @@ from bs4 import BeautifulSoup
 # Get logger
 logger = logging.getLogger("nixmcp")
 
-# Import SimpleCache
+# Import caches
 from nixmcp.cache.simple_cache import SimpleCache
+from nixmcp.clients.html_client import HTMLClient
 
 
 class HomeManagerClient:
@@ -29,8 +31,14 @@ class HomeManagerClient:
             "nix-darwin-options": "https://nix-community.github.io/home-manager/nix-darwin-options.xhtml",
         }
 
-        # Create cache for raw HTML content and parsed data
-        self.cache = SimpleCache(max_size=100, ttl=3600)  # 1 hour TTL
+        # Get cache TTL from environment or use default (24 hours)
+        self.cache_ttl = int(os.environ.get("NIXMCP_CACHE_TTL", 86400))
+
+        # Create cache for parsed data
+        self.cache = SimpleCache(max_size=100, ttl=self.cache_ttl)
+
+        # Create HTML client with filesystem caching
+        self.html_client = HTMLClient(ttl=self.cache_ttl)
 
         # In-memory data structures for search
         self.options = {}  # All options indexed by name
@@ -56,35 +64,42 @@ class HomeManagerClient:
 
         logger.info("Home Manager client initialized")
 
-    def fetch_url(self, url: str) -> str:
-        """Fetch HTML content from a URL with caching and error handling."""
-        # Import here to avoid circular imports
-        from nixmcp.utils.helpers import make_http_request
+    def fetch_url(self, url: str, force_refresh: bool = False) -> str:
+        """Fetch HTML content from a URL with filesystem caching and error handling.
 
-        # Use the shared HTTP utility function for the request
-        result = make_http_request(
-            url=url,
-            method="GET",
-            timeout=(self.connect_timeout, self.read_timeout),
-            max_retries=self.max_retries,
-            retry_delay=self.retry_delay,
-            cache=self.cache,
-        )
+        Args:
+            url: The URL to fetch HTML content from
+            force_refresh: Whether to bypass cache and force a refresh from the web
 
-        # Check for errors
-        if "error" in result:
-            error_msg = result["error"]
-            logger.error(f"Error fetching URL {url}: {error_msg}")
-            raise Exception(f"Failed to fetch URL: {error_msg}")
+        Returns:
+            The HTML content as a string
 
-        # Handle text responses
-        if "text" in result:
-            return result["text"]
+        Raises:
+            Exception: If there was an error fetching or parsing the content
+        """
+        logger.debug(f"Fetching URL with filesystem cache: {url}")
 
-        # If we get here, we have a JSON response but need text
-        # Convert it to a string as a fallback
-        logger.warning(f"Unexpected response format from {url}, converting to string")
-        return str(result)
+        try:
+            # Use our HTML client with filesystem caching
+            content, metadata = self.html_client.fetch(url, force_refresh=force_refresh)
+
+            # Check for errors
+            if content is None:
+                error_msg = metadata.get("error", "Unknown error")
+                logger.error(f"Error fetching URL {url}: {error_msg}")
+                raise Exception(f"Failed to fetch URL: {error_msg}")
+
+            # Log cache status
+            if metadata.get("from_cache", False):
+                logger.debug(f"Retrieved {url} from cache")
+            else:
+                logger.debug(f"Retrieved {url} from web")
+
+            return content
+
+        except Exception as e:
+            logger.error(f"Error in fetch_url for {url}: {str(e)}")
+            raise
 
     def parse_html(self, html: str, doc_type: str) -> List[Dict[str, Any]]:
         """Parse Home Manager HTML documentation and extract options."""
