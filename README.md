@@ -21,7 +21,10 @@ NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, sys
 - Improved code organization for better maintainability
 - Better separation of concerns for testing and extension
 
-### New in v0.1.2
+### New in v0.2.0
+- Completely refactored modular architecture for better maintainability
+- Improved entry point with proper Python module structure
+- Enhanced development workflow with clearer documentation
 - Complete Home Manager integration with HTML parsing of official documentation
 - In-memory search engine for fast option lookups
 - Support for hierarchical paths like programs.git.* and services.postgresql.*
@@ -171,8 +174,8 @@ To release a new version:
 2. Commit the changes
 3. Tag the release:
    ```bash
-   git tag v0.1.2  # Use semantic versioning
-   git push origin v0.1.2
+   git tag v0.2.0  # Use semantic versioning
+   git push origin v0.2.0
    ```
 
 The GitHub Actions workflow will automatically test and publish the new version to PyPI.
@@ -225,12 +228,14 @@ For local development and testing with Claude Desktop, add this configuration to
         "--isolated",
         "--with-requirements",
         "<path-to-cloned-repo>/requirements.txt",
-        "<path-to-cloned-repo>/nixmcp"
+        "-m",
+        "nixmcp.__main__"
       ],
       "cwd": "<path-to-cloned-repo>",
       "env": {
         "LOG_LEVEL": "DEBUG",
-        "LOG_FILE": "<path-to-cloned-repo>/nixmcp-server.log"
+        "LOG_FILE": "<path-to-cloned-repo>/nixmcp-server.log",
+        "PYTHONPATH": "<path-to-cloned-repo>"
       }
     }
   }
@@ -240,7 +245,9 @@ For local development and testing with Claude Desktop, add this configuration to
 This configuration:
 - Uses `uv run` with the `--isolated` flag to create a clean environment
 - Explicitly specifies requirements with `--with-requirements`
+- Uses the `-m nixmcp.__main__` module entry point
 - Sets the working directory to your repo location
+- Adds the project directory to PYTHONPATH for module resolution
 - Enables debug logging for development purposes
 
 ## Testing Approach

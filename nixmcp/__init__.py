@@ -5,4 +5,4 @@ This package provides MCP resources and tools for interacting with NixOS package
 system options, and Home Manager configuration options.
 """
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
