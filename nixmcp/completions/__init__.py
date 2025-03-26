@@ -7,7 +7,7 @@ and tools in NixMCP, enabling IDE-like code suggestions and tab completion.
 
 import logging
 import re
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any
 
 # Get logger
 logger = logging.getLogger("nixmcp")
@@ -100,7 +100,9 @@ async def complete_resource_uri(
         Dictionary with completion items
     """
     logger.info(f"Completing resource URI: {uri}")
-    logger.debug(f"Completion context - NixOS: {nixos_context is not None}, Home Manager: {home_manager_context is not None}")
+    logger.debug(
+        f"Completion context - NixOS: {nixos_context is not None}, Home Manager: {home_manager_context is not None}"
+    )
 
     # Get elasticsearch client
     es_client = nixos_context.get_es_client()
@@ -158,14 +160,18 @@ async def complete_resource_uri(
     elif re.match(HOME_MANAGER_OPTION_PATTERN, uri):
         partial_name = re.match(HOME_MANAGER_OPTION_PATTERN, uri).group(1)
         result = await complete_home_manager_option_name(partial_name, hm_client)
-        logger.debug(f"Home Manager option completion result for '{partial_name}': {len(result.get('items', []))} items")
+        logger.debug(
+            f"Home Manager option completion result for '{partial_name}': {len(result.get('items', []))} items"
+        )
         return result
 
     # Home Manager search completions
     elif re.match(HOME_MANAGER_SEARCH_PATTERN, uri):
         partial_query = re.match(HOME_MANAGER_SEARCH_PATTERN, uri).group(1)
         result = await complete_home_manager_option_name(partial_query, hm_client, is_search=True)
-        logger.debug(f"Home Manager search completion result for '{partial_query}': {len(result.get('items', []))} items")
+        logger.debug(
+            f"Home Manager search completion result for '{partial_query}': {len(result.get('items', []))} items"
+        )
         return result
 
     # Base resource URI completion (first level paths)
@@ -232,39 +238,55 @@ async def complete_tool_argument(
         Dictionary with completion items
     """
     logger.info(f"Completing tool argument: {tool_name}.{arg_name}={arg_value}")
-    logger.debug(f"Tool argument completion context - NixOS: {nixos_context is not None}, Home Manager: {home_manager_context is not None}")
+    logger.debug(
+        "Tool argument completion context - NixOS: "
+        f"{nixos_context is not None}, Home Manager: {home_manager_context is not None}"
+    )
 
     result = {"items": []}
 
     # NixOS search tool completions
     if tool_name == "nixos_search":
         result = await complete_nixos_search_arguments(arg_name, arg_value, nixos_context)
-        logger.debug(f"NixOS search tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
+        logger.debug(
+            f"NixOS search tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items"
+        )
 
     # NixOS info tool completions
     elif tool_name == "nixos_info":
         result = await complete_nixos_info_arguments(arg_name, arg_value, nixos_context)
-        logger.debug(f"NixOS info tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
+        logger.debug(
+            f"NixOS info tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items"
+        )
 
     # Home Manager search tool completions
     elif tool_name == "home_manager_search":
         result = await complete_home_manager_search_arguments(arg_name, arg_value, home_manager_context)
-        logger.debug(f"Home Manager search tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
+        logger.debug(
+            "Home Manager search tool completion result for "
+            f"'{arg_name}={arg_value}': {len(result.get('items', []))} items"
+        )
 
     # Home Manager info tool completions
     elif tool_name == "home_manager_info":
         result = await complete_home_manager_info_arguments(arg_name, arg_value, home_manager_context)
-        logger.debug(f"Home Manager info tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
+        logger.debug(
+            "Home Manager info tool completion result for "
+            f"'{arg_name}={arg_value}': {len(result.get('items', []))} items"
+        )
 
     # Home Manager options by prefix tool completions
     elif tool_name == "home_manager_options_by_prefix":
         result = await complete_home_manager_prefix_arguments(arg_name, arg_value, home_manager_context)
-        logger.debug(f"Home Manager prefix tool completion result for '{arg_name}={arg_value}': {len(result.get('items', []))} items")
+        logger.debug(
+            "Home Manager prefix tool completion result for "
+            f"'{arg_name}={arg_value}': {len(result.get('items', []))} items"
+        )
 
     # Fallback for unknown tools
     elif tool_name:
         logger.debug(f"No completion handler for tool: {tool_name}")
-    
+
     return result
 
 

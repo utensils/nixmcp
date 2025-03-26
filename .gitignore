@@ -66,3 +66,4 @@ nixmcp-server.log
 uv-*.lock
 .aider*
 .pypirc
+mcp-completion-docs.md

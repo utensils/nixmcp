@@ -3,8 +3,7 @@ Shared utility functions for MCP completions.
 """
 
 import logging
-import re
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict
 
 # Get logger
 logger = logging.getLogger("nixmcp")

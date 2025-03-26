@@ -5,7 +5,7 @@ This module provides completion handlers for Home Manager options and tools.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any
 
 from nixmcp.completions.utils import create_completion_item
 
@@ -152,11 +152,15 @@ async def complete_home_manager_search_arguments(
         try:
             current = int(arg_value) if arg_value else 0
             items = [
-                create_completion_item(str(l), str(l), f"Return up to {l} results") for l in limits if l >= current
+                create_completion_item(str(limit), str(limit), f"Return up to {limit} results")
+                for limit in limits
+                if limit >= current
             ]
         except ValueError:
             # If conversion fails, just return all options
-            items = [create_completion_item(str(l), str(l), f"Return up to {l} results") for l in limits]
+            items = [
+                create_completion_item(str(limit), str(limit), f"Return up to {limit} results") for limit in limits
+            ]
 
         return {"items": items}
 

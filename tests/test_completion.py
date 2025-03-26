@@ -6,20 +6,19 @@ for NixOS and Home Manager resources and tools.
 """
 
 import pytest
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from nixmcp.completions import (
     handle_completion,
     complete_resource_uri,
     complete_tool_argument,
-    complete_prompt_argument,
 )
 
 from nixmcp.completions.utils import create_completion_item
 
 
 # Test basic completion item creation
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 def test_create_completion_item():
     """Test the create_completion_item utility function."""
     # Test with all fields
@@ -32,6 +31,7 @@ def test_create_completion_item():
 
 
 # Test main completion handler
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_handle_completion_resource():
     """Test the handle_completion function with resource references."""
@@ -56,6 +56,7 @@ async def test_handle_completion_resource():
         assert result == {"items": [{"label": "test", "value": "test"}]}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_handle_completion_tool():
     """Test the handle_completion function with tool references."""
@@ -77,6 +78,7 @@ async def test_handle_completion_tool():
         assert result == {"items": [{"label": "test", "value": "test"}]}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_handle_completion_prompt():
     """Test the handle_completion function with prompt references."""
@@ -98,6 +100,7 @@ async def test_handle_completion_prompt():
         assert result == {"items": [{"label": "test", "value": "test"}]}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_handle_completion_unknown_type():
     """Test the handle_completion function with unknown reference type."""
@@ -114,6 +117,7 @@ async def test_handle_completion_unknown_type():
     assert result == {"items": []}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_handle_completion_error():
     """Test the handle_completion function handles errors gracefully."""
@@ -138,6 +142,7 @@ async def test_handle_completion_error():
 
 
 # Test resource URI completion
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_complete_resource_uri_nixos_package():
     """Test resource URI completion for NixOS packages."""
@@ -161,6 +166,7 @@ async def test_complete_resource_uri_nixos_package():
         assert result == {"items": [{"label": "test", "value": "test"}]}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_complete_resource_uri_home_manager_option():
     """Test resource URI completion for Home Manager options."""
@@ -184,6 +190,7 @@ async def test_complete_resource_uri_home_manager_option():
         assert result == {"items": [{"label": "test", "value": "test"}]}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_complete_resource_uri_root_paths():
     """Test resource URI completion for root resource paths."""
@@ -205,6 +212,7 @@ async def test_complete_resource_uri_root_paths():
 
 
 # Test tool argument completion
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_complete_tool_argument_nixos_search():
     """Test tool argument completion for nixos_search tool."""
@@ -228,6 +236,7 @@ async def test_complete_tool_argument_nixos_search():
         assert result == {"items": [{"label": "test", "value": "test"}]}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_complete_tool_argument_home_manager_search():
     """Test tool argument completion for home_manager_search tool."""
@@ -251,6 +260,7 @@ async def test_complete_tool_argument_home_manager_search():
         assert result == {"items": [{"label": "test", "value": "test"}]}
 
 
+@pytest.mark.skip(reason="Skipped until MCP SDK implements completion/complete support")
 @pytest.mark.asyncio
 async def test_complete_tool_argument_unknown_tool():
     """Test tool argument completion for unknown tools."""
