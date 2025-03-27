@@ -95,7 +95,10 @@ darwin_context = DarwinContext()
 # Define the lifespan context manager for app initialization
 @asynccontextmanager
 async def app_lifespan(mcp_server: FastMCP):
-    logger.info("Initializing NixMCP server")
+    # Import version at runtime to avoid circular imports
+    from nixmcp import __version__
+
+    logger.info(f"Initializing NixMCP server v{__version__}")
 
     # Start loading Home Manager data in background thread
     # This way the server can start up immediately without blocking
