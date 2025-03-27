@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "nixmcp"
 version = "0.1.3"
-description = "Model Context Protocol server for NixOS and Home Manager resources"
+description = "Model Context Protocol server for NixOS, Home Manager, and nix-darwin resources"
 readme = "README.md"
 authors = [
     {name = "James Brink", email = "james@utensils.io"},

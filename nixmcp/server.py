@@ -1,17 +1,20 @@
 """
-NixMCP Server - A MCP server for NixOS resources.
+NixMCP Server - A MCP server for NixOS, Home Manager, and nix-darwin resources.
 
 This implements a comprehensive FastMCP server that provides MCP resources and tools
-for querying NixOS packages and options using the Model Context Protocol (MCP).
+for querying NixOS packages and options, Home Manager configuration options, and 
+nix-darwin macOS configuration options using the Model Context Protocol (MCP).
 The server communicates via standard input/output streams using a JSON-based
 message format, allowing seamless integration with MCP-compatible AI models.
 
-This server connects to the NixOS ElasticSearch API to provide information about:
-- NixOS packages (name, version, description, programs)
-- NixOS options (configuration options for the system)
-- NixOS service configuration (like services.postgresql.*)
+This server provides information about:
+- NixOS packages (name, version, description, programs) via Elasticsearch API
+- NixOS options (configuration options for the system) via Elasticsearch API
+- NixOS service configuration (like services.postgresql.*) via Elasticsearch API
+- Home Manager options (user configuration options) via HTML documentation parsing
+- nix-darwin options (macOS configuration options) via HTML documentation parsing
 
-Elasticsearch Implementation Notes:
+Elasticsearch Implementation Notes (NixOS):
 -----------------------------------
 The server connects to the NixOS search Elasticsearch API with these details:
   - URL: https://search.nixos.org/backend/{index}/_search
@@ -20,7 +23,14 @@ The server connects to the NixOS search Elasticsearch API with these details:
   - Both packages and options are in the same index, distinguished by a "type" field
   - Hierarchical paths use a special query format with wildcards
 
-Based on the official NixOS search implementation.
+HTML Documentation Parsing (Home Manager and nix-darwin):
+-----------------------------------
+The server fetches and parses HTML documentation for Home Manager and nix-darwin:
+  - Home Manager: Documentation from nix-community.github.io/home-manager/
+  - nix-darwin: Documentation from daiderd.com/nix-darwin/manual/
+
+Based on the official NixOS search implementation with additional parsing for
+Home Manager and nix-darwin documentation.
 """
 
 from contextlib import asynccontextmanager

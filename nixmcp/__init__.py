@@ -1,8 +1,8 @@
 """
-NixMCP - Model Context Protocol server for NixOS and Home Manager resources.
+NixMCP - Model Context Protocol server for NixOS, Home Manager, and nix-darwin resources.
 
 This package provides MCP resources and tools for interacting with NixOS packages,
-system options, and Home Manager configuration options.
+system options, Home Manager configuration options, and nix-darwin macOS configuration options.
 """
 
 try:

@@ -7,7 +7,7 @@
 
 > **⚠️ UNDER ACTIVE DEVELOPMENT**: NixMCP is being actively maintained and improved.
 
-NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, and Home Manager configuration options to AI models. It provides up-to-date information about both NixOS and Home Manager resources, reducing hallucinations and outdated information.
+NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, Home Manager configuration options, and nix-darwin macOS configuration options to AI models. It provides up-to-date information about NixOS, Home Manager, and nix-darwin resources, reducing hallucinations and outdated information.
 
 > **NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
 
@@ -33,9 +33,10 @@ There. Was that so hard? Now your AI assistant can actually give you correct inf
 
 ## Features
 
-- Complete MCP server implementation for NixOS and Home Manager resources
+- Complete MCP server implementation for NixOS, Home Manager, and nix-darwin resources
 - Access to NixOS packages and system options through the NixOS Elasticsearch API
 - Access to Home Manager configuration options through in-memory parsed documentation
+- Access to nix-darwin macOS configuration options through in-memory parsed documentation
 - Get detailed package, system option, and Home Manager option metadata
 - Connect seamlessly with Claude and other MCP-compatible AI models
 - Rich search capabilities with automatic wildcard matching and hierarchical path support
@@ -55,7 +56,7 @@ There. Was that so hard? Now your AI assistant can actually give you correct inf
 
 ## MCP Implementation
 
-The server implements both MCP resources and tools for accessing NixOS and Home Manager information:
+The server implements both MCP resources and tools for accessing NixOS, Home Manager, and nix-darwin information:
 
 ### MCP Resources
 
@@ -101,6 +102,29 @@ The server implements both MCP resources and tools for accessing NixOS and Home 
 - `home-manager://options/xsession` - X session configuration for the X11 diehards
 - `home-manager://options/prefix/{option_prefix}` - Choose your own adventure with any option prefix
 
+#### nix-darwin Resources
+- `darwin://status` - Check if the nix-darwin context is loaded and ready
+- `darwin://search/options/{query}` - Search for macOS configuration options
+- `darwin://option/{option_name}` - Get details about a specific nix-darwin option
+- `darwin://options/stats` - Get statistics about nix-darwin options
+- `darwin://options/list` - List all top-level nix-darwin option categories
+- `darwin://options/documentation` - Documentation and manual options
+- `darwin://options/environment` - Environment and shell configuration 
+- `darwin://options/fonts` - Font management on macOS
+- `darwin://options/homebrew` - Integration with Homebrew package manager
+- `darwin://options/launchd` - macOS service management with launchd
+- `darwin://options/networking` - macOS networking configuration
+- `darwin://options/nix` - Nix package manager configuration
+- `darwin://options/nixpkgs` - Nixpkgs configuration and customization
+- `darwin://options/power` - Power management settings
+- `darwin://options/programs` - macOS application configuration
+- `darwin://options/security` - Security-related options
+- `darwin://options/services` - System services configuration
+- `darwin://options/system` - macOS system-level settings
+- `darwin://options/time` - Time and timezone settings
+- `darwin://options/users` - User account configuration
+- `darwin://options/prefix/{option_prefix}` - Get all options under any specific prefix
+
 ### MCP Tools
 
 #### NixOS Tools
@@ -112,6 +136,15 @@ The server implements both MCP resources and tools for accessing NixOS and Home 
 - `home_manager_search` - Search for Home Manager configuration options
 - `home_manager_info` - Get detailed information about a specific Home Manager option
 - `home_manager_stats` - Get statistics about Home Manager options
+- `home_manager_list_options` - List all top-level Home Manager option categories
+- `home_manager_options_by_prefix` - Get all options under a specific prefix
+
+#### nix-darwin Tools
+- `darwin_search` - Search for nix-darwin configuration options
+- `darwin_info` - Get detailed information about a specific nix-darwin option
+- `darwin_stats` - Get statistics about nix-darwin options
+- `darwin_list_options` - List all top-level nix-darwin option categories
+- `darwin_options_by_prefix` - Get all options under a specific prefix
 
 #### Tool Usage Examples
 
@@ -144,6 +177,28 @@ home_manager_info(name="programs.firefox.enable")
 
 # Get Home Manager statistics
 home_manager_stats()
+
+# List all top-level Home Manager option categories
+home_manager_list_options()
+
+# Get all options under a specific prefix
+home_manager_options_by_prefix(option_prefix="programs.git")
+
+# nix-darwin examples
+# Search for nix-darwin options
+darwin_search(query="system.defaults.dock")
+
+# Get nix-darwin option details
+darwin_info(name="services.yabai.enable")
+
+# Get nix-darwin statistics
+darwin_stats()
+
+# List all top-level nix-darwin option categories
+darwin_list_options()
+
+# Get all options under a specific prefix
+darwin_options_by_prefix(option_prefix="system.defaults")
 ```
 
 ## Installation
@@ -213,7 +268,7 @@ By default, NixMCP uses OS-specific standard locations for caching:
 - Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
 
 The cache system stores multiple types of data:
-- Raw HTML content from Home Manager documentation
+- Raw HTML content from Home Manager and nix-darwin documentation
 - Serialized structured data (options metadata, statistics)
 - Binary serialized complex data structures (search indices, dictionaries)
 
@@ -363,6 +418,9 @@ What options are available for configuring Git in Home Manager?
 Tell me about the Firefox profiles option in Home Manager.
 ~home-manager://option/programs.firefox.profiles
 
+What macOS dock options are available in nix-darwin?
+~darwin://search/options/system.defaults.dock
+
 # Tool usage for NixOS
 Search for PostgreSQL options in NixOS:
 ~nixos_search(query="postgresql", type="options")
@@ -376,9 +434,16 @@ Search for shell configuration options:
 
 Get details about Git username configuration:
 ~home_manager_info(name="programs.git.userName")
+
+# Tool usage for nix-darwin
+Search for window manager options in nix-darwin:
+~darwin_search(query="services.yabai")
+
+Get details about macOS dock autohide setting:
+~darwin_info(name="system.defaults.dock.autohide")
 ```
 
-The LLM will automatically fetch the requested information through the MCP server and use the appropriate tools based on whether you're asking about NixOS system-level configuration or Home Manager user-level configuration.
+The LLM will automatically fetch the requested information through the MCP server and use the appropriate tools based on whether you're asking about NixOS system-level configuration, Home Manager user-level configuration, or nix-darwin macOS configuration.
 
 ## Implementation Details
 
@@ -389,13 +454,23 @@ NixMCP is organized into a modular structure for better maintainability and test
 - `nixmcp/cache/` - Caching components for better performance:
   - `simple_cache.py` - In-memory caching with TTL and size limits
   - `html_cache.py` - Multi-format filesystem caching (HTML, JSON, binary data)
-- `nixmcp/clients/` - API clients for Elasticsearch and Home Manager documentation:
+- `nixmcp/clients/` - API clients for Elasticsearch, Home Manager, and nix-darwin documentation:
   - `elasticsearch_client.py` - Client for the NixOS Elasticsearch API
   - `home_manager_client.py` - Client for parsing and caching Home Manager data
+  - `darwin/darwin_client.py` - Client for parsing and caching nix-darwin data
   - `html_client.py` - HTTP client with filesystem caching for web content
-- `nixmcp/contexts/` - Context objects that manage application state
-- `nixmcp/resources/` - MCP resource definitions for NixOS and Home Manager
-- `nixmcp/tools/` - MCP tool implementations for searching and retrieving data
+- `nixmcp/contexts/` - Context objects that manage application state:
+  - `nixos_context.py` - Context for NixOS Elasticsearch API
+  - `home_manager_context.py` - Context for Home Manager documentation
+  - `darwin/darwin_context.py` - Context for nix-darwin documentation
+- `nixmcp/resources/` - MCP resource definitions for all platforms:
+  - `nixos_resources.py` - Resources for NixOS
+  - `home_manager_resources.py` - Resources for Home Manager
+  - `darwin/darwin_resources.py` - Resources for nix-darwin
+- `nixmcp/tools/` - MCP tool implementations for searching and retrieving data:
+  - `nixos_tools.py` - Tools for NixOS
+  - `home_manager_tools.py` - Tools for Home Manager
+  - `darwin/darwin_tools.py` - Tools for nix-darwin
 - `nixmcp/utils/` - Utility functions and helpers:
   - `cache_helpers.py` - Cross-platform cache directory management
   - `helpers.py` - Common utility functions
@@ -406,22 +481,21 @@ NixMCP is organized into a modular structure for better maintainability and test
 
 For NixOS packages and system options, NixMCP connects directly to the NixOS Elasticsearch API to provide real-time access to the latest package and system configuration data.
 
-### Home Manager Documentation Parser
+### HTML Documentation Parsers
 
-For Home Manager options, NixMCP implements what can only be described as a crime against HTML parsing:
+For Home Manager and nix-darwin options, NixMCP implements what can only be described as a crime against HTML parsing:
 
-1. An HTML documentation parser that somehow manages to extract structured data from Home Manager's documentation pages through a combination of BeautifulSoup incantations, regex black magic, and the kind of determination that only comes from staring at malformed HTML for 72 hours straight:
-   - https://nix-community.github.io/home-manager/options.xhtml
-   - https://nix-community.github.io/home-manager/nixos-options.xhtml
-   - https://nix-community.github.io/home-manager/nix-darwin-options.xhtml
+1. HTML documentation parsers that somehow manage to extract structured data from both Home Manager and nix-darwin documentation pages through a combination of BeautifulSoup incantations, regex black magic, and the kind of determination that only comes from staring at malformed HTML for 72 hours straight:
+   - Home Manager: https://nix-community.github.io/home-manager/options.xhtml
+   - nix-darwin: https://daiderd.com/nix-darwin/manual/index.html
 
-2. An in-memory search engine cobbled together with duct tape and wishful thinking:
+2. In-memory search engines cobbled together with duct tape and wishful thinking:
    - Inverted index for fast text search (when it doesn't fall over)
    - Prefix tree for hierarchical path lookups (a data structure that seemed like a good idea at 3 AM)
    - Option categorization by source and type (more accurate than a coin flip, usually)
    - Result scoring and relevance ranking (based on an algorithm best described as "vibes-based sorting")
 
-3. Background loading to avoid blocking server startup (because waiting for this monstrosity to initialize would test anyone's patience)
+3. Background loading to avoid blocking server startup (because waiting for these monstrosities to initialize would test anyone's patience)
 
 4. Multi-level caching system for improved performance and resilience:
    - HTML content cache to filesystem using cross-platform cache paths
@@ -444,7 +518,7 @@ For Home Manager options, NixMCP implements what can only be described as a crim
 
 The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. MCP uses a JSON-based message format exchanged over various transport mechanisms (typically standard input/output streams).
 
-This project implements the MCP specification using the FastMCP library, providing a bridge between AI models and both NixOS and Home Manager resources.
+This project implements the MCP specification using the FastMCP library, providing a bridge between AI models and NixOS, Home Manager, and nix-darwin resources.
 
 ## License
 
