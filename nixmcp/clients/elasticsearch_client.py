@@ -860,6 +860,31 @@ class ElasticsearchClient:
         # Execute the query
         return self.safe_elasticsearch_query(self.es_packages_url, request_data)
 
+    def count_options(self) -> Dict[str, Any]:
+        """
+        Get an accurate count of NixOS options using the Elasticsearch count API.
+
+        Returns:
+            Dict containing the count of options
+        """
+        logger.info("Getting accurate options count using count API")
+
+        # Use Elasticsearch's dedicated count API endpoint
+        count_endpoint = f"{self.es_options_url.replace('/_search', '/_count')}"
+
+        # Build a query to count only options
+        request_data = {"query": {"bool": {"filter": [{"term": {"type": {"value": "option"}}}]}}}
+
+        # Execute the count query
+        result = self.safe_elasticsearch_query(count_endpoint, request_data)
+
+        # Process the response (count API returns different format than search API)
+        if "error" in result:
+            return {"count": 0, "error": result["error"]}
+
+        count = result.get("count", 0)
+        return {"count": count}
+
     def get_package(self, package_name: str) -> Dict[str, Any]:
         """
         Get detailed information about a specific package.

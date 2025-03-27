@@ -497,46 +497,67 @@ def nixos_info(name: str, type: str = "package", channel: str = CHANNEL_UNSTABLE
         return f"Error retrieving information: {str(e)}"
 
 
-def nixos_stats(context=None) -> str:
+def nixos_stats(channel: str = CHANNEL_UNSTABLE, context=None) -> str:
     """
-    Get statistics about available NixOS packages.
+    Get statistics about available NixOS packages and options.
 
     Args:
+        channel: NixOS channel to check (default: "unstable", can also be "stable")
         context: Optional context object for dependency injection in tests
 
     Returns:
-        Statistics about NixOS packages
+        Statistics about NixOS packages and options
     """
-    logger.info("Getting package statistics")
+    logger.info(f"Getting NixOS statistics for channel '{channel}'")
 
     # Get context using the helper function
     context = get_context_or_fallback(context, "nixos_context")
 
+    # Set the channel for the search
+    context.es_client.set_channel(channel)
+    logger.info(f"Using channel: {channel}")
+
     try:
-        results = context.get_package_stats()
+        # Get package statistics
+        package_results = context.get_package_stats()
 
-        if "error" in results:
-            return f"Error getting statistics: {results['error']}"
+        # Get options count using the dedicated count API
+        options_results = context.count_options()
 
-        aggregations = results.get("aggregations", {})
+        # Check for errors in package stats
+        if "error" in package_results:
+            return f"Error getting package statistics: {package_results['error']}"
 
-        if not aggregations:
+        # Check for errors in options count
+        if "error" in options_results:
+            return f"Error getting options count: {options_results['error']}"
+
+        # Extract data
+        aggregations = package_results.get("aggregations", {})
+        options_count = options_results.get("count", 0)
+
+        if not aggregations and options_count == 0:
             return "No statistics available"
 
-        output = "# NixOS Package Statistics\n\n"
+        output = f"# NixOS Statistics (Channel: {channel})\n\n"
+
+        # Add options count
+        output += f"Total options: {options_count:,}\n\n"
+
+        output += "## Package Statistics\n\n"
 
         # Channel distribution
         channels = aggregations.get("channels", {}).get("buckets", [])
         if channels:
-            output += "## Distribution by Channel\n\n"
-            for channel in channels:
-                output += f"- {channel.get('key', 'Unknown')}: {channel.get('doc_count', 0)} packages\n"
+            output += "### Distribution by Channel\n\n"
+            for channel_item in channels:
+                output += f"- {channel_item.get('key', 'Unknown')}: {channel_item.get('doc_count', 0)} packages\n"
             output += "\n"
 
         # License distribution
         licenses = aggregations.get("licenses", {}).get("buckets", [])
         if licenses:
-            output += "## Top 10 Licenses\n\n"
+            output += "### Top 10 Licenses\n\n"
             for license in licenses:
                 output += f"- {license.get('key', 'Unknown')}: {license.get('doc_count', 0)} packages\n"
             output += "\n"
@@ -544,14 +565,14 @@ def nixos_stats(context=None) -> str:
         # Platform distribution
         platforms = aggregations.get("platforms", {}).get("buckets", [])
         if platforms:
-            output += "## Top 10 Platforms\n\n"
+            output += "### Top 10 Platforms\n\n"
             for platform in platforms:
                 output += f"- {platform.get('key', 'Unknown')}: {platform.get('doc_count', 0)} packages\n"
 
         return output
 
     except Exception as e:
-        logger.error(f"Error getting package statistics: {e}", exc_info=True)
+        logger.error(f"Error getting NixOS statistics: {e}", exc_info=True)
         return f"Error retrieving statistics: {str(e)}"
 
 

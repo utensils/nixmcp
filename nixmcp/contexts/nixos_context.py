@@ -79,3 +79,7 @@ class NixOSContext:
     def get_package_stats(self, query: str = "*") -> Dict[str, Any]:
         """Get statistics about NixOS packages."""
         return self.es_client.get_package_stats(query)
+
+    def count_options(self) -> Dict[str, Any]:
+        """Get an accurate count of NixOS options."""
+        return self.es_client.count_options()

@@ -151,8 +151,8 @@ Both tools above support the `channel` parameter with values:
   - `"unstable"`: Latest NixOS unstable channel (default)
   - `"stable"`: Current stable NixOS release (currently 24.11)
   - `"24.11"`: Specific version reference (same as "stable" currently)
-- `nixos_stats(context=None)`: 
-  Get statistical information about NixOS packages
+- `nixos_stats(channel="unstable", context=None)`: 
+  Get statistical information about NixOS packages and options, with accurate option counts using Elasticsearch's Count API
 
 ### Home Manager Tools
 - `home_manager_search(query, limit=20, context=None)`: 
@@ -201,6 +201,8 @@ Both tools above support the `channel` parameter with values:
   ELASTICSEARCH_PASSWORD=X8gPHnzL52wFEekuxsfQ9cSh
   ```
 - Supports multiple channels (unstable, 24.11) via different indices
+- Uses Elasticsearch's Count API for accurate option counts beyond the default 10,000 result limit
+- Provides enhanced search capabilities with field-specific boosts and query optimization
 
 ### HTML Documentation Parsing (Home Manager and nix-darwin features)
 - Fetches and parses HTML docs from:

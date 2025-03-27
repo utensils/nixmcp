@@ -23,7 +23,7 @@ When modifying or adding to this codebase, always:
 This ensures the codebase remains cohesive and maintainable.
 
 ## Project Overview
-NixMCP is a Model Context Protocol (MCP) server for NixOS resources and Home Manager configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, and Home Manager user configuration options. Communication happens over standard input/output streams using a JSON-based message format.
+NixMCP is a Model Context Protocol (MCP) server for NixOS resources, Home Manager configuration options, and nix-darwin macOS configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, Home Manager user configuration options, and nix-darwin macOS system configuration options. Communication happens over standard input/output streams using a JSON-based message format.
 
 **NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
 
@@ -38,10 +38,20 @@ The codebase follows a modular architecture:
 - `nixmcp/clients/` - API clients:
   - `elasticsearch_client.py` - Client for NixOS Elasticsearch API
   - `home_manager_client.py` - Client for parsing and caching Home Manager docs
+  - `darwin/darwin_client.py` - Client for parsing and caching nix-darwin docs
   - `html_client.py` - HTTP client with filesystem caching
-- `nixmcp/contexts/` - Application contexts (NixOSContext, HomeManagerContext)
-- `nixmcp/resources/` - MCP resource definitions
-- `nixmcp/tools/` - MCP tool implementations
+- `nixmcp/contexts/` - Application contexts:
+  - `nixos_context.py` - NixOS context
+  - `home_manager_context.py` - Home Manager context
+  - `darwin/darwin_context.py` - nix-darwin context
+- `nixmcp/resources/` - MCP resource definitions:
+  - `nixos_resources.py` - NixOS resources
+  - `home_manager_resources.py` - Home Manager resources
+  - `darwin/darwin_resources.py` - nix-darwin resources
+- `nixmcp/tools/` - MCP tool implementations:
+  - `nixos_tools.py` - NixOS tools
+  - `home_manager_tools.py` - Home Manager tools
+  - `darwin/darwin_tools.py` - nix-darwin tools
 - `nixmcp/utils/` - Utility functions and helpers:
   - `cache_helpers.py` - Cross-platform cache directory management
   - `helpers.py` - General utility functions
@@ -51,7 +61,7 @@ The codebase follows a modular architecture:
 ## MCP Implementation Guidelines
 
 ### Resource Definitions
-- Use `nixos://` scheme for NixOS resources, `home-manager://` for Home Manager
+- Use `nixos://` scheme for NixOS resources, `home-manager://` for Home Manager, `darwin://` for nix-darwin
 - Follow consistent path hierarchy: `scheme://category/action/parameter`
 - Place parameters in curly braces: `nixos://package/{package_name}`
 - Use type hints and clear docstrings 
@@ -68,8 +78,9 @@ The codebase follows a modular architecture:
 ### Context Management
 - Use lifespan context manager for resource initialization
 - Initialize shared resources at startup and clean up on shutdown:
-  - Home Manager data is eagerly loaded during server startup
+  - Home Manager and nix-darwin data are eagerly loaded during server startup
   - 10-second timeout with fallback to background loading for resilience
+  - Proper shutdown and cleanup of all contexts
 - Pass contexts to resources and tools that need them
 - Prefer dependency injection over global state access
 
@@ -104,6 +115,30 @@ The codebase follows a modular architecture:
   - `home-manager://options/home`
   - And many more (accounts, fonts, gtk, xdg, etc.)
 
+### nix-darwin Resources
+- `darwin://status`: nix-darwin context status information
+- `darwin://search/options/{query}`: nix-darwin options search
+- `darwin://option/{option_name}`: nix-darwin option information
+- `darwin://options/stats`: nix-darwin options statistics
+- `darwin://options/categories`: List of top-level option categories
+- `darwin://options/prefix/{option_prefix}`: Get options by prefix path
+- Category-specific endpoints for macOS configuration areas:
+  - `darwin://options/documentation`
+  - `darwin://options/environment`
+  - `darwin://options/fonts`
+  - `darwin://options/homebrew`
+  - `darwin://options/launchd`
+  - `darwin://options/networking`
+  - `darwin://options/nix`
+  - `darwin://options/nixpkgs`
+  - `darwin://options/power`
+  - `darwin://options/programs`
+  - `darwin://options/security`
+  - `darwin://options/services`
+  - `darwin://options/system`
+  - `darwin://options/time`
+  - `darwin://options/users`
+
 ## MCP Tools
 
 ### NixOS Tools
@@ -116,8 +151,8 @@ Both tools above support the `channel` parameter with values:
   - `"unstable"`: Latest NixOS unstable channel (default)
   - `"stable"`: Current stable NixOS release (currently 24.11)
   - `"24.11"`: Specific version reference (same as "stable" currently)
-- `nixos_stats(context=None)`: 
-  Get statistical information about NixOS packages
+- `nixos_stats(channel="unstable", context=None)`: 
+  Get statistical information about NixOS packages and options, with accurate option counts using Elasticsearch's Count API
 
 ### Home Manager Tools
 - `home_manager_search(query, limit=20, context=None)`: 
@@ -130,17 +165,30 @@ Both tools above support the `channel` parameter with values:
   List all top-level Home Manager option categories
 - `home_manager_options_by_prefix(option_prefix, context=None)`: 
   Get all Home Manager options under a specific prefix
+  
+### nix-darwin Tools
+- `darwin_search(query, limit=20, context=None)`: 
+  Search for nix-darwin options with automatic wildcard handling
+- `darwin_info(name, context=None)`: 
+  Get detailed information about a specific nix-darwin option
+- `darwin_stats(context=None)`: 
+  Get statistical information about nix-darwin options
+- `darwin_list_options(context=None)`: 
+  List all top-level nix-darwin option categories
+- `darwin_options_by_prefix(option_prefix, context=None)`: 
+  Get all nix-darwin options under a specific prefix
 
-## Searching for NixOS Options
+## Searching for Options
 
 ### Best Practices
 - Use full hierarchical paths for precise option searching:
-  - `services.postgresql` for all PostgreSQL options
-  - `services.nginx.virtualHosts` for nginx virtual hosts
+  - NixOS: `services.postgresql` for all PostgreSQL options
+  - Home Manager: `programs.git` for all Git options
+  - nix-darwin: `system.defaults.dock` for all dock options
   - Wildcards are automatically added where appropriate (services.postgresql*)
 - Service paths get special handling with automatic suggestions
 - Multiple query strategies are used: exact match, prefix match, wildcard match
-- Multiple channels are supported: unstable (default), stable (current release), or specific version (e.g., 24.11)
+- For NixOS specifically, multiple channels are supported: unstable (default), stable (current release), or specific version (e.g., 24.11)
 
 ## System Requirements
 
@@ -153,9 +201,13 @@ Both tools above support the `channel` parameter with values:
   ELASTICSEARCH_PASSWORD=X8gPHnzL52wFEekuxsfQ9cSh
   ```
 - Supports multiple channels (unstable, 24.11) via different indices
+- Uses Elasticsearch's Count API for accurate option counts beyond the default 10,000 result limit
+- Provides enhanced search capabilities with field-specific boosts and query optimization
 
-### Home Manager Documentation (Home Manager features)
-- Fetches and parses HTML docs from nix-community.github.io/home-manager/
+### HTML Documentation Parsing (Home Manager and nix-darwin features)
+- Fetches and parses HTML docs from:
+  - Home Manager: nix-community.github.io/home-manager/
+  - nix-darwin: daiderd.com/nix-darwin/manual/
 - Multi-level caching system for improved performance and resilience:
   - HTML content cache to filesystem using cross-platform cache paths
   - Processed in-memory data structures persisted to disk cache

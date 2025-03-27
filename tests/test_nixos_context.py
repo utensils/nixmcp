@@ -123,6 +123,21 @@ class TestNixOSContext(unittest.TestCase):
         # Verify the result
         self.assertEqual(result, expected_result)
 
+    def test_count_options(self):
+        """Test count_options method."""
+        # Configure mock
+        expected_result = {"count": 15432}
+        self.es_client_mock.count_options.return_value = expected_result
+
+        # Call the method
+        result = self.context.count_options()
+
+        # Verify the method called the client correctly
+        self.es_client_mock.count_options.assert_called_once()
+
+        # Verify the result
+        self.assertEqual(result, expected_result)
+
 
 if __name__ == "__main__":
     unittest.main()

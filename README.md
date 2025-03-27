@@ -130,7 +130,7 @@ The server implements both MCP resources and tools for accessing NixOS, Home Man
 #### NixOS Tools
 - `nixos_search` - Search for packages, options, or programs with automatic wildcard handling
 - `nixos_info` - Get detailed information about a specific package or option
-- `nixos_stats` - Get statistical information about NixOS packages
+- `nixos_stats` - Get statistical information about NixOS packages and options with accurate counts
 
 #### Home Manager Tools
 - `home_manager_search` - Search for Home Manager configuration options
@@ -165,8 +165,8 @@ nixos_info(name="nixos.firefox", type="package", channel="unstable")
 # Get option details
 nixos_info(name="services.postgresql.enable", type="option", channel="stable")
 
-# Get package statistics
-nixos_stats()
+# Get package and option statistics with accurate counts
+nixos_stats(channel="unstable")
 
 # Home Manager examples
 # Search for Home Manager options
@@ -479,7 +479,12 @@ NixMCP is organized into a modular structure for better maintainability and test
 
 ### NixOS API Integration
 
-For NixOS packages and system options, NixMCP connects directly to the NixOS Elasticsearch API to provide real-time access to the latest package and system configuration data.
+For NixOS packages and system options, NixMCP connects directly to the NixOS Elasticsearch API to provide real-time access to the latest package and system configuration data. It utilizes:
+
+- Elasticsearch's dedicated Count API for accurate option counts beyond the default 10,000 result limit
+- Enhanced search queries with field-specific boosts for better relevance
+- Multiple channel support (unstable, stable/24.11) for consistent search results
+- Comprehensive error handling and fallback mechanisms
 
 ### HTML Documentation Parsers
 

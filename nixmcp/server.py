@@ -259,11 +259,14 @@ async def app_lifespan(mcp_server: FastMCP):
     #### nixos_stats
 
     ```python
-    nixos_stats() -> str
+    nixos_stats(
+        channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
+    ) -> str
     ```
 
-    Example:
-    - `nixos_stats()` - Get statistics about NixOS packages
+    Examples:
+    - `nixos_stats()` - Get statistics about NixOS packages and options in the unstable channel
+    - `nixos_stats(channel="stable")` - Get statistics for the stable channel
 
     ### Home Manager Tools
 

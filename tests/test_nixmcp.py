@@ -561,48 +561,69 @@ class TestMCPTools(unittest.TestCase):
 
     def test_nixos_stats(self):
         """Test the nixos_stats tool."""
-        # Mock the get_package_stats method to return test data
-        with patch.object(NixOSContext, "get_package_stats") as mock_stats:
-            mock_stats.return_value = {
-                "aggregations": {
-                    "channels": {
-                        "buckets": [
-                            {"key": "nixos-unstable", "doc_count": 80000},
-                            {"key": "nixos-23.11", "doc_count": 75000},
-                        ]
-                    },
-                    "licenses": {
-                        "buckets": [
-                            {"key": "MIT", "doc_count": 20000},
-                            {"key": "GPL", "doc_count": 15000},
-                        ]
-                    },
-                    "platforms": {
-                        "buckets": [
-                            {"key": "x86_64-linux", "doc_count": 70000},
-                            {"key": "aarch64-linux", "doc_count": 60000},
-                        ]
-                    },
-                }
+        # Create a mock context rather than patching the class
+        mock_context = Mock()
+
+        # Configure the mock context
+        mock_context.get_package_stats.return_value = {
+            "aggregations": {
+                "channels": {
+                    "buckets": [
+                        {"key": "nixos-unstable", "doc_count": 80000},
+                        {"key": "nixos-23.11", "doc_count": 75000},
+                    ]
+                },
+                "licenses": {
+                    "buckets": [
+                        {"key": "MIT", "doc_count": 20000},
+                        {"key": "GPL", "doc_count": 15000},
+                    ]
+                },
+                "platforms": {
+                    "buckets": [
+                        {"key": "x86_64-linux", "doc_count": 70000},
+                        {"key": "aarch64-linux", "doc_count": 60000},
+                    ]
+                },
             }
+        }
 
-            # Import the tool function directly
-            from nixmcp.server import nixos_stats
+        # Add the mock count_options method with value greater than 10k
+        mock_context.count_options.return_value = {
+            "count": 15463,  # Some number well above 10k
+        }
 
-            # Call the tool function
-            result = nixos_stats()
+        # Create a mock for the es_client
+        mock_context.es_client = Mock()
 
-            # Verify the result
-            self.assertIn("# NixOS Package Statistics", result)
-            self.assertIn("## Distribution by Channel", result)
-            self.assertIn("nixos-unstable: 80000 packages", result)
-            self.assertIn("## Top 10 Licenses", result)
-            self.assertIn("MIT: 20000 packages", result)
-            self.assertIn("## Top 10 Platforms", result)
-            self.assertIn("x86_64-linux: 70000 packages", result)
+        # Import the tool function directly
+        from nixmcp.server import nixos_stats
 
-            # Verify the mock was called correctly
-            mock_stats.assert_called_once_with()
+        # Call the tool function with our mock context
+        result = nixos_stats(context=mock_context)
+
+        # Verify the result includes both package and options stats
+        self.assertIn("# NixOS Statistics", result)
+
+        # Check option count without hardcoding the exact number
+        self.assertIn("Total options:", result)
+        # Ensure it doesn't show exactly 10,000
+        self.assertNotIn("Total options: 10,000", result)
+        # Should show our mocked value
+        self.assertIn("15,463", result)
+
+        self.assertIn("## Package Statistics", result)
+        self.assertIn("### Distribution by Channel", result)
+        self.assertIn("nixos-unstable: 80000 packages", result)
+        self.assertIn("### Top 10 Licenses", result)
+        self.assertIn("MIT: 20000 packages", result)
+        self.assertIn("### Top 10 Platforms", result)
+        self.assertIn("x86_64-linux: 70000 packages", result)
+
+        # Verify the mocks were called correctly
+        mock_context.get_package_stats.assert_called_once()
+        mock_context.count_options.assert_called_once()
+        mock_context.es_client.set_channel.assert_called_once_with("unstable")
 
 
 class TestMCPResources(unittest.TestCase):

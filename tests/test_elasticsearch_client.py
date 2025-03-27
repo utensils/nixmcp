@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 # Import the ElasticsearchClient class
-from nixmcp.server import ElasticsearchClient
+from nixmcp.clients.elasticsearch_client import ElasticsearchClient
 
 
 class TestElasticsearchClient(unittest.TestCase):
@@ -140,6 +140,37 @@ class TestElasticsearchClient(unittest.TestCase):
         # Check the result
         self.assertIn("error", result)
         self.assertEqual("Invalid query syntax", result["error"])
+
+    @patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
+    def test_count_options(self, mock_safe_query):
+        """Test the count_options method."""
+        # Set up the mock to return a count response
+        mock_safe_query.return_value = {"count": 12345}
+
+        # Call the count_options method
+        result = self.client.count_options()
+
+        # Verify the result
+        self.assertEqual(result["count"], 12345)
+
+        # Verify the method called the count API endpoint
+        args, kwargs = mock_safe_query.call_args
+        self.assertIn("_count", args[0])  # First arg should contain _count endpoint
+        # The query is in the first argument (request_data) to safe_elasticsearch_query
+        self.assertTrue("query" in mock_safe_query.call_args[0][1], "Query should be in request data")
+
+    @patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
+    def test_count_options_error(self, mock_safe_query):
+        """Test handling errors in count_options method."""
+        # Set up the mock to return an error
+        mock_safe_query.return_value = {"error": "Count API failed"}
+
+        # Call the count_options method
+        result = self.client.count_options()
+
+        # Verify error handling
+        self.assertEqual(result["count"], 0)
+        self.assertEqual(result["error"], "Count API failed")
 
     @patch("nixmcp.utils.helpers.make_http_request")
     def test_search_packages_with_wildcard(self, mock_make_request):
