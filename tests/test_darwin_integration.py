@@ -1,10 +1,13 @@
 """Test integration of nix-darwin functionality."""
 
+import os
+import pathlib
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
 from nixmcp.clients.darwin.darwin_client import DarwinClient
 from nixmcp.contexts.darwin.darwin_context import DarwinContext
+from nixmcp.utils.cache_helpers import get_default_cache_dir
 from nixmcp.tools.darwin.darwin_tools import (
     darwin_search,
     darwin_info,
@@ -187,3 +190,65 @@ async def test_darwin_info_not_found(mock_darwin_context):
     mock_darwin_context.get_option = AsyncMock(return_value=None)
     result = await darwin_info("nonexistent.option", context=mock_darwin_context)
     assert "not found" in result
+
+
+def test_darwin_integration_cache_directory():
+    """
+    Test that a real DarwinContext and DarwinClient use the proper cache directory.
+
+    This is an integration test that verifies the fix for the issue where the client
+    was trying to create a 'darwin' directory in the current working directory
+    instead of using the proper OS-specific cache path.
+
+    This test also verifies that the client doesn't create cache files with empty data.
+    """
+    # We're just creating the objects, not actually loading data
+    context = DarwinContext()
+
+    # Verify the client exists and has an html_cache
+    assert context.client is not None
+    assert hasattr(context.client, "html_cache")
+
+    # Verify cache directory path
+    cache_dir = context.client.html_cache.cache_dir
+
+    # Ensure cache_dir is a proper path object
+    assert isinstance(cache_dir, pathlib.Path)
+
+    # Check it's not using the incorrect 'darwin' relative path
+    assert cache_dir != pathlib.Path("darwin")
+
+    # Check it's using a subdirectory of the default cache location
+    default_cache_dir = pathlib.Path(get_default_cache_dir())
+    assert str(cache_dir).startswith(str(default_cache_dir))
+
+    # The directory should exist and be writeable
+    assert cache_dir.exists()
+    assert os.access(str(cache_dir), os.W_OK)
+
+    # Check that there's no 'darwin' directory in current working directory
+    darwin_dir = pathlib.Path.cwd() / "darwin"
+    if darwin_dir.exists():
+        # If it does exist (maybe from previous tests), it shouldn't be
+        # the same as our cache directory
+        assert darwin_dir != cache_dir
+
+    # Get the cache key
+    cache_key = context.client.cache_key
+
+    # Check that no empty data files were created
+    json_path = context.client.html_client.cache._get_data_cache_path(cache_key)
+    # pickle_path not used but kept for reference
+    # pickle_path = context.client.html_client.cache._get_binary_data_cache_path(cache_key)
+
+    # If these exist, they should contain valid data (not empty)
+    if json_path.exists():
+        with open(json_path, "r") as f:
+            import json as json_module
+
+            data = json_module.load(f)
+            # Verify we don't have zero options cached
+            if "total_options" in data:
+                assert data["total_options"] > 0, "Cache has zero options - invalid data was cached"
+            if "options" in data:
+                assert len(data["options"]) > 0, "Cache has empty options dict - invalid data was cached"

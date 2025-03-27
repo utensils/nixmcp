@@ -474,6 +474,70 @@ class TestHomeManagerClient(unittest.TestCase):
         self.assertEqual(len(stats["by_type"]), 2)
         self.assertEqual(stats["by_type"]["boolean"], 2)
         self.assertEqual(stats["by_type"]["string"], 1)
+        
+    def test_cache_validation_zero_options(self):
+        """Test that cache with zero options is treated as invalid."""
+        # Save the original methods
+        original_load_from_cache = self.client._load_from_cache
+        original_html_client = self.client.html_client
+        
+        # Mock the cache responses
+        mock_data = {"options": {}, "options_count": 0, "timestamp": 123456}
+        mock_metadata = {"cache_hit": True}
+        mock_binary_data = {
+            "options_by_category": {},
+            "inverted_index": {},
+            "prefix_index": {},
+            "hierarchical_index": {}
+        }
+        mock_binary_metadata = {"cache_hit": True}
+        
+        # Create a mock HTML client
+        mock_html_client = MagicMock()
+        mock_html_client.cache.get_data.return_value = (mock_data, mock_metadata)
+        mock_html_client.cache.get_binary_data.return_value = (mock_binary_data, mock_binary_metadata)
+        
+        try:
+            # Replace the HTML client with our mock
+            self.client.html_client = mock_html_client
+            
+            # Call the real method, which should now validate against empty options
+            result = self.client._load_from_cache()
+            
+            # Verify we rejected the empty cache
+            self.assertFalse(result, "Cache with zero options should be rejected")
+            
+            # Confirm our validation logic is called
+            self.client.html_client.cache.get_data.assert_called_once()
+            self.client.html_client.cache.get_binary_data.assert_called_once()
+            
+        finally:
+            # Restore original methods
+            self.client._load_from_cache = original_load_from_cache
+            self.client.html_client = original_html_client
+            
+    def test_fallback_to_web_on_empty_cache(self):
+        """Test that client falls back to web loading when cache contains empty options."""
+        # Setup mocks
+        self.client.load_all_options = MagicMock(return_value=[
+            {"name": "test.option", "description": "Test option", "category": "Test"}
+        ])
+        self.client.build_search_indices = MagicMock()
+        self.client._save_in_memory_data = MagicMock(return_value=True)
+        
+        # Mock cache loading to return empty options
+        self.client._load_from_cache = MagicMock(return_value=False)
+        
+        # Call load data internal, should fall back to web loading
+        self.client._load_data_internal()
+        
+        # Verify it tried the cache first
+        self.client._load_from_cache.assert_called_once()
+        
+        # Verify fallback to web
+        self.client.load_all_options.assert_called_once()
+        self.client.build_search_indices.assert_called_once()
+        self.client._save_in_memory_data.assert_called_once()
 
 
 class TestHomeManagerContext(unittest.TestCase):

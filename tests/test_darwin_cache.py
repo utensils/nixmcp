@@ -4,6 +4,7 @@ import time
 import pytest
 import tempfile
 from datetime import datetime
+from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
 from nixmcp.clients.darwin.darwin_client import DarwinClient, DarwinOption
@@ -60,26 +61,58 @@ def real_cache_dir():
 
 @pytest.mark.asyncio
 async def test_save_to_filesystem_cache(mock_html_client):
-    """Test saving data to filesystem cache."""
+    """Test saving data to filesystem cache.
+
+    Note: This test now requires at least 10 options as we've added validation
+    to prevent caching small datasets.
+    """
     # Create client with our mock
     client = DarwinClient(html_client=mock_html_client)
 
-    # Populate data
-    client.options = {
-        "system.defaults.dock.autohide": DarwinOption(
-            name="system.defaults.dock.autohide",
-            description="Whether to automatically hide and show the dock.",
+    # Populate data with at least 10 options to meet the minimum validation criteria
+    client.options = {}
+    # Create 10 test options
+    for i in range(1, 11):
+        option_name = f"system.defaults.option{i}"
+        client.options[option_name] = DarwinOption(
+            name=option_name,
+            description=f"Test option {i} description",
             type="boolean",
             default="false",
         )
-    }
-    client.name_index["system"] = ["system.defaults.dock.autohide"]
-    client.name_index["system.defaults"] = ["system.defaults.dock.autohide"]
+
+    # Add the main test option
+    client.options["system.defaults.dock.autohide"] = DarwinOption(
+        name="system.defaults.dock.autohide",
+        description="Whether to automatically hide and show the dock.",
+        type="boolean",
+        default="false",
+    )
+
+    # Setup indices
+    client.name_index["system"] = ["system.defaults.dock.autohide"] + [
+        f"system.defaults.option{i}" for i in range(1, 11)
+    ]
+    client.name_index["system.defaults"] = ["system.defaults.dock.autohide"] + [
+        f"system.defaults.option{i}" for i in range(1, 11)
+    ]
     client.name_index["system.defaults.dock"] = ["system.defaults.dock.autohide"]
+
     client.word_index["dock"].add("system.defaults.dock.autohide")
     client.word_index["hide"].add("system.defaults.dock.autohide")
-    client.prefix_index["system"] = ["system.defaults.dock.autohide"]
-    client.total_options = 1
+    for i in range(1, 11):
+        client.word_index["option"].add(f"system.defaults.option{i}")
+
+    client.prefix_index["system"] = ["system.defaults.dock.autohide"] + [
+        f"system.defaults.option{i}" for i in range(1, 11)
+    ]
+    client.prefix_index["system.defaults"] = ["system.defaults.dock.autohide"] + [
+        f"system.defaults.option{i}" for i in range(1, 11)
+    ]
+    client.prefix_index["system.defaults.dock"] = ["system.defaults.dock.autohide"]
+
+    # Update total counts
+    client.total_options = 11  # 10 generic options + 1 specific option
     client.total_categories = 1
     client.last_updated = datetime.now()
 
@@ -96,7 +129,7 @@ async def test_save_to_filesystem_cache(mock_html_client):
     data = set_data_call[0][1]
     assert "options" in data
     assert "total_options" in data
-    assert data["total_options"] == 1
+    assert data["total_options"] == 11  # Now we're testing with 11 options
     assert "last_updated" in data
 
     # Verify options were serialized as dictionaries (not DarwinOption objects)
@@ -152,10 +185,25 @@ async def test_load_from_filesystem_cache(mock_html_client):
         "parent": None,
     }
 
+    # Create 10 options to meet minimum requirement
+    option_dicts = {}
+    option_dicts["system.defaults.dock.autohide"] = option_dict
+    for i in range(1, 15):  # Add 14 more options to be safe
+        option_dicts[f"system.defaults.option{i}"] = {
+            "name": f"system.defaults.option{i}",
+            "description": f"Test option {i} description",
+            "type": "boolean",
+            "default": "false",
+            "example": "",
+            "declared_by": "",
+            "sub_options": [],
+            "parent": None,
+        }
+
     # Configure mocks to return cache hits with dictionary options
     serialized_cache_data = {
-        "options": {"system.defaults.dock.autohide": option_dict},
-        "total_options": 1,
+        "options": option_dicts,
+        "total_options": len(option_dicts),
         "total_categories": 1,
         "last_updated": datetime.now().isoformat(),
         "timestamp": 123456789.0,
@@ -169,9 +217,9 @@ async def test_load_from_filesystem_cache(mock_html_client):
 
     # Check results
     assert result is True
-    assert len(client.options) == 1
+    assert len(client.options) == 15  # Account for our expanded list of options
     assert "system.defaults.dock.autohide" in client.options
-    assert client.total_options == 1
+    assert client.total_options == 15  # Should match the options count
     assert client.total_categories == 1
 
     # Verify dictionary was converted back to DarwinOption object
@@ -255,6 +303,68 @@ async def test_invalidate_cache(mock_html_client):
         # Verify filesystem cache invalidation calls
         mock_html_client.cache.invalidate_data.assert_called_once_with(client.cache_key)
         mock_html_client.cache.invalidate.assert_called_once_with(client.OPTION_REFERENCE_URL)
+
+
+@pytest.mark.asyncio
+async def test_empty_dataset_not_cached(real_cache_dir):
+    """
+    Test that empty datasets are not cached to prevent bad data persistence.
+
+    This test uses a real temporary directory for cache storage to verify
+    that empty datasets don't get written to disk.
+    """
+    # Create a cache with a normal TTL
+    ttl = 86400
+
+    # Use a real HTMLClient with the temporary directory
+    html_client = HTMLClient(cache_dir=real_cache_dir, ttl=ttl)
+
+    # Create the DarwinClient with our real cache
+    darwin_client = DarwinClient(html_client=html_client, cache_ttl=ttl)
+
+    # Setup an empty dataset
+    darwin_client.options = {}
+    darwin_client.total_options = 0
+    darwin_client.total_categories = 0
+    darwin_client.name_index = {}
+    darwin_client.word_index = defaultdict(set)
+    darwin_client.prefix_index = {}
+    darwin_client.last_updated = datetime.now()
+
+    # Try to save it to the filesystem
+    result = await darwin_client._save_to_filesystem_cache()
+
+    # Should fail to cache empty dataset
+    assert result is False
+
+    # Check no cache files were created for data
+    cache_key = darwin_client.cache_key
+    json_path = html_client.cache._get_data_cache_path(cache_key)
+    pickle_path = html_client.cache._get_binary_data_cache_path(cache_key)
+
+    assert not json_path.exists(), "JSON cache file should not be created for empty dataset"
+    assert not pickle_path.exists(), "Pickle cache file should not be created for empty dataset"
+
+    # Now test with a small dataset (fewer than 10 options)
+    darwin_client.options = {
+        "test.option1": DarwinOption(name="test.option1", description="test description"),
+        "test.option2": DarwinOption(name="test.option2", description="test description"),
+    }
+    darwin_client.total_options = 2
+    darwin_client.total_categories = 1
+    darwin_client.name_index = {"test": ["test.option1", "test.option2"]}
+    darwin_client.word_index = defaultdict(set)
+    darwin_client.word_index["test"].add("test.option1")
+    darwin_client.word_index["test"].add("test.option2")
+    darwin_client.prefix_index = {"test": ["test.option1", "test.option2"]}
+
+    # Try to save small dataset - should still fail due to min size validation
+    result = await darwin_client._save_to_filesystem_cache()
+    assert result is False
+
+    # Verify none of the cache files were created
+    assert not json_path.exists(), "JSON cache file should not be created for small dataset"
+    assert not pickle_path.exists(), "Pickle cache file should not be created for small dataset"
 
 
 @pytest.mark.asyncio
@@ -347,6 +457,105 @@ async def test_expired_cache_ttl_reload(real_cache_dir):
 
 
 @pytest.mark.asyncio
+async def test_reject_invalid_cached_data(real_cache_dir):
+    """
+    Test that invalid/empty cached data is rejected during loading.
+
+    This test verifies that when corrupted or empty cache files exist,
+    they are properly ignored and not loaded.
+    """
+    # Create a cache with normal TTL
+    ttl = 86400
+
+    # Use a real HTMLClient with the temporary directory
+    html_client = HTMLClient(cache_dir=real_cache_dir, ttl=ttl)
+
+    # Create cache key for testing
+    cache_key = "darwin_data_v1.0.0"
+
+    # Get cache file paths
+    json_path = html_client.cache._get_data_cache_path(cache_key)
+    pickle_path = html_client.cache._get_binary_data_cache_path(cache_key)
+
+    # Create invalid JSON data (empty options)
+    invalid_json_data = {
+        "options": {},
+        "total_options": 0,
+        "total_categories": 0,
+        "last_updated": datetime.now().isoformat(),
+        "timestamp": time.time(),
+    }
+
+    # Create invalid binary data (empty indices)
+    invalid_binary_data = {
+        "name_index": {},
+        "word_index": {},
+        "prefix_index": {},
+    }
+
+    # Write the invalid data to cache files
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(json_path, "w") as f:
+        import json
+
+        json.dump(invalid_json_data, f)
+
+    with open(pickle_path, "wb") as f:
+        import pickle
+
+        pickle.dump(invalid_binary_data, f)
+
+    # Verify the cache files exist
+    assert json_path.exists(), "Failed to create test JSON cache file"
+    assert pickle_path.exists(), "Failed to create test pickle cache file"
+
+    # Create a new DarwinClient (should not use the invalid cache files)
+    darwin_client = DarwinClient(html_client=html_client, cache_ttl=ttl)
+
+    # Mock fetch_url to return valid HTML so we don't make real requests
+    with patch.object(darwin_client, "fetch_url") as mock_fetch:
+        # Create HTML with enough options to pass validation
+        html_content = """
+        <html>
+        <body>
+            <dl class="variablelist">
+        """
+        # Add 15 options to pass validation
+        for i in range(1, 16):
+            html_content += f"""
+                <dt>
+                    <a id="opt-test.option{i}"></a>
+                    <code class="option">test.option{i}</code>
+                </dt>
+                <dd>
+                    <p>Test option {i} description.</p>
+                </dd>
+            """
+        html_content += """
+            </dl>
+        </body>
+        </html>
+        """
+
+        mock_fetch.return_value = html_content
+
+        # Try to load options - should reject the invalid cache
+        result = await darwin_client._load_from_filesystem_cache()
+
+        # Should fail to load from cache
+        assert result is False
+
+        # Now try to load options, which should parse HTML since cache was invalid
+        options = await darwin_client.load_options()
+
+        # Some options should be loaded from HTML
+        assert len(options) > 0
+
+        # Verify fetch_url was called (meaning it didn't use cache)
+        mock_fetch.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_darwin_client_expired_cache(real_cache_dir):
     """
     Test that DarwinClient properly reloads HTML and recreates cache files when TTL expires.
@@ -360,11 +569,15 @@ async def test_darwin_client_expired_cache(real_cache_dir):
     # Create the DarwinClient with our real cache
     darwin_client = DarwinClient(html_client=html_client, cache_ttl=short_ttl)
 
-    # Let's use the html content with a single option
+    # Create HTML content with 15 options to pass the validation
     html_content = """
     <html>
     <body>
         <dl class="variablelist">
+    """
+
+    # Add a main test option
+    html_content += """
             <dt>
                 <a id="opt-system.defaults.dock.autohide"></a>
                 <code class="option">system.defaults.dock.autohide</code>
@@ -374,6 +587,23 @@ async def test_darwin_client_expired_cache(real_cache_dir):
                 <p><span class="emphasis"><em>Type:</em></span> boolean</p>
                 <p><span class="emphasis"><em>Default:</em></span> false</p>
             </dd>
+    """
+
+    # Add 15 more options to pass validation
+    for i in range(1, 16):
+        html_content += f"""
+            <dt>
+                <a id="opt-system.defaults.option{i}"></a>
+                <code class="option">system.defaults.option{i}</code>
+            </dt>
+            <dd>
+                <p>Test option {i} description.</p>
+                <p><span class="emphasis"><em>Type:</em></span> boolean</p>
+                <p><span class="emphasis"><em>Default:</em></span> false</p>
+            </dd>
+        """
+
+    html_content += """
         </dl>
     </body>
     </html>

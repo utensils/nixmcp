@@ -3,6 +3,7 @@
 import dataclasses
 import logging
 import os
+import pathlib
 import re
 import time
 from collections import defaultdict
@@ -11,7 +12,6 @@ from typing import Any, Dict, List, Optional, Set
 
 from bs4 import BeautifulSoup, Tag
 
-from nixmcp.cache.html_cache import HTMLCache
 from nixmcp.cache.simple_cache import SimpleCache
 from nixmcp.clients.html_client import HTMLClient
 
@@ -49,7 +49,8 @@ class DarwinClient:
         self.cache_ttl = int(os.environ.get("NIXMCP_CACHE_TTL", cache_ttl))
 
         self.html_client = html_client or HTMLClient(ttl=self.cache_ttl)
-        self.html_cache = HTMLCache("darwin", ttl=self.cache_ttl)
+        # Use the HTMLCache that's already in the html_client, instead of creating a new one
+        self.html_cache = self.html_client.cache
         self.memory_cache = SimpleCache(max_size=1000, ttl=self.cache_ttl)
 
         # Search indices
@@ -166,6 +167,33 @@ class DarwinClient:
 
             # Also invalidate HTML cache for the source URL
             self.html_client.cache.invalidate(self.OPTION_REFERENCE_URL)
+
+            # Special handling for bad legacy cache files in current directory
+            legacy_bad_path = pathlib.Path("darwin")
+            if legacy_bad_path.exists() and legacy_bad_path.is_dir():
+                logger.warning("Found legacy 'darwin' directory in current path - attempting cleanup")
+                try:
+                    # Only remove if it's empty or seems to contain cache files
+                    safe_to_remove = True
+                    for item in legacy_bad_path.iterdir():
+                        condition1 = item.name.endswith(".html")
+                        condition2 = item.name.endswith(".data.json")
+                        condition3 = item.name.endswith(".data.pickle")
+                        if not (condition1 or condition2 or condition3):
+                            safe_to_remove = False
+                            break
+
+                    if safe_to_remove:
+                        for item in legacy_bad_path.iterdir():
+                            if item.is_file():
+                                logger.info(f"Removing legacy cache file: {item}")
+                                item.unlink()
+                        logger.info("Removing legacy darwin directory")
+                        legacy_bad_path.rmdir()
+                    else:
+                        logger.warning("Legacy 'darwin' directory contains non-cache files - not removing")
+                except Exception as cleanup_err:
+                    logger.warning(f"Failed to clean up legacy cache: {cleanup_err}")
 
             logger.info("nix-darwin data cache invalidated")
         except Exception as e:
@@ -404,6 +432,29 @@ class DarwinClient:
                 logger.info(f"No cached binary data found for key {self.cache_key}")
                 return False
 
+            # Validate data before loading - prevent loading empty datasets
+            if not data.get("options") or len(data["options"]) == 0:
+                logger.warning("Cached data has empty options dictionary - ignoring cache")
+                return False
+
+            if data.get("total_options", 0) == 0:
+                logger.warning("Cached data has zero total_options - ignoring cache")
+                return False
+
+            # Make sure we have a reasonable number of options (sanity check)
+            if len(data["options"]) < 10:
+                logger.warning(f"Cached data has suspiciously few options: {len(data['options'])} - ignoring cache")
+                return False
+
+            # Make sure our indices are not empty
+            name_index_missing = not binary_data.get("name_index")
+            word_index_missing = not binary_data.get("word_index")
+            prefix_index_missing = not binary_data.get("prefix_index")
+
+            if name_index_missing or word_index_missing or prefix_index_missing:
+                logger.warning("Cached binary data has empty indices - ignoring cache")
+                return False
+
             # Load basic options data
             # Convert dictionaries back to DarwinOption objects
             self.options = {}
@@ -434,6 +485,14 @@ class DarwinClient:
                 self.word_index[k] = set(v)
 
             self.prefix_index = binary_data["prefix_index"]
+
+            # Final validation check
+            if len(self.options) != self.total_options:
+                logger.warning(
+                    f"Data integrity issue: option count mismatch ({len(self.options)} vs {self.total_options})"
+                )
+                # Fix the count to match reality
+                self.total_options = len(self.options)
 
             # Memory cache for faster subsequent access
             await self._cache_to_memory()
@@ -479,7 +538,16 @@ class DarwinClient:
             bool: True if successful, False otherwise
         """
         try:
-            logger.info("Saving nix-darwin data structures to disk cache")
+            # Don't cache empty data sets
+            if not self.options or len(self.options) == 0:
+                logger.warning("Not caching empty options dataset - no options were found")
+                return False
+
+            if self.total_options == 0:
+                logger.warning("Not caching options dataset with zero total_options")
+                return False
+
+            logger.info(f"Saving nix-darwin data structures to disk cache with {len(self.options)} options")
 
             # Prepare basic data for JSON serialization
             # Convert DarwinOption objects to dictionaries for JSON serialization
@@ -493,6 +561,20 @@ class DarwinClient:
                 "timestamp": time.time(),
             }
 
+            # Additional validation check
+            if len(serializable_options) < 10:
+                logger.warning(
+                    f"Only found {len(serializable_options)} options, which is suspiciously low. "
+                    "Checking data validity..."
+                )
+
+                # Verify that we have more than just empty structures
+                if len(serializable_data["options"]) == 0 or self.total_options < 10:
+                    logger.error(
+                        "Data validation failed: Too few options found, refusing to cache potentially corrupt data"
+                    )
+                    return False
+
             # Save the basic metadata as JSON
             self.html_client.cache.set_data(self.cache_key, serializable_data)
 
@@ -502,6 +584,11 @@ class DarwinClient:
                 "word_index": {k: list(v) for k, v in self.word_index.items()},
                 "prefix_index": dict(self.prefix_index),
             }
+
+            # Verify index data integrity
+            if not binary_data["name_index"] or not binary_data["word_index"] or not binary_data["prefix_index"]:
+                logger.error("Data validation failed: Missing index data, refusing to cache incomplete data")
+                return False
 
             self.html_client.cache.set_binary_data(self.cache_key, binary_data)
             logger.info(f"Successfully saved nix-darwin data to disk cache with key {self.cache_key}")

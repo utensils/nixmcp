@@ -430,6 +430,52 @@ class HomeManagerClient:
         except Exception as e:
             logger.error(f"Failed to invalidate Home Manager data cache: {str(e)}")
             # Continue execution, don't fail on cache invalidation errors
+            
+    def force_refresh(self) -> bool:
+        """Force a complete refresh of Home Manager data from the web.
+        
+        This method:
+        1. Invalidates all current caches
+        2. Loads fresh data from the web
+        3. Rebuilds indices
+        4. Saves to disk cache
+        
+        Returns:
+            bool: True if refresh was successful, False otherwise
+        """
+        try:
+            logger.info("Forcing a complete refresh of Home Manager data")
+            
+            # Reset loaded state
+            with self.loading_lock:
+                self.is_loaded = False
+                self.loading_error = None
+                
+            # Invalidate all caches
+            self.invalidate_cache()
+            
+            # Load fresh data from web
+            options = self.load_all_options()
+            if not options or len(options) == 0:
+                logger.error("Failed to load any Home Manager options from web")
+                return False
+                
+            # Build indices
+            self.build_search_indices(options)
+            
+            # Save to disk
+            self._save_in_memory_data()
+            
+            # Mark as loaded
+            with self.loading_lock:
+                self.is_loaded = True
+                
+            logger.info(f"Successfully refreshed Home Manager data with {len(self.options)} options")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to force refresh Home Manager data: {str(e)}")
+            return False
 
     def load_in_background(self) -> None:
         """Start loading options in a background thread."""
@@ -549,6 +595,11 @@ class HomeManagerClient:
 
             # Load basic options data
             self.options = data["options"]
+
+            # Validate that we actually have options
+            if not self.options or len(self.options) == 0:
+                logger.warning("Cache data contains zero options, treating as invalid cache")
+                return False
 
             # Load complex data structures
             self.options_by_category = binary_data["options_by_category"]
