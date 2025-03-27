@@ -8,9 +8,10 @@ import re
 import time
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Sequence, Set, Sized
 
 from bs4 import BeautifulSoup, Tag
+from bs4.element import PageElement
 
 from nixmcp.cache.simple_cache import SimpleCache
 from nixmcp.clients.html_client import HTMLClient
@@ -163,10 +164,11 @@ class DarwinClient:
                 del self.memory_cache.cache[self.cache_key]
 
             # Invalidate filesystem cache
-            self.html_client.cache.invalidate_data(self.cache_key)
+            if self.html_client and self.html_client.cache:
+                self.html_client.cache.invalidate_data(self.cache_key)
 
-            # Also invalidate HTML cache for the source URL
-            self.html_client.cache.invalidate(self.OPTION_REFERENCE_URL)
+                # Also invalidate HTML cache for the source URL
+                self.html_client.cache.invalidate(self.OPTION_REFERENCE_URL)
 
             # Special handling for bad legacy cache files in current directory
             legacy_bad_path = pathlib.Path("darwin")
@@ -212,53 +214,76 @@ class DarwinClient:
         self.prefix_index = defaultdict(list)
 
         # Find option definitions (dl elements)
-        option_dls = soup.find_all("dl", class_="variablelist")
+        option_dls: Sequence[PageElement] = []
+        if isinstance(soup, BeautifulSoup) or isinstance(soup, Tag):
+            option_dls = soup.find_all("dl", class_="variablelist")
         logger.info(f"Found {len(option_dls)} variablelist elements")
 
         total_processed = 0
 
         for dl in option_dls:
             # Process each dt/dd pair
-            dts = dl.find_all("dt")
+            dts: Sequence[PageElement] = []
+            if isinstance(dl, Tag):
+                dts = dl.find_all("dt")
 
             for dt in dts:
                 # Get the option element with the id
-                option_link = dt.find("a", id=lambda x: x and x.startswith("opt-"))
+                option_link = None
+                if isinstance(dt, Tag):
+                    # BeautifulSoup's find method accepts keyword arguments directly for attributes
+                    # Use a lambda that returns a boolean for attribute matching
+                    option_link = dt.find(
+                        "a", attrs={"id": lambda x: bool(x) and isinstance(x, str) and x.startswith("opt-")}
+                    )
 
-                if not option_link:
+                if not option_link and isinstance(dt, Tag):
                     # Try finding a link with href to an option
-                    option_link = dt.find("a", href=lambda x: x and x.startswith("#opt-"))
+                    # Use a lambda that returns a boolean for attribute matching
+                    option_link = dt.find(
+                        "a", attrs={"href": lambda x: bool(x) and isinstance(x, str) and x.startswith("#opt-")}
+                    )
                     if not option_link:
                         continue
 
                 # Extract option id from the element
-                if option_link.get("id"):
-                    option_id = option_link.get("id", "")
-                elif option_link.get("href"):
-                    option_id = option_link.get("href", "").lstrip("#")
-                else:
-                    continue
+                option_id = ""
+                if option_link and isinstance(option_link, Tag):
+                    if option_link.get("id"):
+                        option_id = str(option_link.get("id", ""))
+                    elif option_link.get("href"):
+                        href_value = option_link.get("href", "")
+                        if isinstance(href_value, str):
+                            option_id = href_value.lstrip("#")
+                    else:
+                        continue
 
                 if not option_id.startswith("opt-"):
                     continue
 
                 # Find the option name inside the link
-                option_code = dt.find("code", class_="option")
-                if option_code:
+                option_code = None
+                if isinstance(dt, Tag):
+                    # BeautifulSoup's find method accepts class_ for class attribute
+                    option_code = dt.find("code", class_="option")
+                if option_code and hasattr(option_code, "text"):
                     option_name = option_code.text.strip()
                 else:
                     # Fall back to ID-based name
                     option_name = option_id[4:]  # Remove the opt- prefix
 
                 # Get the description from the dd
-                dd = dt.find_next("dd")
-                if not dd:
+                dd = None
+                if isinstance(dt, Tag):
+                    dd = dt.find_next("dd")
+                if not dd or not isinstance(dd, Tag):
                     continue
 
+                # Process the option details
                 option = self._parse_option_details(option_name, dd)
                 if option:
                     self.options[option_name] = option
-                    self._index_option(option)
+                    self._index_option(option_name, option)
                     total_processed += 1
 
                     # Log progress every 250 options to reduce log verbosity
@@ -289,46 +314,18 @@ class DarwinClient:
             declared_by = ""
 
             # Extract paragraphs for description
-            paragraphs = dd.find_all("p", recursive=False)
+            paragraphs: Sequence[PageElement] = []
+            if isinstance(dd, Tag):
+                paragraphs = dd.find_all("p", recursive=False)
             if paragraphs:
-                description = " ".join(p.get_text(strip=True) for p in paragraphs)
+                description = " ".join(p.get_text(strip=True) for p in paragraphs if hasattr(p, "get_text"))
 
-            # Find the type, default, and example information
-            type_element = dd.find("span", string=lambda text: text and "Type:" in text)
-            if type_element and type_element.parent:
-                option_type = type_element.parent.get_text().replace("Type:", "").strip()
-
-            default_element = dd.find("span", string=lambda text: text and "Default:" in text)
-            if default_element and default_element.parent:
-                default_value = default_element.parent.get_text().replace("Default:", "").strip()
-
-            example_element = dd.find("span", string=lambda text: text and "Example:" in text)
-            if example_element and example_element.parent:
-                example_value = example_element.parent.get_text().replace("Example:", "").strip()
-                if example_value:
-                    example = example_value
-
-            # Alternative approach for finding metadata - look for itemizedlists
-            if not option_type or not default_value or not example:
-                # Look for type, default, example in itemizedlists
-                for div in dd.find_all("div", class_="itemizedlist"):
-                    item_text = div.get_text(strip=True)
-
-                    if "Type:" in item_text and not option_type:
-                        option_type = item_text.split("Type:", 1)[1].strip()
-                    elif "Default:" in item_text and not default_value:
-                        default_value = item_text.split("Default:", 1)[1].strip()
-                    elif "Example:" in item_text and not example:
-                        example = item_text.split("Example:", 1)[1].strip()
-                    elif "Declared by:" in item_text and not declared_by:
-                        declared_by = item_text.split("Declared by:", 1)[1].strip()
-
-            # Look for declared_by information
-            code_elements = dd.find_all("code")
-            for code in code_elements:
-                if "nix" in code.get_text() or "darwin" in code.get_text():
-                    declared_by = code.get_text(strip=True)
-                    break
+            # Extract metadata using the helper function
+            metadata = self._extract_metadata_from_dd(dd)
+            option_type = metadata["type"]
+            default_value = metadata["default"]
+            example = metadata["example"]
+            declared_by = metadata["declared_by"]
 
             return DarwinOption(
                 name=name,
@@ -344,24 +341,98 @@ class DarwinClient:
             logger.error(f"Error parsing option {name}: {e}")
             return None
 
-    def _index_option(self, option: DarwinOption) -> None:
+    def _extract_metadata_from_dd(self, dd: Tag) -> Dict[str, str]:
+        """Extract type, default, example, and declared_by from a dd tag."""
+        metadata = {
+            "type": "",
+            "default": "",
+            "example": "",
+            "declared_by": "",
+        }
+
+        # Find the type, default, and example information using spans
+        type_element = None
+        if isinstance(dd, Tag):
+            # Use attrs for more reliable matching
+            type_element = dd.find("span", string="Type:")
+        if (
+            type_element
+            and isinstance(type_element, Tag)
+            and type_element.parent
+            and hasattr(type_element.parent, "get_text")
+        ):
+            metadata["type"] = type_element.parent.get_text().replace("Type:", "").strip()
+
+        default_element = None
+        if isinstance(dd, Tag):
+            default_element = dd.find("span", string="Default:")
+        if (
+            default_element
+            and isinstance(default_element, Tag)
+            and default_element.parent
+            and hasattr(default_element.parent, "get_text")
+        ):
+            metadata["default"] = default_element.parent.get_text().replace("Default:", "").strip()
+
+        example_element = None
+        if isinstance(dd, Tag):
+            example_element = dd.find("span", string="Example:")
+        if (
+            example_element
+            and isinstance(example_element, Tag)
+            and example_element.parent
+            and hasattr(example_element.parent, "get_text")
+        ):
+            example_value = example_element.parent.get_text().replace("Example:", "").strip()
+            if example_value:
+                metadata["example"] = example_value
+
+        # Alternative approach: look for itemizedlists if fields are missing
+        if not metadata["type"] or not metadata["default"] or not metadata["example"]:
+            if isinstance(dd, Tag):
+                for div in dd.find_all("div", class_="itemizedlist"):
+                    if hasattr(div, "get_text"):
+                        item_text = div.get_text(strip=True)
+                        if isinstance(item_text, str):
+                            if "Type:" in item_text and not metadata["type"]:
+                                metadata["type"] = item_text.split("Type:", 1)[1].strip()
+                            elif "Default:" in item_text and not metadata["default"]:
+                                metadata["default"] = item_text.split("Default:", 1)[1].strip()
+                            elif "Example:" in item_text and not metadata["example"]:
+                                metadata["example"] = item_text.split("Example:", 1)[1].strip()
+                            elif "Declared by:" in item_text and not metadata["declared_by"]:
+                                metadata["declared_by"] = item_text.split("Declared by:", 1)[1].strip()
+
+        # Look for declared_by information in code tags if still missing
+        if not metadata["declared_by"] and isinstance(dd, Tag):
+            code_elements = dd.find_all("code")
+            for code in code_elements:
+                if hasattr(code, "get_text"):
+                    code_text = code.get_text()
+                    if isinstance(code_text, str) and ("nix" in code_text or "darwin" in code_text):
+                        metadata["declared_by"] = code.get_text(strip=True)
+                        break
+
+        return metadata
+
+    def _index_option(self, option_name: str, option: DarwinOption) -> None:
         """Index an option for searching.
 
         Args:
             option: The option to index.
         """
         # Index by name
-        name_parts = option.name.split(".")
+        name_parts = option_name.split(".")
         for i in range(len(name_parts)):
             prefix = ".".join(name_parts[: i + 1])
-            self.name_index[prefix].append(option.name)
+            self.name_index[prefix].append(option_name)
 
             # Add to prefix index
             if i < len(name_parts) - 1:
-                self.prefix_index[prefix].append(option.name)
+                self.prefix_index[prefix].append(option_name)
 
         # Index by words in name and description
-        name_words = re.findall(r"\w+", option.name.lower())
+        name_words = re.findall(r"\w+", option_name.lower())
         desc_words = re.findall(r"\w+", option.description.lower())
 
         for word in set(name_words + desc_words):
@@ -419,6 +490,11 @@ class DarwinClient:
         """
         try:
             logger.info("Attempting to load nix-darwin data from disk cache")
+
+            # Check if cache is available
+            if not self.html_client or not self.html_client.cache:
+                logger.warning("HTML client or cache not available")
+                return False
 
             # Load the basic metadata
             data, metadata = self.html_client.cache.get_data(self.cache_key)
@@ -538,8 +614,13 @@ class DarwinClient:
             bool: True if successful, False otherwise
         """
         try:
+            # Check if cache is available
+            if not self.html_client or not self.html_client.cache:
+                logger.warning("HTML client or cache not available")
+                return False
+
             # Don't cache empty data sets
-            if not self.options or len(self.options) == 0:
+            if not self.options or not isinstance(self.options, dict) or len(self.options) == 0:
                 logger.warning("Not caching empty options dataset - no options were found")
                 return False
 
@@ -569,7 +650,13 @@ class DarwinClient:
                 )
 
                 # Verify that we have more than just empty structures
-                if len(serializable_data["options"]) == 0 or self.total_options < 10:
+                if (
+                    not isinstance(serializable_data, dict)
+                    or "options" not in serializable_data
+                    or not isinstance(serializable_data["options"], Sized)
+                    or len(serializable_data["options"]) == 0
+                    or self.total_options < 10
+                ):
                     logger.error(
                         "Data validation failed: Too few options found, refusing to cache potentially corrupt data"
                     )
@@ -590,7 +677,8 @@ class DarwinClient:
                 logger.error("Data validation failed: Missing index data, refusing to cache incomplete data")
                 return False
 
-            self.html_client.cache.set_binary_data(self.cache_key, binary_data)
+            if self.html_client and self.html_client.cache:
+                self.html_client.cache.set_binary_data(self.cache_key, binary_data)
             logger.info(f"Successfully saved nix-darwin data to disk cache with key {self.cache_key}")
             return True
         except Exception as e:
@@ -601,7 +689,8 @@ class DarwinClient:
         """Search for options by query.
 
         Args:
-            query: Search query.
+            query: Search query. Can include multiple words, quoted phrases for exact matching,
+                  and supports fuzzy matching for typos.
             limit: Maximum number of results to return.
 
         Returns:
@@ -611,36 +700,155 @@ class DarwinClient:
             raise ValueError("Options not loaded. Call load_options() first.")
 
         results = []
+        scored_matches: Dict[str, int] = {}
+        query = query.strip()
+
+        # Handle empty query
+        if not query:
+            # Return a sample of options as a fallback
+            sample_size = min(limit, len(self.options))
+            sample_names = list(self.options.keys())[:sample_size]
+            return [self._option_to_dict(self.options[name]) for name in sample_names]
 
         # Priority 1: Exact name match
         if query in self.options:
             results.append(self._option_to_dict(self.options[query]))
 
-        # Priority 2: Prefix match
-        if len(results) < limit:
-            prefix_matches = self.name_index.get(query, [])
-            for name in prefix_matches:
-                if name not in [r["name"] for r in results]:
-                    results.append(self._option_to_dict(self.options[name]))
-                    if len(results) >= limit:
-                        break
+        # Extract quoted phrases for exact matching
+        quoted_phrases = re.findall(r'"([^"]+)"', query)
+        # Remove quoted phrases from the query for word matching
+        clean_query = re.sub(r'"[^"]+"', "", query)
 
-        # Priority 3: Word match
-        if len(results) < limit:
-            query_words = re.findall(r"\w+", query.lower())
-            matched_options = set()
+        # Get individual words, filtering out short words
+        query_words = [w.lower() for w in re.findall(r"\w+", clean_query) if len(w) > 2]
 
+        # Add the original query as a whole if it's not too long
+        if len(query) < 50 and " " not in query and query not in query_words:
+            query_words.append(query.lower())
+
+        # Priority 2: Prefix match and hierarchical path matching
+        remaining_limit = limit - len(results)
+        if remaining_limit > 0:
+            # Check for hierarchical path matches (e.g., "programs.git")
+            path_components = query.split(".")
+            if len(path_components) > 1:
+                # Prioritize options that match the hierarchical path pattern
+                for name in self.options:
+                    name_components = name.split(".")
+                    if len(name_components) >= len(path_components):
+                        # Check if all components match as a prefix
+                        if all(nc.startswith(pc) for nc, pc in zip(name_components, path_components)):
+                            if name not in [r["name"] for r in results]:
+                                score = 100 - (len(name) - len(query))  # Shorter matches get higher scores
+                                scored_matches[name] = max(scored_matches.get(name, 0), score)
+
+            # Regular prefix matching
             for word in query_words:
-                if len(word) > 2:
-                    matched_options.update(self.word_index.get(word, set()))
+                prefix_matches = self.name_index.get(word, [])
+                for name in prefix_matches:
+                    if name not in [r["name"] for r in results]:
+                        # Score based on how early the match occurs in the name
+                        name_lower = name.lower()
+                        position = name_lower.find(word)
+                        if position != -1:
+                            # Higher score for matches at the beginning or after a separator
+                            score = 80
+                            if position == 0 or name_lower[position - 1] in ".-_":
+                                score += 10
+                            # Adjust score based on match position
+                            score -= int(position * 0.5)
+                            scored_matches[name] = max(scored_matches.get(name, 0), score)
 
-            for name in matched_options:
+        # Priority 3: Word match with scoring
+        remaining_limit = limit - len(results)
+        if remaining_limit > 0:
+            # Process each word in the query
+            for word in query_words:
+                # Exact word matches
+                if word in self.word_index:
+                    for name in self.word_index[word]:
+                        if name not in [r["name"] for r in results]:
+                            # Base score for exact word match
+                            score = 60
+                            # Boost score if the word appears in name multiple times
+                            name_lower = name.lower()
+                            word_count = name_lower.count(word)
+                            if word_count > 1:
+                                score += 5 * (word_count - 1)
+                            scored_matches[name] = max(scored_matches.get(name, 0), score)
+
+                # Fuzzy matching for words longer than 4 characters
+                if len(word) > 4:
+                    # Simple fuzzy matching - check for words with one character different
+                    for index_word in self.word_index:
+                        if abs(len(index_word) - len(word)) <= 1:  # Length must be similar
+                            # Calculate Levenshtein distance (or a simpler approximation)
+                            distance = self._levenshtein_distance(word, index_word)
+                            if distance <= 2:  # Allow up to 2 character differences
+                                for name in self.word_index[index_word]:
+                                    if name not in [r["name"] for r in results]:
+                                        # Score inversely proportional to the distance
+                                        score = 40 - (distance * 10)
+                                        scored_matches[name] = max(scored_matches.get(name, 0), score)
+
+        # Priority 4: Quoted phrase exact matching
+        for phrase in quoted_phrases:
+            phrase_lower = phrase.lower()
+            for name, option in self.options.items():
                 if name not in [r["name"] for r in results]:
-                    results.append(self._option_to_dict(self.options[name]))
-                    if len(results) >= limit:
-                        break
+                    # Check name
+                    if phrase_lower in name.lower():
+                        scored_matches[name] = max(scored_matches.get(name, 0), 90)
+                    # Check description
+                    elif option.description and phrase_lower in option.description.lower():
+                        scored_matches[name] = max(scored_matches.get(name, 0), 50)
+
+        # Sort matches by score and add to results
+        sorted_matches = sorted(scored_matches.items(), key=lambda x: x[1], reverse=True)
+        for name, _ in sorted_matches:
+            if name not in [r["name"] for r in results]:
+                results.append(self._option_to_dict(self.options[name]))
+                if len(results) >= limit:
+                    break
+
+        # If no results found, provide a helpful message
+        if not results:
+            logging.info(f"No results found for query: {query}")
+            # You could return a special result indicating no matches were found
+            # or implement additional fallback search strategies here
 
         return results[:limit]
+
+    def _levenshtein_distance(self, s1: str, s2: str) -> int:
+        """Calculate the Levenshtein distance between two strings.
+
+        This is a simple implementation for fuzzy matching.
+
+        Args:
+            s1: First string
+            s2: Second string
+
+        Returns:
+            The edit distance between the strings
+        """
+        if len(s1) < len(s2):
+            return self._levenshtein_distance(s2, s1)
+
+        if not s2:
+            return len(s1)
+
+        previous_row = list(range(len(s2) + 1))
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                # Calculate insertions, deletions and substitutions
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row.copy()
+
+        return previous_row[-1]
 
     async def get_option(self, name: str) -> Optional[Dict[str, Any]]:
         """Get an option by name.

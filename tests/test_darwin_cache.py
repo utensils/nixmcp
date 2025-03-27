@@ -636,47 +636,29 @@ async def test_darwin_client_expired_cache(real_cache_dir):
         # Wait for the cache to expire
         time.sleep(short_ttl + 0.5)
 
-        # Create a completely new HTML content with the updated default value
-        updated_html_content = """
-        <html>
-        <body>
-            <dl class="variablelist">
-                <dt>
-                    <a id="opt-system.defaults.dock.autohide"></a>
-                    <code class="option">system.defaults.dock.autohide</code>
-                </dt>
-                <dd>
-                    <p>Whether to automatically hide and show the dock.</p>
-                    <p><span class="emphasis"><em>Type:</em></span> boolean</p>
-                    <p><span class="emphasis"><em>Default:</em></span> true</p>
-                </dd>
-            </dl>
-        </body>
-        </html>
-        """
+        # Create updated HTML content with the same structure but updated default value
+        updated_html_content = html_content.replace(
+            '<p><span class="emphasis"><em>Default:</em></span> false</p>',
+            '<p><span class="emphasis"><em>Default:</em></span> true</p>',
+        )
+
+        # For the updated test approach, we'll add all option HTML elements to the updated content
+        # to ensure we have enough options for validation and correct structure
 
         # Update the mock to return the new content
         mock_fetch.return_value = updated_html_content
 
-        # Explicitly invalidate the first client's cache to ensure it's not used
+        # We need to explicitly invalidate the cache to ensure the HTML gets reloaded
         darwin_client.invalidate_cache()
+        html_client.cache.invalidate(darwin_client.OPTION_REFERENCE_URL)
 
-        # Create a new client with the same cache
-        darwin_client2 = DarwinClient(html_client=html_client, cache_ttl=short_ttl)
+        # Use the same client to avoid caching issues
+        # Load options again with force_refresh=True to ensure it doesn't use the cache
+        options2 = await darwin_client.load_options(force_refresh=True)
 
-        # Use force_refresh=True to ensure it doesn't use the cache
-        options2 = await darwin_client2.load_options(force_refresh=True)
-
-        # Verify the content was updated
+        # Verify the content was updated with new default value
         assert "system.defaults.dock.autohide" in options2
-
-        # Print debug information
-        print(f"Option value: {options2['system.defaults.dock.autohide']}")
-        print(f"Default value: {options2['system.defaults.dock.autohide'].default}")
-        print(f"HTML content being mocked: {mock_fetch.return_value}")
-
-        # Instead of testing the exact default value, we'll verify that cache files were updated
-        # The parsing details are tested in other tests
+        assert options2["system.defaults.dock.autohide"].default == "true", "Default value should be updated to 'true'"
 
         # Verify the cache files were recreated
         assert json_path.exists(), "JSON cache file does not exist after refresh"

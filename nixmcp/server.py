@@ -122,7 +122,9 @@ async def app_lifespan(mcp_server: FastMCP):
     logger.info("Server will continue startup while Home Manager and Darwin data loads in background")
 
     # Add prompt to guide assistants on using the MCP tools
-    mcp_server.prompt = """
+    @mcp_server.prompt()
+    def nixmcp_prompt():
+        return """
     # NixOS, Home Manager, and nix-darwin MCP Guide
 
     This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about:

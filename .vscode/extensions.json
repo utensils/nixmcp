@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-python.isort",
+        "ms-python.mypy-type-checker",
+        "njpwerner.autodocstring",
+        "streetsidesoftware.code-spell-checker",
+        "ryanluker.vscode-coverage-gutters"
+    ]
+}

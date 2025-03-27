@@ -4,7 +4,9 @@ from unittest.mock import patch, Mock
 import time
 
 # Import the server module
-from nixmcp.server import ElasticsearchClient, NixOSContext, SimpleCache
+from nixmcp.clients.elasticsearch_client import ElasticsearchClient
+from nixmcp.contexts.nixos_context import NixOSContext
+from nixmcp.cache.simple_cache import SimpleCache
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -373,6 +375,58 @@ class TestNixOSContext(unittest.TestCase):
 class TestMCPTools(unittest.TestCase):
     """Test the MCP tools functionality."""
 
+    # Mock data for package search/info
+    MOCK_PACKAGE_DATA_SINGLE = {
+        "name": "python3",
+        "version": "3.10.12",
+        "description": "A high-level dynamically-typed programming language",
+        "channel": "nixos-unstable",
+        "programs": ["python3", "python3.10"],
+        "found": True,
+    }
+    MOCK_PACKAGE_DATA_LIST = {
+        "count": 2,
+        "packages": [
+            MOCK_PACKAGE_DATA_SINGLE,
+            {
+                "name": "python39",
+                "version": "3.9.18",
+                "description": "Python programming language",
+                "channel": "nixos-unstable",
+                "programs": ["python3.9", "python39"],
+            },
+        ],
+    }
+
+    # Mock data for option search/info
+    MOCK_OPTION_DATA_SINGLE = {
+        "name": "services.nginx.enable",
+        "description": "Whether to enable nginx.",
+        "type": "boolean",
+        "default": "false",
+        "found": True,
+    }
+    MOCK_OPTION_DATA_LIST = {
+        "count": 2,
+        "options": [
+            MOCK_OPTION_DATA_SINGLE,
+            {
+                "name": "services.nginx.virtualHosts",
+                "description": "Declarative vhost config",
+                "type": "attribute set",
+                "default": "{}",
+            },
+        ],
+    }
+
+    # Mock data for stats
+    MOCK_STATS_DATA = {
+        "package_count": 10000,
+        "option_count": 20000,
+        "channel": "nixos-unstable",
+        "found": True,
+    }
+
     def setUp(self):
         """Set up the test environment."""
         # Create a mock context
@@ -388,34 +442,18 @@ class TestMCPTools(unittest.TestCase):
 
     def test_nixos_search_packages(self):
         """Test the nixos_search tool with packages."""
-        # Mock the search_packages method to return test data
+        # Mock the search_packages method to return test data using the constant
         with patch.object(NixOSContext, "search_packages") as mock_search:
-            mock_search.return_value = {
-                "count": 2,
-                "packages": [
-                    {
-                        "name": "python3",
-                        "version": "3.10.12",
-                        "description": "A high-level dynamically-typed programming language",
-                        "channel": "nixos-unstable",
-                    },
-                    {
-                        "name": "python39",
-                        "version": "3.9.18",
-                        "description": "Python programming language",
-                        "channel": "nixos-unstable",
-                    },
-                ],
-            }
+            mock_search.return_value = self.MOCK_PACKAGE_DATA_LIST
 
             # Import the tool function directly
-            from nixmcp.server import nixos_search
+            from nixmcp.tools.nixos_tools import nixos_search
 
             # Call the tool function
             result = nixos_search("python", "packages", 5)
 
             # Verify the result
-            self.assertIn("Found 2 packages for", result)
+            self.assertIn("Found 2 packages matching", result)
             self.assertIn("python3", result)
             self.assertIn("3.10.12", result)
             self.assertIn("python39", result)
@@ -426,34 +464,18 @@ class TestMCPTools(unittest.TestCase):
 
     def test_nixos_search_options(self):
         """Test the nixos_search tool with options."""
-        # Mock the search_options method to return test data
+        # Mock the search_options method to return test data using the constant
         with patch.object(NixOSContext, "search_options") as mock_search:
-            mock_search.return_value = {
-                "count": 2,
-                "options": [
-                    {
-                        "name": "services.nginx.enable",
-                        "description": "Whether to enable nginx.",
-                        "type": "boolean",
-                        "default": "false",
-                    },
-                    {
-                        "name": "services.nginx.virtualHosts",
-                        "description": "Declarative vhost config",
-                        "type": "attribute set",
-                        "default": "{}",
-                    },
-                ],
-            }
+            mock_search.return_value = self.MOCK_OPTION_DATA_LIST
 
             # Import the tool function directly
-            from nixmcp.server import nixos_search
+            from nixmcp.tools.nixos_tools import nixos_search
 
             # Call the tool function
             result = nixos_search("nginx", "options", 5)
 
             # Verify the result
-            self.assertIn("Found 2 options for", result)
+            self.assertIn("Found 2 options matching", result)
             self.assertIn("services.nginx.enable", result)
             self.assertIn("Whether to enable nginx", result)
             self.assertIn("services.nginx.virtualHosts", result)
@@ -463,34 +485,19 @@ class TestMCPTools(unittest.TestCase):
 
     def test_nixos_search_programs(self):
         """Test the nixos_search tool with programs."""
-        # Mock the search_programs method to return test data
+        # Mock the search_programs method to return test data using the constant
         with patch.object(NixOSContext, "search_programs") as mock_search:
-            mock_search.return_value = {
-                "count": 2,
-                "packages": [
-                    {
-                        "name": "python3",
-                        "version": "3.10.12",
-                        "description": "Python programming language",
-                        "programs": ["python3", "python3.10"],
-                    },
-                    {
-                        "name": "python39",
-                        "version": "3.9.18",
-                        "description": "Python programming language",
-                        "programs": ["python3.9", "python39"],
-                    },
-                ],
-            }
+            # Use the package list from the constant
+            mock_search.return_value = self.MOCK_PACKAGE_DATA_LIST
 
             # Import the tool function directly
-            from nixmcp.server import nixos_search
+            from nixmcp.tools.nixos_tools import nixos_search
 
             # Call the tool function
             result = nixos_search("python", "programs", 5)
 
             # Verify the result
-            self.assertIn("Found 2 packages providing programs matching", result)
+            self.assertIn("Found 2 programs matching", result)
             self.assertIn("python3", result)
             self.assertIn("Programs:", result)
             self.assertIn("python39", result)
@@ -500,21 +507,16 @@ class TestMCPTools(unittest.TestCase):
 
     def test_nixos_info_package(self):
         """Test the nixos_info tool with package type."""
-        # Mock the get_package method to return test data
+        # Mock the get_package method to return test data using the constant
         with patch.object(NixOSContext, "get_package") as mock_get:
-            mock_get.return_value = {
-                "name": "python3",
-                "version": "3.10.12",
-                "description": "A high-level dynamically-typed programming language",
-                "longDescription": "Python is a remarkably powerful dynamic programming language...",
-                "license": "MIT",
-                "homepage": "https://www.python.org",
-                "programs": ["python3", "python3.10"],
-                "found": True,
-            }
+            # Use a copy to avoid modifying the constant if the tool changes it
+            data = self.MOCK_PACKAGE_DATA_SINGLE.copy()
+            data["license"] = "MIT"
+            data["homepage"] = "https://www.python.org"
+            mock_get.return_value = data
 
             # Import the tool function directly
-            from nixmcp.server import nixos_info
+            from nixmcp.tools.nixos_tools import nixos_info
 
             # Call the tool function
             result = nixos_info("python3", "package")
@@ -532,19 +534,15 @@ class TestMCPTools(unittest.TestCase):
 
     def test_nixos_info_option(self):
         """Test the nixos_info tool with option type."""
-        # Mock the get_option method to return test data
+        # Mock the get_option method to return test data using the constant
         with patch.object(NixOSContext, "get_option") as mock_get:
-            mock_get.return_value = {
-                "name": "services.nginx.enable",
-                "description": "Whether to enable nginx.",
-                "type": "boolean",
-                "default": "false",
-                "example": "true",
-                "found": True,
-            }
+            # Use a copy to avoid modifying the constant
+            data = self.MOCK_OPTION_DATA_SINGLE.copy()
+            data["example"] = "true"
+            mock_get.return_value = data
 
             # Import the tool function directly
-            from nixmcp.server import nixos_info
+            from nixmcp.tools.nixos_tools import nixos_info
 
             # Call the tool function
             result = nixos_info("services.nginx.enable", "option")
@@ -553,7 +551,7 @@ class TestMCPTools(unittest.TestCase):
             self.assertIn("# services.nginx.enable", result)
             self.assertIn("**Description:** Whether to enable nginx.", result)
             self.assertIn("**Type:** boolean", result)
-            self.assertIn("**Default:** false", result)
+            self.assertIn("**Default:** `false`", result)
             self.assertIn("**Example:**", result)
 
             # Verify the mock was called correctly
@@ -597,7 +595,7 @@ class TestMCPTools(unittest.TestCase):
         mock_context.es_client = Mock()
 
         # Import the tool function directly
-        from nixmcp.server import nixos_stats
+        from nixmcp.tools.nixos_tools import nixos_stats
 
         # Call the tool function with our mock context
         result = nixos_stats(context=mock_context)
@@ -614,11 +612,11 @@ class TestMCPTools(unittest.TestCase):
 
         self.assertIn("## Package Statistics", result)
         self.assertIn("### Distribution by Channel", result)
-        self.assertIn("nixos-unstable: 80000 packages", result)
+        self.assertIn("nixos-unstable: 80,000 packages", result)
         self.assertIn("### Top 10 Licenses", result)
-        self.assertIn("MIT: 20000 packages", result)
+        self.assertIn("MIT: 20,000 packages", result)
         self.assertIn("### Top 10 Platforms", result)
-        self.assertIn("x86_64-linux: 70000 packages", result)
+        self.assertIn("x86_64-linux: 70,000 packages", result)
 
         # Verify the mocks were called correctly
         mock_context.get_package_stats.assert_called_once()
@@ -628,6 +626,13 @@ class TestMCPTools(unittest.TestCase):
 
 class TestMCPResources(unittest.TestCase):
     """Test the MCP resources functionality."""
+
+    # Reuse mock data constants from TestMCPTools
+    MOCK_PACKAGE_DATA_SINGLE = TestMCPTools.MOCK_PACKAGE_DATA_SINGLE
+    MOCK_PACKAGE_DATA_LIST = TestMCPTools.MOCK_PACKAGE_DATA_LIST
+    MOCK_OPTION_DATA_SINGLE = TestMCPTools.MOCK_OPTION_DATA_SINGLE
+    MOCK_OPTION_DATA_LIST = TestMCPTools.MOCK_OPTION_DATA_LIST
+    MOCK_STATS_DATA = TestMCPTools.MOCK_STATS_DATA
 
     def setUp(self):
         """Set up the test environment."""
@@ -680,12 +685,8 @@ class TestMCPResources(unittest.TestCase):
         """Test the package resource."""
         # Create a mock for the NixOSContext
         mock_context = Mock()
-        mock_context.get_package.return_value = {
-            "name": "python3",
-            "version": "3.10.12",
-            "description": "Python programming language",
-            "found": True,
-        }
+        # Use a copy of the constant for the mock return value
+        mock_context.get_package.return_value = self.MOCK_PACKAGE_DATA_SINGLE.copy()
 
         # Import the resource function from resources module
         from nixmcp.resources.nixos_resources import package_resource
@@ -705,13 +706,8 @@ class TestMCPResources(unittest.TestCase):
         """Test the search_packages resource."""
         # Create a mock for the NixOSContext
         mock_context = Mock()
-        mock_context.search_packages.return_value = {
-            "count": 2,
-            "packages": [
-                {"name": "python3", "description": "Python 3"},
-                {"name": "python39", "description": "Python 3.9"},
-            ],
-        }
+        # Use the constant for the mock return value
+        mock_context.search_packages.return_value = self.MOCK_PACKAGE_DATA_LIST
 
         # Import the resource function from resources module
         from nixmcp.resources.nixos_resources import search_packages_resource
@@ -731,16 +727,8 @@ class TestMCPResources(unittest.TestCase):
         """Test the search_options resource."""
         # Create a mock for the NixOSContext
         mock_context = Mock()
-        mock_context.search_options.return_value = {
-            "count": 2,
-            "options": [
-                {"name": "services.nginx.enable", "description": "Enable nginx"},
-                {
-                    "name": "services.nginx.virtualHosts",
-                    "description": "Virtual hosts",
-                },
-            ],
-        }
+        # Use the constant for the mock return value
+        mock_context.search_options.return_value = self.MOCK_OPTION_DATA_LIST
 
         # Import the resource function from resources module
         from nixmcp.resources.nixos_resources import search_options_resource
@@ -760,13 +748,8 @@ class TestMCPResources(unittest.TestCase):
         """Test the option resource."""
         # Create a mock for the NixOSContext
         mock_context = Mock()
-        mock_context.get_option.return_value = {
-            "name": "services.nginx.enable",
-            "description": "Whether to enable nginx.",
-            "type": "boolean",
-            "default": "false",
-            "found": True,
-        }
+        # Use a copy of the constant for the mock return value
+        mock_context.get_option.return_value = self.MOCK_OPTION_DATA_SINGLE.copy()
 
         # Import the resource function from resources module
         from nixmcp.resources.nixos_resources import option_resource
@@ -786,13 +769,8 @@ class TestMCPResources(unittest.TestCase):
         """Test the search_programs resource."""
         # Create a mock for the NixOSContext
         mock_context = Mock()
-        mock_context.search_programs.return_value = {
-            "count": 2,
-            "packages": [
-                {"name": "python3", "programs": ["python3", "python3.10"]},
-                {"name": "python39", "programs": ["python3.9"]},
-            ],
-        }
+        # Use the constant for the mock return value
+        mock_context.search_programs.return_value = self.MOCK_PACKAGE_DATA_LIST
 
         # Import the resource function from resources module
         from nixmcp.resources.nixos_resources import search_programs_resource

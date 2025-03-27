@@ -32,10 +32,11 @@ class TestAppLifespan(unittest.TestCase):
         self.assertEqual(context["home_manager_context"], mock_home_manager_context)
         self.assertEqual(context["darwin_context"], mock_darwin_context)
 
-        # Verify prompt was set on the server
+        # Verify prompt decorator was called on the server
+        # The actual implementation uses @mcp_server.prompt() decorator which registers
+        # a function that returns the prompt string, it doesn't set a string attribute directly
         self.assertTrue(hasattr(mock_server, "prompt"))
-        self.assertIsInstance(mock_server.prompt, str)
-        self.assertIn("NixOS, Home Manager, and nix-darwin MCP Guide", mock_server.prompt)
+        mock_server.prompt.assert_called_once()
 
         # Exit the context manager to clean up
         await context_manager.__aexit__(None, None, None)

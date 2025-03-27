@@ -1,0 +1,19 @@
+{
+    "include": [
+        "nixmcp",
+        "tests"
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "**/.pytest_cache",
+        "build",
+        "dist"
+    ],
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "pythonVersion": "3.9",
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": true,
+    "venvPath": ".",
+    "venv": ".venv"
+}

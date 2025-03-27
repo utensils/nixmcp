@@ -1,0 +1,76 @@
+{
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "--line-length", "120"
+    ],
+    "editor.formatOnSave": true,
+    "editor.rulers": [120],
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/*.egg-info": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/__pycache__": true,
+        "**/.pytest_cache": true
+    },
+    "cSpell.enabled": true,
+    "cSpell.enabledFileTypes": {
+        "markdown": true,
+        "plaintext": true,
+        "text": true,
+        "yml": true,
+        "yaml": true
+    },
+    "cSpell.checkComments": true,
+    "cSpell.checkStrings": false,
+    "cSpell.words": [
+        "dataclasses",
+        "defaultdict",
+        "elasticsearch",
+        "hasattr",
+        "isinstance",
+        "itemizedlist",
+        "itemizedlists",
+        "nixmcp",
+        "nixos",
+        "pathlib",
+        "startswith",
+        "variablelist"
+    ],
+    "cSpell.ignorePaths": [
+        "**/node_modules/**",
+        "**/venv/**",
+        "**/.git/**",
+        "**/.vscode/**",
+        "**/package-lock.json",
+        "**/package.json",
+        "**/pyrightconfig.json",
+        "**/*.py",
+        "**/*.nix",
+        "**/*.json",
+        "**/*.ini",
+        "**/.gitignore"
+    ]
+}

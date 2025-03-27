@@ -10,6 +10,7 @@ import threading
 from typing import Dict, List, Any
 from collections import defaultdict
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 # Get logger
 logger = logging.getLogger("nixmcp")
@@ -125,7 +126,7 @@ class HomeManagerClient:
             # Find the definition list that contains all the options
             dl = variablelist.find("dl")
 
-            if not dl:
+            if not dl or not isinstance(dl, Tag):
                 logger.warning(f"No definition list found in {doc_type} HTML")
                 return []
 
@@ -140,25 +141,25 @@ class HomeManagerClient:
             for dt in dt_elements:
                 try:
                     # Find the term span that contains the option name
-                    term_span = dt.find("span", class_="term")
-                    if not term_span:
+                    term_span = dt.find("span", class_="term") if isinstance(dt, Tag) else None
+                    if not term_span or not isinstance(term_span, Tag):
                         continue
 
                     # Find the code element with the option name
-                    code = term_span.find("code")
-                    if not code:
+                    code = term_span.find("code") if isinstance(term_span, Tag) else None
+                    if not code or not isinstance(code, Tag):
                         continue
 
                     # Get the option name
-                    option_name = code.text.strip()
+                    option_name = code.text.strip() if hasattr(code, "text") else ""
 
                     # Find the associated description element
-                    dd = dt.find_next_sibling("dd")
-                    if not dd:
+                    dd = dt.find_next_sibling("dd") if isinstance(dt, Tag) else None
+                    if not dd or not isinstance(dd, Tag):
                         continue
 
                     # Get paragraphs from the description
-                    p_elements = dd.find_all("p")
+                    p_elements = dd.find_all("p") if isinstance(dd, Tag) else []
 
                     # Extract description, type, default, and example
                     description = ""
@@ -204,14 +205,19 @@ class HomeManagerClient:
                                 deprecated_version = deprecated_match.group(2)
 
                     # Try to find a manual link
-                    link_element = dd.find("a", href=True)
-                    if link_element and "manual" in link_element.get("href", ""):
-                        manual_url = link_element.get("href")
+                    link_element = dd.find("a", href=True) if isinstance(dd, Tag) else None
+                    href_value = link_element.get("href", "") if link_element and isinstance(link_element, Tag) else ""
+                    if link_element and isinstance(link_element, Tag) and "manual" in href_value:
+                        manual_url = href_value
 
                     # Determine the category
                     # Use the previous heading or a default category
-                    category_heading = dt.find_previous("h3")
-                    category = category_heading.text.strip() if category_heading else "Uncategorized"
+                    category_heading = dt.find_previous("h3") if isinstance(dt, Tag) else None
+                    category = (
+                        category_heading.text.strip()
+                        if category_heading and hasattr(category_heading, "text")
+                        else "Uncategorized"
+                    )
 
                     # Create the option record
                     option = {
@@ -285,10 +291,10 @@ class HomeManagerClient:
                 # Build hierarchical index for each path component
                 for i, part in enumerate(parts):
                     # Get the parent path up to this component
-                    parent_path = ".".join(parts[:i]) if i > 0 else ""
+                    parent = ".".join(parts[:i]) if i > 0 else ""
 
                     # Add this part to the hierarchical index
-                    self.hierarchical_index[(parent_path, part)].add(option_name)
+                    self.hierarchical_index[(parent, part)].add(option_name)
 
             logger.info(
                 f"Built search indices with {len(self.options)} options, "
@@ -652,6 +658,9 @@ class HomeManagerClient:
             # Save to cache for next time
             self._save_in_memory_data()
 
+            # Set loaded flag
+            self.is_loaded = True
+
             logger.info("Successfully loaded Home Manager options and built indices")
         except Exception as e:
             logger.error(f"Failed to load Home Manager options: {str(e)}")
@@ -825,22 +834,8 @@ class HomeManagerClient:
                 # Find related options (same parent path)
                 related_options = []
                 if "." in option_name:
-                    parts = option_name.split(".")
-                    parent_path = ".".join(parts[:-1])
-
-                    # Get options with same parent path
-                    for other_name, other_option in self.options.items():
-                        if other_name != option_name and other_name.startswith(parent_path + "."):
-                            related_options.append(
-                                {
-                                    "name": other_name,
-                                    "description": other_option.get("description", ""),
-                                    "type": other_option.get("type", ""),
-                                }
-                            )
-
-                    # Limit to top 5 related options
-                    related_options = related_options[:5]
+                    # Use helper to find related options
+                    related_options = self._find_related_options(option_name)
 
                 result = {
                     "name": option_name,
@@ -905,7 +900,7 @@ class HomeManagerClient:
             logger.info("Getting Home Manager option statistics")
 
             # Count options by source
-            options_by_source = defaultdict(int)
+            options_by_source: Dict[str, int] = defaultdict(int)
             for option in self.options.values():
                 source = option.get("source", "unknown")
                 options_by_source[source] += 1
@@ -914,7 +909,7 @@ class HomeManagerClient:
             options_by_category = {category: len(options) for category, options in self.options_by_category.items()}
 
             # Count options by type
-            options_by_type = defaultdict(int)
+            options_by_type: Dict[str, int] = defaultdict(int)
             for option in self.options.values():
                 option_type = option.get("type", "unknown")
                 options_by_type[option_type] += 1
@@ -943,3 +938,23 @@ class HomeManagerClient:
             error_msg = str(e)
             logger.error(f"Error getting Home Manager option statistics: {error_msg}")
             return {"error": error_msg, "total_options": 0, "found": False}
+
+    def _find_related_options(self, option_name: str) -> List[Dict[str, str]]:
+        """Find related options based on the hierarchical path."""
+        related_options = []
+        if "." in option_name:
+            parent_path = ".".join(option_name.split(".")[:-1])
+            if parent_path:  # Ensure parent path is not empty
+                # Get options with same parent path
+                for other_name, other_option in self.options.items():
+                    if other_name != option_name and other_name.startswith(parent_path + "."):
+                        related_options.append(
+                            {
+                                "name": other_name,
+                                "description": other_option.get("description", ""),
+                                "type": other_option.get("type", ""),
+                            }
+                        )
+                # Limit to top 5 related options
+                related_options = related_options[:5]
+        return related_options
