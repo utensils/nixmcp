@@ -408,7 +408,8 @@ class ElasticsearchClient:
         additional_terms = additional_terms if additional_terms is not None else []
         quoted_terms = quoted_terms if quoted_terms is not None else []
         logger.info(
-            f"Searching options: query='{query}', add_terms={additional_terms}, quoted={quoted_terms}, limit={limit}, channel={channel}"
+            f"Searching options: query='{query}', add_terms={additional_terms}, "
+            f"quoted={quoted_terms}, limit={limit}, channel={channel}"
         )
 
         # Set the channel for this query
