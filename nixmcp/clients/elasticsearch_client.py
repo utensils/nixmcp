@@ -329,9 +329,24 @@ class ElasticsearchClient:
 
     # --- Public Search Methods ---
 
-    def search_packages(self, query: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
-        """Search for NixOS packages."""
-        logger.info(f"Searching packages: query='{query}', limit={limit}")
+    def search_packages(
+        self, query: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
+    ) -> Dict[str, Any]:
+        """Search for NixOS packages.
+
+        Args:
+            query: Search query string
+            limit: Maximum number of results to return
+            offset: Number of results to skip
+            channel: NixOS channel to search in (unstable or stable)
+
+        Returns:
+            Dictionary with package search results
+        """
+        logger.info(f"Searching packages: query='{query}', limit={limit}, channel={channel}")
+
+        # Set the channel for this query
+        self.set_channel(channel)
 
         # Handle queries that look like package names with versions (e.g., "python311Packages.requests")
         # Basic split attempt, might need refinement
@@ -372,16 +387,32 @@ class ElasticsearchClient:
         query: str,
         limit: int = 50,
         offset: int = 0,
+        channel: str = "unstable",
         additional_terms: List[str] = [],
         quoted_terms: List[str] = [],
     ) -> Dict[str, Any]:
-        """Search for NixOS options with multi-word and hierarchical path support."""
+        """Search for NixOS options with multi-word and hierarchical path support.
+
+        Args:
+            query: Search query string
+            limit: Maximum number of results to return
+            offset: Number of results to skip
+            channel: NixOS channel to search in (unstable or stable)
+            additional_terms: Additional terms to include in the search
+            quoted_terms: Quoted phrases to include in the search
+
+        Returns:
+            Dictionary with option search results
+        """
         # Use the provided terms or empty lists if None was passed despite the default
         additional_terms = additional_terms if additional_terms is not None else []
         quoted_terms = quoted_terms if quoted_terms is not None else []
         logger.info(
-            f"Searching options: query='{query}', add_terms={additional_terms}, quoted={quoted_terms}, limit={limit}"
+            f"Searching options: query='{query}', add_terms={additional_terms}, quoted={quoted_terms}, limit={limit}, channel={channel}"
         )
+
+        # Set the channel for this query
+        self.set_channel(channel)
 
         es_query = self._build_search_query(
             query, search_type="option", additional_terms=additional_terms, quoted_terms=quoted_terms
@@ -409,9 +440,24 @@ class ElasticsearchClient:
 
         return {"count": total, "options": options}
 
-    def search_programs(self, program: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
-        """Search for packages providing a specific program."""
-        logger.info(f"Searching packages providing program: '{program}', limit={limit}")
+    def search_programs(
+        self, program: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
+    ) -> Dict[str, Any]:
+        """Search for packages providing a specific program.
+
+        Args:
+            program: Program name to search for
+            limit: Maximum number of results to return
+            offset: Number of results to skip
+            channel: NixOS channel to search in (unstable or stable)
+
+        Returns:
+            Dictionary with package search results
+        """
+        logger.info(f"Searching packages providing program: '{program}', limit={limit}, channel={channel}")
+
+        # Set the channel for this query
+        self.set_channel(channel)
 
         es_query = self._build_search_query(program, search_type="program")
         request_data = {"from": offset, "size": limit, "query": es_query}
@@ -466,9 +512,20 @@ class ElasticsearchClient:
 
     # --- Get Specific Item Methods ---
 
-    def get_package(self, package_name: str) -> Dict[str, Any]:
-        """Get detailed information for a specific package by its attribute name."""
-        logger.info(f"Getting package details for: {package_name}")
+    def get_package(self, package_name: str, channel: str = "unstable") -> Dict[str, Any]:
+        """Get detailed information for a specific package by its attribute name.
+
+        Args:
+            package_name: Name of the package to retrieve
+            channel: NixOS channel to search in (unstable or stable)
+
+        Returns:
+            Dictionary with package information
+        """
+        logger.info(f"Getting package details for: {package_name}, channel={channel}")
+
+        # Set the channel for this query
+        self.set_channel(channel)
         request_data = {"size": 1, "query": {"term": {FIELD_PKG_NAME: {"value": package_name}}}}
         data = self.safe_elasticsearch_query(self.es_packages_url, request_data)
 
@@ -492,9 +549,20 @@ class ElasticsearchClient:
         result["found"] = True
         return result
 
-    def get_option(self, option_name: str) -> Dict[str, Any]:
-        """Get detailed information for a specific NixOS option by its full name."""
-        logger.info(f"Getting option details for: {option_name}")
+    def get_option(self, option_name: str, channel: str = "unstable") -> Dict[str, Any]:
+        """Get detailed information for a specific NixOS option by its full name.
+
+        Args:
+            option_name: Name of the option to retrieve
+            channel: NixOS channel to search in (unstable or stable)
+
+        Returns:
+            Dictionary with option information
+        """
+        logger.info(f"Getting option details for: {option_name}, channel={channel}")
+
+        # Set the channel for this query
+        self.set_channel(channel)
 
         # Query for exact option name, filtering by type:option
         request_data = {
@@ -591,9 +659,19 @@ class ElasticsearchClient:
 
     # --- Stats Methods ---
 
-    def get_package_stats(self) -> Dict[str, Any]:
-        """Get statistics about NixOS packages (channels, licenses, platforms)."""
-        logger.info("Getting package statistics.")
+    def get_package_stats(self, channel: str = "unstable") -> Dict[str, Any]:
+        """Get statistics about NixOS packages (channels, licenses, platforms).
+
+        Args:
+            channel: NixOS channel to get statistics for (unstable or stable)
+
+        Returns:
+            Dictionary with package statistics
+        """
+        logger.info(f"Getting package statistics for channel: {channel}")
+
+        # Set the channel for this query
+        self.set_channel(channel)
         request_data = {
             "size": 0,  # No hits needed
             "query": {"match_all": {}},  # Query all packages
@@ -606,9 +684,19 @@ class ElasticsearchClient:
         # Use _search endpoint for aggregations
         return self.safe_elasticsearch_query(self.es_packages_url, request_data)
 
-    def count_options(self) -> Dict[str, Any]:
-        """Get an accurate count of NixOS options using the count API."""
-        logger.info("Getting options count.")
+    def count_options(self, channel: str = "unstable") -> Dict[str, Any]:
+        """Get an accurate count of NixOS options using the count API.
+
+        Args:
+            channel: NixOS channel to count options for (unstable or stable)
+
+        Returns:
+            Dictionary with options count
+        """
+        logger.info(f"Getting options count for channel: {channel}")
+
+        # Set the channel for this query
+        self.set_channel(channel)
         count_endpoint = self.es_options_url.replace("/_search", "/_count")
         request_data = {"query": {"term": {FIELD_TYPE: "option"}}}
 
@@ -622,9 +710,49 @@ class ElasticsearchClient:
         count = result.get("count", 0)
         return {"count": count}
 
+    def search_packages_with_version(
+        self, query: str, version_pattern: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
+    ) -> Dict[str, Any]:
+        """Search for packages with a specific version pattern.
+
+        Args:
+            query: Package name to search for
+            version_pattern: Version pattern to match
+            limit: Maximum number of results to return
+            offset: Number of results to skip
+            channel: NixOS channel to search in (unstable or stable)
+
+        Returns:
+            Dictionary with package search results
+        """
+        logger.info(
+            f"Searching packages with version pattern: query='{query}', version='{version_pattern}', channel={channel}"
+        )
+
+        # Set the channel for this query
+        self.set_channel(channel)
+
+        # This is a placeholder method - implement the actual logic as needed
+        # For now, we'll just call search_packages and filter the results
+        results = self.search_packages(query, limit=limit, offset=offset, channel=channel)
+
+        if "error" in results:
+            return results
+
+        # Filter packages by version pattern
+        packages = results.get("packages", [])
+        filtered_packages = []
+        for pkg in packages:
+            if version_pattern in pkg.get("version", ""):
+                filtered_packages.append(pkg)
+
+        return {"count": len(filtered_packages), "packages": filtered_packages}
+
     # --- Advanced/Other Methods ---
 
-    def advanced_query(self, index_type: str, query: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
+    def advanced_query(
+        self, index_type: str, query: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
+    ) -> Dict[str, Any]:
         """Execute a raw query directly against the Elasticsearch API.
 
         Args:
@@ -632,11 +760,15 @@ class ElasticsearchClient:
             query: Raw Elasticsearch query string in Lucene format
             limit: Maximum number of results to return
             offset: Offset to start returning results from
+            channel: NixOS channel to search in (unstable or stable)
 
         Returns:
             Raw Elasticsearch response
         """
-        logger.info(f"Running advanced query on {index_type}: {query}")
+        logger.info(f"Running advanced query on {index_type}: {query}, channel={channel}")
+
+        # Set the channel for this query
+        self.set_channel(channel)
 
         if index_type not in ["packages", "options"]:
             return {"error": f"Invalid index type: {index_type}. Must be 'packages' or 'options'"}
