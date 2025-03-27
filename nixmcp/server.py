@@ -83,8 +83,12 @@ from nixmcp.resources.darwin.darwin_resources import (  # noqa: F401
 # Load environment variables from .env file
 load_dotenv()
 
+# Import version to add to first log message
+from nixmcp import __version__
+
 # Initialize logging
 logger = setup_logging()
+logger.info(f"Starting NixMCP v{__version__}")
 
 # Initialize the model contexts
 nixos_context = NixOSContext()
@@ -95,10 +99,7 @@ darwin_context = DarwinContext()
 # Define the lifespan context manager for app initialization
 @asynccontextmanager
 async def app_lifespan(mcp_server: FastMCP):
-    # Import version at runtime to avoid circular imports
-    from nixmcp import __version__
-
-    logger.info(f"Initializing NixMCP server v{__version__}")
+    logger.info("Initializing NixMCP server components")
 
     # Start loading Home Manager data in background thread
     # This way the server can start up immediately without blocking
@@ -471,8 +472,6 @@ async def app_lifespan(mcp_server: FastMCP):
 
 
 # Create the MCP server with the lifespan handler
-from nixmcp import __version__
-
 logger.info("Creating FastMCP server instance")
 mcp = FastMCP(
     "NixMCP",
