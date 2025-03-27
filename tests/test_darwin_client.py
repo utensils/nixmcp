@@ -17,15 +17,29 @@ def sample_html():
     <html>
     <body>
         <dl class="variablelist">
-            <dt id="opt-system.defaults.dock.autohide">system.defaults.dock.autohide</dt>
+            <dt>
+                <span class="term">
+                    <a id="opt-system.defaults.dock.autohide"></a>
+                    <a class="term" href="#opt-system.defaults.dock.autohide">
+                        <code class="option">system.defaults.dock.autohide</code>
+                    </a>
+                </span>
+            </dt>
             <dd>
                 <p>Whether to automatically hide and show the dock.</p>
-                <div class="itemizedlist">Type: boolean</div>
-                <div class="itemizedlist">Default: false</div>
-                <div class="itemizedlist">Example: true</div>
-                <div class="itemizedlist">Declared by: system/defaults.nix</div>
+                <p><span class="emphasis"><em>Type:</em></span> boolean</p>
+                <p><span class="emphasis"><em>Default:</em></span> false</p>
+                <p><span class="emphasis"><em>Example:</em></span> true</p>
+                <p>Declared by: <code>system/defaults.nix</code></p>
             </dd>
-            <dt id="opt-system.defaults.dock.orientation">system.defaults.dock.orientation</dt>
+            <dt>
+                <span class="term">
+                    <a id="opt-system.defaults.dock.orientation"></a>
+                    <a class="term" href="#opt-system.defaults.dock.orientation">
+                        <code class="option">system.defaults.dock.orientation</code>
+                    </a>
+                </span>
+            </dt>
             <dd>
                 <p>Position of the dock on screen.</p>
                 <div class="itemizedlist">Type: string</div>
@@ -43,7 +57,7 @@ def sample_html():
 def mock_html_client(sample_html):
     """Create a mock HTML client."""
     client = MagicMock(spec=HTMLClient)
-    client.fetch_url = AsyncMock(return_value=sample_html)
+    client.fetch = MagicMock(return_value=(sample_html, {"success": True}))
     return client
 
 
@@ -60,8 +74,9 @@ def mock_html_cache():
 def mock_memory_cache():
     """Create a mock memory cache."""
     cache = MagicMock(spec=SimpleCache)
-    cache.get = AsyncMock(return_value=None)
-    cache.set = AsyncMock(return_value=None)
+    # SimpleCache methods are synchronous, not async
+    cache.get = MagicMock(return_value=None)
+    cache.set = MagicMock(return_value=None)
     return cache
 
 
@@ -80,7 +95,7 @@ def darwin_client(mock_html_client, mock_html_cache, mock_memory_cache):
 async def test_load_options(darwin_client, sample_html):
     """Test loading options from HTML."""
     # Mock the memory cache to return None to force HTML parsing
-    darwin_client.memory_cache.get = AsyncMock(return_value=None)
+    darwin_client.memory_cache.get = MagicMock(return_value=None)
 
     # Call the method
     result = await darwin_client.load_options()
@@ -260,3 +275,24 @@ async def test_get_options_by_prefix(darwin_client):
     options = await darwin_client.get_options_by_prefix("system.keyboard")
     assert len(options) == 1
     assert options[0]["name"] == "system.keyboard.enableKeyMapping"
+
+
+@pytest.mark.asyncio
+async def test_fetch_url(darwin_client, sample_html):
+    """Test the fetch_url adapter method."""
+    # Setup the mock to return proper data
+    darwin_client.html_client.fetch.return_value = (sample_html, {"success": True})
+
+    # Test successful fetch
+    result = await darwin_client.fetch_url("https://example.com")
+    assert result == sample_html
+    darwin_client.html_client.fetch.assert_called_once_with("https://example.com", force_refresh=False)
+
+    # Test error handling
+    darwin_client.html_client.fetch.reset_mock()
+    darwin_client.html_client.fetch.return_value = (None, {"error": "Connection error"})
+
+    with pytest.raises(ValueError) as excinfo:
+        await darwin_client.fetch_url("https://example.com")
+
+    assert "Connection error" in str(excinfo.value)

@@ -34,7 +34,7 @@ class DarwinClient:
     """Client for fetching and parsing nix-darwin documentation."""
 
     BASE_URL = "https://daiderd.com/nix-darwin/manual"
-    OPTION_REFERENCE_URL = f"{BASE_URL}/options.html"
+    OPTION_REFERENCE_URL = f"{BASE_URL}/index.html"
 
     def __init__(self, html_client: Optional[HTMLClient] = None, cache_ttl: int = 86400):
         """Initialize the DarwinClient.
@@ -60,6 +60,43 @@ class DarwinClient:
         self.loading_status = "not_started"
         self.error_message = ""
 
+    async def fetch_url(self, url: str, force_refresh: bool = False) -> str:
+        """Fetch URL content from the HTML client.
+
+        This method adapts the HTMLClient.fetch() method which returns (content, metadata)
+        to a simpler interface that returns just the content.
+
+        Args:
+            url: The URL to fetch
+            force_refresh: Whether to bypass the cache
+
+        Returns:
+            The HTML content as a string
+
+        Raises:
+            ValueError: If the fetch fails
+        """
+        try:
+            # The fetch method is not async, but we're in an async context
+            # This approach ensures we don't block the event loop
+            content, metadata = self.html_client.fetch(url, force_refresh=force_refresh)
+
+            if content is None:
+                error = metadata.get("error", "Unknown error")
+                raise ValueError(f"Failed to fetch URL {url}: {error}")
+
+            # Log cache status
+            if metadata.get("from_cache", False):
+                logger.debug(f"Retrieved {url} from cache")
+            else:
+                logger.debug(f"Retrieved {url} from web")
+
+            return content
+
+        except Exception as e:
+            logger.error(f"Error in fetch_url for {url}: {str(e)}")
+            raise
+
     async def load_options(self, force_refresh: bool = False) -> Dict[str, DarwinOption]:
         """Load nix-darwin options from documentation.
 
@@ -78,7 +115,7 @@ class DarwinClient:
                 return self.options
 
             # If memory cache fails, parse the HTML
-            html = await self.html_client.fetch_url(self.OPTION_REFERENCE_URL, force_refresh=force_refresh)
+            html = await self.fetch_url(self.OPTION_REFERENCE_URL, force_refresh=force_refresh)
             if not html:
                 raise ValueError(f"Failed to fetch nix-darwin options from {self.OPTION_REFERENCE_URL}")
 
@@ -111,18 +148,42 @@ class DarwinClient:
 
         # Find option definitions (dl elements)
         option_dls = soup.find_all("dl", class_="variablelist")
+        logger.info(f"Found {len(option_dls)} variablelist elements")
+
+        total_processed = 0
 
         for dl in option_dls:
             # Process each dt/dd pair
             dts = dl.find_all("dt")
+
             for dt in dts:
-                # Get the option name from the dt
-                option_id = dt.get("id", "")
+                # Get the option element with the id
+                option_link = dt.find("a", id=lambda x: x and x.startswith("opt-"))
+
+                if not option_link:
+                    # Try finding a link with href to an option
+                    option_link = dt.find("a", href=lambda x: x and x.startswith("#opt-"))
+                    if not option_link:
+                        continue
+
+                # Extract option id from the element
+                if option_link.get("id"):
+                    option_id = option_link.get("id", "")
+                elif option_link.get("href"):
+                    option_id = option_link.get("href", "").lstrip("#")
+                else:
+                    continue
+
                 if not option_id.startswith("opt-"):
                     continue
 
-                # Remove the opt- prefix
-                option_name = option_id[4:]
+                # Find the option name inside the link
+                option_code = dt.find("code", class_="option")
+                if option_code:
+                    option_name = option_code.text.strip()
+                else:
+                    # Fall back to ID-based name
+                    option_name = option_id[4:]  # Remove the opt- prefix
 
                 # Get the description from the dd
                 dd = dt.find_next("dd")
@@ -133,10 +194,16 @@ class DarwinClient:
                 if option:
                     self.options[option_name] = option
                     self._index_option(option)
+                    total_processed += 1
+
+                    # Log progress every 250 options to reduce log verbosity
+                    if total_processed % 250 == 0:
+                        logger.info(f"Processed {total_processed} options...")
 
         # Update statistics
         self.total_options = len(self.options)
         self.total_categories = len(self._get_top_level_categories())
+        logger.info(f"Parsed {self.total_options} options in {self.total_categories} categories")
 
     def _parse_option_details(self, name: str, dd: Tag) -> Optional[DarwinOption]:
         """Parse option details from a dd tag.
@@ -161,18 +228,42 @@ class DarwinClient:
             if paragraphs:
                 description = " ".join(p.get_text(strip=True) for p in paragraphs)
 
-            # Look for type, default, example, declared_by
-            metadata_items = dd.find_all("div", class_="itemizedlist")
-            for item in metadata_items:
-                text = item.get_text()
-                if "Type:" in text:
-                    option_type = text.split("Type:", 1)[1].strip()
-                elif "Default:" in text:
-                    default_value = text.split("Default:", 1)[1].strip()
-                elif "Example:" in text:
-                    example = text.split("Example:", 1)[1].strip()
-                elif "Declared by:" in text:
-                    declared_by = text.split("Declared by:", 1)[1].strip()
+            # Find the type, default, and example information
+            type_element = dd.find("span", string=lambda text: text and "Type:" in text)
+            if type_element and type_element.parent:
+                option_type = type_element.parent.get_text().replace("Type:", "").strip()
+
+            default_element = dd.find("span", string=lambda text: text and "Default:" in text)
+            if default_element and default_element.parent:
+                default_value = default_element.parent.get_text().replace("Default:", "").strip()
+
+            example_element = dd.find("span", string=lambda text: text and "Example:" in text)
+            if example_element and example_element.parent:
+                example_value = example_element.parent.get_text().replace("Example:", "").strip()
+                if example_value:
+                    example = example_value
+
+            # Alternative approach for finding metadata - look for itemizedlists
+            if not option_type or not default_value or not example:
+                # Look for type, default, example in itemizedlists
+                for div in dd.find_all("div", class_="itemizedlist"):
+                    item_text = div.get_text(strip=True)
+
+                    if "Type:" in item_text and not option_type:
+                        option_type = item_text.split("Type:", 1)[1].strip()
+                    elif "Default:" in item_text and not default_value:
+                        default_value = item_text.split("Default:", 1)[1].strip()
+                    elif "Example:" in item_text and not example:
+                        example = item_text.split("Example:", 1)[1].strip()
+                    elif "Declared by:" in item_text and not declared_by:
+                        declared_by = item_text.split("Declared by:", 1)[1].strip()
+
+            # Look for declared_by information
+            code_elements = dd.find_all("code")
+            for code in code_elements:
+                if "nix" in code.get_text() or "darwin" in code.get_text():
+                    declared_by = code.get_text(strip=True)
+                    break
 
             return DarwinOption(
                 name=name,
@@ -232,7 +323,8 @@ class DarwinClient:
             True if loading was successful, False otherwise.
         """
         try:
-            cached_data = await self.memory_cache.get("options_data")
+            # SimpleCache.get is not async - don't use await
+            cached_data = self.memory_cache.get("options_data")
             if not cached_data:
                 return False
 
@@ -263,7 +355,8 @@ class DarwinClient:
                 "total_categories": self.total_categories,
                 "last_updated": datetime.now(),
             }
-            await self.memory_cache.set("options_data", cache_data)
+            # SimpleCache.set is not async - don't use await
+            self.memory_cache.set("options_data", cache_data)
         except Exception as e:
             logger.error(f"Error caching parsed data: {e}")
 

@@ -33,24 +33,24 @@ def register_darwin_tools(context: Optional[DarwinContext] = None, mcp=None) -> 
         )
 
         @mcp.tool("darwin_search")
-        def darwin_search_handler(query: str, limit: int = 20):
-            return darwin_search(query, limit, context)
+        async def darwin_search_handler(query: str, limit: int = 20):
+            return await darwin_search(query, limit, context)
 
         @mcp.tool("darwin_info")
-        def darwin_info_handler(name: str):
-            return darwin_info(name, context)
+        async def darwin_info_handler(name: str):
+            return await darwin_info(name, context)
 
         @mcp.tool("darwin_stats")
-        def darwin_stats_handler():
-            return darwin_stats(context)
+        async def darwin_stats_handler():
+            return await darwin_stats(context)
 
         @mcp.tool("darwin_list_options")
-        def darwin_list_options_handler():
-            return darwin_list_options(context)
+        async def darwin_list_options_handler():
+            return await darwin_list_options(context)
 
         @mcp.tool("darwin_options_by_prefix")
-        def darwin_options_by_prefix_handler(option_prefix: str):
-            return darwin_options_by_prefix(option_prefix, context)
+        async def darwin_options_by_prefix_handler(option_prefix: str):
+            return await darwin_options_by_prefix(option_prefix, context)
 
 
 async def darwin_search(query: str, limit: int = 20, context: Optional[DarwinContext] = None) -> str:
