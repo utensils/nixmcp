@@ -13,7 +13,8 @@ class TestAppLifespan(unittest.TestCase):
 
     @patch("nixmcp.server.nixos_context")
     @patch("nixmcp.server.home_manager_context")
-    async def test_app_lifespan_enter(self, mock_home_manager_context, mock_nixos_context):
+    @patch("nixmcp.server.darwin_context")
+    async def test_app_lifespan_enter(self, mock_darwin_context, mock_home_manager_context, mock_nixos_context):
         """Test entering the app_lifespan context manager."""
         # Setup mock server
         mock_server = MagicMock()
@@ -26,20 +27,23 @@ class TestAppLifespan(unittest.TestCase):
         self.assertIsInstance(context, dict)
         self.assertIn("nixos_context", context)
         self.assertIn("home_manager_context", context)
+        self.assertIn("darwin_context", context)
         self.assertEqual(context["nixos_context"], mock_nixos_context)
         self.assertEqual(context["home_manager_context"], mock_home_manager_context)
+        self.assertEqual(context["darwin_context"], mock_darwin_context)
 
         # Verify prompt was set on the server
         self.assertTrue(hasattr(mock_server, "prompt"))
         self.assertIsInstance(mock_server.prompt, str)
-        self.assertIn("NixOS and Home Manager MCP Guide", mock_server.prompt)
+        self.assertIn("NixOS, Home Manager, and nix-darwin MCP Guide", mock_server.prompt)
 
         # Exit the context manager to clean up
         await context_manager.__aexit__(None, None, None)
 
     @patch("nixmcp.server.nixos_context")
     @patch("nixmcp.server.home_manager_context")
-    async def test_app_lifespan_exit(self, mock_home_manager_context, mock_nixos_context):
+    @patch("nixmcp.server.darwin_context")
+    async def test_app_lifespan_exit(self, mock_darwin_context, mock_home_manager_context, mock_nixos_context):
         """Test exiting the app_lifespan context manager (cleanup)."""
         # Setup mocks
         mock_server = MagicMock()
@@ -70,7 +74,10 @@ class TestAppLifespan(unittest.TestCase):
 
     @patch("nixmcp.server.nixos_context")
     @patch("nixmcp.server.home_manager_context")
-    async def test_app_lifespan_cleanup_on_exception(self, mock_home_manager_context, mock_nixos_context):
+    @patch("nixmcp.server.darwin_context")
+    async def test_app_lifespan_cleanup_on_exception(
+        self, mock_darwin_context, mock_home_manager_context, mock_nixos_context
+    ):
         """Test cleanup is performed even when exception occurs during handling."""
         # Setup mocks
         mock_server = MagicMock()
