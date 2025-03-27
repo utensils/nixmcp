@@ -2,7 +2,9 @@
 
 import dataclasses
 import logging
+import os
 import re
+import time
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
@@ -43,9 +45,12 @@ class DarwinClient:
             html_client: Optional HTMLClient to use for fetching. If not provided, a new one will be created.
             cache_ttl: Time-to-live for cache entries in seconds. Default is 24 hours.
         """
-        self.html_client = html_client or HTMLClient(ttl=cache_ttl)
-        self.html_cache = HTMLCache("darwin", ttl=cache_ttl)
-        self.memory_cache = SimpleCache(max_size=1000, ttl=cache_ttl)
+        # Get cache TTL from environment or use default (24 hours)
+        self.cache_ttl = int(os.environ.get("NIXMCP_CACHE_TTL", cache_ttl))
+
+        self.html_client = html_client or HTMLClient(ttl=self.cache_ttl)
+        self.html_cache = HTMLCache("darwin", ttl=self.cache_ttl)
+        self.memory_cache = SimpleCache(max_size=1000, ttl=self.cache_ttl)
 
         # Search indices
         self.options: Dict[str, DarwinOption] = {}
@@ -59,6 +64,12 @@ class DarwinClient:
         self.last_updated: Optional[datetime] = None
         self.loading_status = "not_started"
         self.error_message = ""
+
+        # Version for cache compatibility
+        self.data_version = "1.0.0"
+
+        # Cache key for data
+        self.cache_key = f"darwin_data_v{self.data_version}"
 
     async def fetch_url(self, url: str, force_refresh: bool = False) -> str:
         """Fetch URL content from the HTML client.
@@ -109,12 +120,17 @@ class DarwinClient:
         try:
             self.loading_status = "loading"
 
-            # Try to load from memory cache first
+            # If force refresh, invalidate caches
+            if force_refresh:
+                logger.info("Forced refresh requested, invalidating caches")
+                self.invalidate_cache()
+
+            # Try to load from memory or filesystem cache first
             if not force_refresh and await self._load_from_memory_cache():
                 self.loading_status = "loaded"
                 return self.options
 
-            # If memory cache fails, parse the HTML
+            # If cache fails, parse the HTML
             html = await self.fetch_url(self.OPTION_REFERENCE_URL, force_refresh=force_refresh)
             if not html:
                 raise ValueError(f"Failed to fetch nix-darwin options from {self.OPTION_REFERENCE_URL}")
@@ -134,6 +150,27 @@ class DarwinClient:
             self.error_message = str(e)
             logger.error(f"Error loading nix-darwin options: {e}")
             raise
+
+    def invalidate_cache(self) -> None:
+        """Invalidate both memory and filesystem cache for nix-darwin data."""
+        try:
+            logger.info(f"Invalidating nix-darwin data cache with key {self.cache_key}")
+
+            # Clear memory cache by setting to None with the current timestamp
+            if self.cache_key in self.memory_cache.cache:
+                # Simple way to mark as invalid without needing a remove method
+                del self.memory_cache.cache[self.cache_key]
+
+            # Invalidate filesystem cache
+            self.html_client.cache.invalidate_data(self.cache_key)
+
+            # Also invalidate HTML cache for the source URL
+            self.html_client.cache.invalidate(self.OPTION_REFERENCE_URL)
+
+            logger.info("nix-darwin data cache invalidated")
+        except Exception as e:
+            logger.error(f"Failed to invalidate nix-darwin data cache: {str(e)}")
+            # Continue execution, don't fail on cache invalidation errors
 
     async def _parse_options(self, soup: BeautifulSoup) -> None:
         """Parse nix-darwin options from BeautifulSoup object.
@@ -323,27 +360,102 @@ class DarwinClient:
             True if loading was successful, False otherwise.
         """
         try:
-            # SimpleCache.get is not async - don't use await
-            cached_data = self.memory_cache.get("options_data")
-            if not cached_data:
-                return False
+            # First try loading from memory cache
+            cached_data = self.memory_cache.get(self.cache_key)
+            if cached_data:
+                logger.info("Found darwin options in memory cache")
+                self.options = cached_data.get("options", {})
+                self.name_index = cached_data.get("name_index", defaultdict(list))
+                self.word_index = cached_data.get("word_index", defaultdict(set))
+                self.prefix_index = cached_data.get("prefix_index", defaultdict(list))
+                self.total_options = cached_data.get("total_options", 0)
+                self.total_categories = cached_data.get("total_categories", 0)
 
-            self.options = cached_data.get("options", {})
-            self.name_index = cached_data.get("name_index", defaultdict(list))
-            self.word_index = cached_data.get("word_index", defaultdict(set))
-            self.prefix_index = cached_data.get("prefix_index", defaultdict(list))
-            self.total_options = cached_data.get("total_options", 0)
-            self.total_categories = cached_data.get("total_categories", 0)
+                if "last_updated" in cached_data:
+                    self.last_updated = cached_data["last_updated"]
 
-            if "last_updated" in cached_data:
-                self.last_updated = cached_data["last_updated"]
+                return bool(self.options)
 
-            return bool(self.options)
+            # If memory cache fails, try loading from filesystem cache
+            return await self._load_from_filesystem_cache()
+
         except Exception as e:
             logger.error(f"Error loading from memory cache: {e}")
             return False
 
+    async def _load_from_filesystem_cache(self) -> bool:
+        """Attempt to load data from disk cache.
+
+        Returns:
+            bool: True if successfully loaded from cache, False otherwise
+        """
+        try:
+            logger.info("Attempting to load nix-darwin data from disk cache")
+
+            # Load the basic metadata
+            data, metadata = self.html_client.cache.get_data(self.cache_key)
+            if not data or not metadata.get("cache_hit", False):
+                logger.info(f"No cached data found for key {self.cache_key}")
+                return False
+
+            # Check if we have the binary data as well
+            binary_data, binary_metadata = self.html_client.cache.get_binary_data(self.cache_key)
+            if not binary_data or not binary_metadata.get("cache_hit", False):
+                logger.info(f"No cached binary data found for key {self.cache_key}")
+                return False
+
+            # Load basic options data
+            # Convert dictionaries back to DarwinOption objects
+            self.options = {}
+            for name, option_dict in data["options"].items():
+                self.options[name] = DarwinOption(
+                    name=option_dict["name"],
+                    description=option_dict["description"],
+                    type=option_dict.get("type", ""),
+                    default=option_dict.get("default", ""),
+                    example=option_dict.get("example", ""),
+                    declared_by=option_dict.get("declared_by", ""),
+                    sub_options={},  # Sub-options will be populated if needed
+                    parent=option_dict.get("parent", None),
+                )
+
+            self.total_options = data.get("total_options", 0)
+            self.total_categories = data.get("total_categories", 0)
+
+            if "last_updated" in data:
+                self.last_updated = datetime.fromisoformat(data["last_updated"])
+
+            # Load complex data structures
+            self.name_index = binary_data["name_index"]
+
+            # Convert lists back to sets for the word_index
+            self.word_index = defaultdict(set)
+            for k, v in binary_data["word_index"].items():
+                self.word_index[k] = set(v)
+
+            self.prefix_index = binary_data["prefix_index"]
+
+            # Memory cache for faster subsequent access
+            await self._cache_to_memory()
+
+            logger.info(f"Successfully loaded nix-darwin data from disk cache with {len(self.options)} options")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load nix-darwin data from disk cache: {str(e)}")
+            return False
+
     async def _cache_parsed_data(self) -> None:
+        """Cache parsed data to memory cache and filesystem."""
+        try:
+            # First cache to memory for fast access
+            await self._cache_to_memory()
+
+            # Then persist to filesystem cache
+            await self._save_to_filesystem_cache()
+        except Exception as e:
+            logger.error(f"Error caching parsed data: {e}")
+
+    async def _cache_to_memory(self) -> None:
         """Cache parsed data to memory cache."""
         try:
             cache_data = {
@@ -353,12 +465,50 @@ class DarwinClient:
                 "prefix_index": dict(self.prefix_index),
                 "total_options": self.total_options,
                 "total_categories": self.total_categories,
-                "last_updated": datetime.now(),
+                "last_updated": self.last_updated or datetime.now(),
             }
             # SimpleCache.set is not async - don't use await
-            self.memory_cache.set("options_data", cache_data)
+            self.memory_cache.set(self.cache_key, cache_data)
         except Exception as e:
-            logger.error(f"Error caching parsed data: {e}")
+            logger.error(f"Error caching data to memory: {e}")
+
+    async def _save_to_filesystem_cache(self) -> bool:
+        """Save in-memory data structures to disk cache.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            logger.info("Saving nix-darwin data structures to disk cache")
+
+            # Prepare basic data for JSON serialization
+            # Convert DarwinOption objects to dictionaries for JSON serialization
+            serializable_options = {name: self._option_to_dict(option) for name, option in self.options.items()}
+
+            serializable_data = {
+                "options": serializable_options,
+                "total_options": self.total_options,
+                "total_categories": self.total_categories,
+                "last_updated": self.last_updated.isoformat() if self.last_updated else datetime.now().isoformat(),
+                "timestamp": time.time(),
+            }
+
+            # Save the basic metadata as JSON
+            self.html_client.cache.set_data(self.cache_key, serializable_data)
+
+            # For complex data structures, use binary serialization
+            binary_data = {
+                "name_index": dict(self.name_index),
+                "word_index": {k: list(v) for k, v in self.word_index.items()},
+                "prefix_index": dict(self.prefix_index),
+            }
+
+            self.html_client.cache.set_binary_data(self.cache_key, binary_data)
+            logger.info(f"Successfully saved nix-darwin data to disk cache with key {self.cache_key}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save nix-darwin data to disk cache: {str(e)}")
+            return False
 
     async def search_options(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Search for options by query.
