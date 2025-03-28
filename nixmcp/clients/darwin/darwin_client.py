@@ -144,12 +144,15 @@ class DarwinClient:
     def _extract_option_id_from_link(self, link: Tag) -> Optional[str]:
         """Extracts the option ID (e.g., 'opt-system.foo') from a link Tag."""
         option_id = None
-        if link.get("id") and isinstance(link["id"], str) and link["id"].startswith("opt-"):
-            option_id = link["id"]
-        elif link.get("href") and isinstance(link["href"], str) and link["href"].startswith("#opt-"):
-            option_id = link["href"].lstrip("#")
+        id_attr = link.get("id")
+        if id_attr and isinstance(id_attr, str) and id_attr.startswith("opt-"):
+            option_id = id_attr
+        else:
+            href_attr = link.get("href")
+            if href_attr and isinstance(href_attr, str) and href_attr.startswith("#opt-"):
+                option_id = href_attr.lstrip("#")
 
-        if option_id and option_id.startswith("opt-"):
+        if option_id and isinstance(option_id, str) and option_id.startswith("opt-"):
             return option_id
         return None
 

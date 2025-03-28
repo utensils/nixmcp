@@ -16,27 +16,61 @@ Please perform the following tasks using ONLY your configured tool capabilities:
    - Rate effectiveness on a scale of 1-5 (failed tool calls should result in a lower score)
    - Suggest improvements to the prompt if needed
 
-4. Create or append to REPORT.md with the following consistent header format:
+4. Create REPORT.md using the cat append approach for each prompt result:
 
-```markdown
-# Tools Evaluation Results
+```bash
+cat >> REPORT.md << 'EOL'
+### Prompt N: [Brief description]
 
-## Summary
+**Original Prompt:**
+```
+[exact prompt]
+```
+
+**Raw Response:**
+```
+[tool output]
+```
+
+**Observations:**
+- [observation 1]
+- [observation 2]
+- [response time if notable]
+
+**Effectiveness Rating:** X/5
+
+**Suggested Improvements:**
+- [specific suggestions]
+EOL
+```
+
+5. After testing all prompts, add a summary section at the end of REPORT.md:
+
+```bash
+cat >> REPORT.md << 'EOL'
+## Summary of Test Results
+
+### Overall Effectiveness
 
 - Total prompts tested: [number]
 - Success rate: [percentage]
 - Average effectiveness rating: [number]/5
+
+[Additional summary information about tool performance]
+EOL
 ```
 
-5. If PREVIOUS_REPORT.md exists, add a comparison section at the beginning of REPORT.md showing:
+6. If PREVIOUS_REPORT.md exists, add a comparison section after the summary:
 
-```markdown
+```bash
+cat >> REPORT.md << 'EOL'
 ## Comparison with Previous Results
 
 - Previous average rating: [previous_rating]/5
 - Current average rating: [current_rating]/5
 - Change: [+/-][difference]
 - Key improvements: [brief description]
+EOL
 ```
 
 ## Detailed Results
@@ -68,7 +102,8 @@ IMPORTANT INSTRUCTIONS:
 - You MUST continue processing the remaining prompts even if some fail
 - Treat each prompt as if you have no context beyond what the tool provides
 - Your primary goal is to complete testing ALL prompts, even if some fail
-- When finished testing all prompts, if PREVIOUS_REPORT.md exists, analyze both reports and add the comparison section to the beginning of REPORT.md
+- When finished testing all prompts, if PREVIOUS_REPORT.md exists, analyze both reports and add the comparison section after the summary at the end of REPORT.md
+- Always use the cat append approach for adding content to REPORT.md
 
 ## NixOS Tools
 

@@ -8,9 +8,9 @@ import re
 import threading
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast, Union
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, Tag, PageElement
 
 # Get logger
 logger = logging.getLogger("nixmcp")
@@ -51,6 +51,10 @@ class HomeManagerClient:
         self.loading_thread: Optional[threading.Thread] = None
         self.loading_in_progress = False
 
+        # Timing parameters - configurable for tests
+        self.retry_delay = 1.0
+        self.initial_load_delay = 0.1
+
         logger.info("Home Manager client initialized")
 
     def fetch_url(self, url: str, force_refresh: bool = False) -> str:
@@ -69,16 +73,19 @@ class HomeManagerClient:
 
     # --- Refactored Parsing Logic ---
 
-    def _extract_option_name(self, dt_element: Tag) -> Optional[str]:
+    def _extract_option_name(self, dt_element: Union[Tag, PageElement]) -> Optional[str]:
         """Extracts the option name from a <dt> element."""
-        term_span = dt_element.find("span", class_="term") if isinstance(dt_element, Tag) else None
+        if not isinstance(dt_element, Tag):
+            return None
+
+        term_span = dt_element.find("span", class_="term")
         if term_span and isinstance(term_span, Tag):
-            code = term_span.find("code") if isinstance(term_span, Tag) else None
+            code = term_span.find("code")
             if code and isinstance(code, Tag) and hasattr(code, "text"):
                 return code.text.strip()
         return None
 
-    def _extract_metadata_from_paragraphs(self, p_elements: List[Tag]) -> Dict[str, Optional[str]]:
+    def _extract_metadata_from_paragraphs(self, p_elements: List[Union[Tag, PageElement]]) -> Dict[str, Optional[str]]:
         """Extracts metadata (Type, Default, Example, Versions) from <p> elements."""
         metadata: Dict[str, Optional[str]] = {
             "type": None,
@@ -88,6 +95,8 @@ class HomeManagerClient:
             "deprecated_version": None,
         }
         for p in p_elements:
+            if not hasattr(p, "text"):
+                continue
             text = p.text.strip()
             if "Type:" in text:
                 metadata["type"] = text.split("Type:", 1)[1].strip()
@@ -109,28 +118,36 @@ class HomeManagerClient:
         """Finds a potential manual URL within a <dd> element."""
         link = dd_element.find("a", href=True) if isinstance(dd_element, Tag) else None
         href = link.get("href", "") if link and isinstance(link, Tag) else ""
-        return href if "manual" in href else None
+        if href and isinstance(href, str) and "manual" in href:
+            return href
+        return None
 
     def _find_category(self, dt_element: Tag) -> str:
         """Determines the category based on the preceding <h3> heading."""
-        heading = dt_element.find_previous("h3") if isinstance(dt_element, Tag) else None
-        return heading.text.strip() if heading and hasattr(heading, "text") else "Uncategorized"
+        heading = dt_element.find_previous("h3")
+        if heading and hasattr(heading, "text"):
+            return heading.text.strip()
+        return "Uncategorized"
 
-    def _parse_single_option(self, dt_element: Tag, doc_type: str) -> Optional[Dict[str, Any]]:
+    def _parse_single_option(self, dt_element: Union[Tag, PageElement], doc_type: str) -> Optional[Dict[str, Any]]:
         """Parses a single option from its <dt> and associated <dd> element."""
-        option_name = self._extract_option_name(dt_element)
+        dt_tag = cast(Tag, dt_element) if isinstance(dt_element, Tag) else None
+        if not dt_tag:
+            return None
+
+        option_name = self._extract_option_name(dt_tag)
         if not option_name:
             return None
 
-        dd = dt_element.find_next_sibling("dd") if isinstance(dt_element, Tag) else None
+        dd = dt_tag.find_next_sibling("dd") if isinstance(dt_tag, Tag) else None
         if not dd or not isinstance(dd, Tag):
             return None
 
         p_elements = dd.find_all("p") if isinstance(dd, Tag) else []
-        description = p_elements[0].text.strip() if p_elements else ""
-        metadata = self._extract_metadata_from_paragraphs(p_elements[1:])
+        description = p_elements[0].text.strip() if p_elements and hasattr(p_elements[0], "text") else ""
+        metadata = self._extract_metadata_from_paragraphs(list(p_elements[1:]))
         manual_url = self._find_manual_url(dd)
-        category = self._find_category(dt_element)
+        category = self._find_category(dt_tag)
 
         return {
             "name": option_name,
@@ -157,7 +174,7 @@ class HomeManagerClient:
             dl = variablelist.find("dl")
             if not dl or not isinstance(dl, Tag):
                 return []
-            dt_elements = dl.find_all("dt", recursive=False)  # Only direct children? Check structure.
+            dt_elements = dl.find_all("dt", recursive=False)
 
             for dt in dt_elements:
                 try:
@@ -298,10 +315,13 @@ class HomeManagerClient:
         """Invalidate the disk cache for Home Manager data."""
         try:
             logger.info(f"Invalidating Home Manager data cache with key {self.cache_key}")
-            self.html_client.cache.invalidate_data(self.cache_key)
-            for url in self.hm_urls.values():
-                self.html_client.cache.invalidate(url)
-            logger.info("Home Manager data cache invalidated")
+            if self.html_client and hasattr(self.html_client, "cache") and self.html_client.cache:
+                self.html_client.cache.invalidate_data(self.cache_key)
+                for url in self.hm_urls.values():
+                    self.html_client.cache.invalidate(url)
+                logger.info("Home Manager data cache invalidated")
+            else:
+                logger.warning("Cannot invalidate cache: HTML client cache not available")
         except Exception as e:
             logger.error(f"Failed to invalidate Home Manager data cache: {str(e)}")
 
@@ -370,10 +390,26 @@ class HomeManagerClient:
         """Attempt to load data from disk cache."""
         try:
             logger.info("Attempting to load Home Manager data from disk cache")
-            data, data_meta = self.html_client.cache.get_data(self.cache_key)
-            binary_data, bin_meta = self.html_client.cache.get_binary_data(self.cache_key)
 
-            if not data_meta.get("cache_hit") or not bin_meta.get("cache_hit"):
+            if not self.html_client or not hasattr(self.html_client, "cache") or not self.html_client.cache:
+                logger.warning("Cannot load from cache: HTML client cache not available")
+                return False
+
+            data_result = self.html_client.cache.get_data(self.cache_key)
+            if not data_result or len(data_result) != 2:
+                logger.warning("Invalid data returned from cache.get_data")
+                return False
+
+            data, data_meta = data_result
+
+            binary_result = self.html_client.cache.get_binary_data(self.cache_key)
+            if not binary_result or len(binary_result) != 2:
+                logger.warning("Invalid data returned from cache.get_binary_data")
+                return False
+
+            binary_data, bin_meta = binary_result
+
+            if not data_meta or not data_meta.get("cache_hit") or not bin_meta or not bin_meta.get("cache_hit"):
                 logger.info(f"No complete HM cached data found for key {self.cache_key}")
                 return False
 
@@ -383,21 +419,50 @@ class HomeManagerClient:
                 return False
 
             # Load data
+            if not data or not isinstance(data, dict) or "options" not in data:
+                logger.warning("Invalid options data structure in cache")
+                return False
+
             self.options = data["options"]
-            self.options_by_category = binary_data["options_by_category"]
-            self.inverted_index = defaultdict(set, {k: set(v) for k, v in binary_data["inverted_index"].items()})
-            self.prefix_index = defaultdict(set, {k: set(v) for k, v in binary_data["prefix_index"].items()})
+
+            if not binary_data or not isinstance(binary_data, dict):
+                logger.warning("Invalid binary data structure in cache")
+                return False
+
+            if "options_by_category" in binary_data:
+                self.options_by_category = defaultdict(list, binary_data["options_by_category"])
+            else:
+                self.options_by_category = defaultdict(list)
+                logger.warning("Missing options_by_category in cache")
+
+            if "inverted_index" in binary_data:
+                self.inverted_index = defaultdict(set, {k: set(v) for k, v in binary_data["inverted_index"].items()})
+            else:
+                self.inverted_index = defaultdict(set)
+                logger.warning("Missing inverted_index in cache")
+
+            if "prefix_index" in binary_data:
+                self.prefix_index = defaultdict(set, {k: set(v) for k, v in binary_data["prefix_index"].items()})
+            else:
+                self.prefix_index = defaultdict(set)
+                logger.warning("Missing prefix_index in cache")
+
             self.hierarchical_index = defaultdict(set)
-            for k_str, v in binary_data["hierarchical_index"].items():
-                try:
-                    # Safer eval for tuple string like "('programs', 'git')"
-                    key_tuple = eval(k_str, {"__builtins__": {}}, {})
-                    if isinstance(key_tuple, tuple) and len(key_tuple) == 2:
-                        self.hierarchical_index[key_tuple] = set(v)
-                    else:
-                        logger.warning(f"Skipping invalid hierarchical key from cache: {k_str}")
-                except Exception as e:
-                    logger.warning(f"Error evaluating hierarchical key '{k_str}': {e}")
+            if "hierarchical_index" in binary_data and binary_data["hierarchical_index"]:
+                for k_str, v in binary_data["hierarchical_index"].items():
+                    try:
+                        if not k_str:
+                            continue
+                        # Safer eval for tuple string like "('programs', 'git')"
+                        key_tuple = eval(k_str, {"__builtins__": {}}, {})
+                        if isinstance(key_tuple, tuple) and len(key_tuple) == 2:
+                            self.hierarchical_index[key_tuple] = set(v) if v else set()
+                        else:
+                            logger.warning(f"Skipping invalid hierarchical key from cache: {k_str}")
+                    except Exception as e:
+                        logger.warning(f"Error evaluating hierarchical key '{k_str}': {e}")
+            else:
+                logger.warning("Missing hierarchical_index in cache")
 
             logger.info(f"Loaded {len(self.options)} Home Manager options from disk cache")
             return True
@@ -426,6 +491,10 @@ class HomeManagerClient:
                 # Convert tuple keys to strings for JSON/Pickle compatibility
                 "hierarchical_index": {str(k): list(v) for k, v in self.hierarchical_index.items()},
             }
+
+            if not self.html_client or not hasattr(self.html_client, "cache") or not self.html_client.cache:
+                logger.warning("Cannot save to cache: HTML client cache not available")
+                return False
 
             self.html_client.cache.set_data(self.cache_key, serializable_data)
             self.html_client.cache.set_binary_data(self.cache_key, binary_data)

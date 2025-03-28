@@ -311,10 +311,12 @@ def test_cache_initialization():
     assert darwin_client.html_cache is html_client.cache
 
     # Verify the cache directory is not "darwin" but the proper OS-specific path
+    assert darwin_client.html_cache is not None, "HTML cache should not be None"
     assert darwin_client.html_cache.cache_dir != pathlib.Path("darwin")
 
     # Check that the cache directory is a subpath of the default cache dir
     default_cache_dir = pathlib.Path(get_default_cache_dir())
+    assert darwin_client.html_cache is not None, "HTML cache should not be None"
     assert str(darwin_client.html_cache.cache_dir).startswith(str(default_cache_dir))
 
     # Create a darwin client without passing a client to test the default case
@@ -356,6 +358,7 @@ def test_avoid_read_only_filesystem_error():
 
     # Verify the client's cache directory is not in the current working directory
     current_dir = pathlib.Path.cwd()
+    assert darwin_client.html_cache is not None, "HTML cache should not be None"
     assert current_dir / "darwin" != darwin_client.html_cache.cache_dir
 
     # Check if the darwin directory was created in the current directory
@@ -363,6 +366,7 @@ def test_avoid_read_only_filesystem_error():
     assert not darwin_dir.exists(), "The 'darwin' directory should not be created in the current directory"
 
     # Verify the cache directory is a properly structured path in the OS cache location
+    assert darwin_client.html_cache is not None, "HTML cache should not be None"
     assert str(darwin_client.html_cache.cache_dir).startswith(str(get_default_cache_dir()))
 
 

@@ -27,7 +27,11 @@ def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
     # Import NixOSContext locally if needed, or assume context is passed correctly
     # from nixmcp.contexts.nixos_context import NixOSContext
     ctx = get_context_or_fallback(context, "nixos_context")
-    if hasattr(ctx, "es_client") and hasattr(ctx.es_client, "set_channel"):
+    if ctx is None:
+        logger.warning("Failed to get NixOS context")
+        return None
+
+    if hasattr(ctx, "es_client") and ctx.es_client is not None and hasattr(ctx.es_client, "set_channel"):
         ctx.es_client.set_channel(channel)
         logger.info(f"Using context 'nixos_context' with channel: {channel}")
     else:
@@ -421,6 +425,8 @@ def nixos_search(
 
     try:
         ctx = _setup_context_and_channel(context, channel)
+        if ctx is None:
+            return "Error: NixOS context not available"
 
         search_query = query
         search_args = {"limit": limit}
@@ -491,6 +497,8 @@ def nixos_info(name: str, type: str = "package", channel: str = CHANNEL_UNSTABLE
 
     try:
         ctx = _setup_context_and_channel(context, channel)
+        if ctx is None:
+            return "Error: NixOS context not available"
 
         if info_type == "package":
             info = ctx.get_package(name)
@@ -529,6 +537,8 @@ def nixos_stats(channel: str = CHANNEL_UNSTABLE, context=None) -> str:
 
     try:
         ctx = _setup_context_and_channel(context, channel)
+        if ctx is None:
+            return "Error: NixOS context not available"
 
         package_stats = ctx.get_package_stats()
         options_stats = ctx.count_options()

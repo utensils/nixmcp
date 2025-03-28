@@ -87,9 +87,15 @@ The codebase follows a modular architecture:
 ### Best Practices
 - Use resources for retrieving data, tools for actions/processing with formatted output
 - Always use proper type annotations (Optional, Union, List, Dict, etc.)
+- Follow strict null safety guidelines:
+  - Always check for None before accessing attributes (`if ctx is not None: ctx.method()`)
+  - Use the Optional type for attributes or parameters that may be None
+  - Add defensive guards for regex match operations and string comparisons
+  - Check result values from external APIs and provide appropriate fallbacks
 - Log all errors with appropriate detail
 - Return user-friendly error messages with suggestions where possible
 - For search tools, handle empty results gracefully and support wildcards
+- Ensure code passes both linting (`lint`) and type checking (`typecheck`) before committing
 
 ## MCP Resources
 
@@ -246,6 +252,15 @@ Both tools above support the `channel` parameter with values:
 
 ## Testing
 - Use pytest with code coverage reporting (target: 80%)
+- Run static type checking with `typecheck` command:
+  - Zero-tolerance policy for type errors
+  - Checks for null safety and proper type usage
+  - Run on CI for all pull requests
+- Run linting checks with `lint` command:
+  - Enforces code style with Black
+  - Checks for issues with Flake8
+  - No unused imports allowed
+  - No f-string placeholders without variables
 - Test organization follows the module structure:
   - `tests/cache/` - Tests for caching components
   - `tests/clients/` - Tests for API clients (with nested `darwin/` directory)
@@ -260,6 +275,7 @@ Both tools above support the `channel` parameter with values:
   - Avoid patching global state
 - Mock external dependencies (Elasticsearch, Home Manager docs) 
 - Test both success paths and error handling
+- Always check for None values before accessing attributes in tests
 - **IMPORTANT**: Mock test functions, not production code:
   ```python
   # GOOD: Clean production code with mocking in tests
@@ -318,3 +334,8 @@ To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
 - Specific exception handling (avoid bare except)
 - Black for formatting, Flake8 for linting
 - Flake8 config: max-line-length=120, ignore=E402,E203
+- Strict null safety to prevent "None" type errors:
+  - Check for None before accessing attributes (`if obj is not None: obj.method()`)
+  - Guard regex match results with if statements before accessing group() methods
+  - Add type assertion for string operations (`if s is not None: "text" in s`)
+- Use pyright's strict type checking with zero-tolerance policy for type errors

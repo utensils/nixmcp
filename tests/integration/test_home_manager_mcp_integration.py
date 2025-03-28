@@ -1,7 +1,7 @@
 import unittest
 import logging
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Import the context and client
 from nixmcp.contexts.home_manager_context import HomeManagerContext
@@ -117,7 +117,7 @@ EXPECTED_PREFIXES = ["programs", "services", "home"]
 class TestHomeManagerMCPIntegration(unittest.TestCase):
     """Integration tests for Home Manager MCP resources with mock data loading."""
 
-    context: HomeManagerContext = None  # Class attribute for context
+    context: Optional[HomeManagerContext] = None  # Class attribute for context
 
     @classmethod
     def setUpClass(cls):

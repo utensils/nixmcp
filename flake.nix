@@ -10,26 +10,17 @@
   outputs = { self, nixpkgs, flake-utils, devshell }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        # Use the nixpkgs instance passed to the overlay
-        pkgsForOverlay = import nixpkgs { inherit system; };
-
-        # Import nixpkgs with overlays applied
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [
-            devshell.overlays.default
-          ];
+          overlays = [ devshell.overlays.default ];
         };
 
-        # Configuration variables
         pythonVersion = "311";
         python = pkgs."python${pythonVersion}";
-        ps = pkgs."python${pythonVersion}Packages"; # Python Packages shortcut
+        ps = pkgs."python${pythonVersion}Packages";
 
-        # Base Python environment for creating the venv
         pythonForVenv = python.withPackages (p: with p; [ ]);
 
-        # --- Optimized venv setup script ---
         setupVenvScript = pkgs.writeShellScriptBin "setup-venv" ''
           set -e
           echo "--- Setting up Python virtual environment ---"
@@ -79,40 +70,42 @@
            echo "---------------------------------------------"
         '';
 
-      in {
-        # DevShell using numtide/devshell for enhanced features
+      in
+      {
         devShells.default = pkgs.devshell.mkShell {
           name = "nixmcp";
-
-          # Basic MOTD shown before startup hooks
           motd = ''
             Entering NixMCP Dev Environment...
             Python: ${python.version}
             Nix:    ${pkgs.nix}/bin/nix --version
           '';
-
-          # Environment variables
           env = [
             { name = "PYTHONPATH"; value = "$PWD"; }
             { name = "NIXMCP_ENV"; value = "development"; }
           ];
-
-          # Packages available in the shell environment
           packages = with pkgs; [
+            # Python & Build Tools
             pythonForVenv
-            nix
-            nixos-option
-            uv
-            ps.black
-            ps.flake8
-            ps.pytest
-            ps."pytest-cov"
+            uv # Faster pip alternative
             ps.build
             ps.twine
+
+            # Linters & Formatters
+            ps.black
+            ps.flake8
+            # Standalone pyright package
+            pyright # <--- CORRECTED REFERENCE
+
+            # Testing
+            ps.pytest
+            ps."pytest-cov"
+            # ps.pytest-asyncio # Usually installed via pip/uv into venv
+
+            # Nix & Git
+            nix
+            nixos-option
             git
           ];
-
-          # Commands available via `menu`
           commands = [
             {
               name = "setup";
@@ -135,57 +128,31 @@
                 python -m nixmcp
               '';
             }
-            # --- RESTORED run-tests COMMAND ---
             {
-              name = "run-tests"; # Changed name back from 'test'
+              name = "run-tests";
               category = "testing";
               help = "Run tests with pytest [--no-coverage]";
               command = ''
-                # Ensure venv is active
                 if [ -z "$VIRTUAL_ENV" ]; then
                   echo "Activating venv..."
                   source .venv/bin/activate
                 fi
-
-                # Tools (pytest, pytest-cov) are provided by Nix
-
-                # Parse arguments for coverage
-                COVERAGE_ARGS="--cov=nixmcp --cov-report=term-missing --cov-report=html"
+                COVERAGE_ARGS="--cov=nixmcp --cov-report=term-missing --cov-report=html --cov-report=xml"
                 PYTEST_ARGS=""
                 for arg in "$@"; do
                   case $arg in
                     --no-coverage)
                       COVERAGE_ARGS=""
                       echo "Running without coverage reporting..."
-                      shift
-                      ;;
+                      shift ;;
                     *)
                       PYTEST_ARGS="$PYTEST_ARGS $arg"
-                      shift
-                      ;;
+                      shift ;;
                   esac
                 done
-
-                # Determine source directory for coverage
-                SOURCE_DIR="nixmcp" # Adjust as needed
-                if [ ! -d "$SOURCE_DIR" ]; then
-                   if [ -d "server" ]; then
-                       SOURCE_DIR="server"
-                   else
-                       # If neither specific dir exists, maybe just target tests/ ?
-                       # Or adjust coverage args if appropriate. For now, keep potential '.' fallback
-                       echo "Warning: Source directory '$SOURCE_DIR' or 'server' not found."
-                       SOURCE_DIR="." # Fallback, may need adjustment for specific project
-                   fi
-                   # Update coverage args if source dir changed
-                   if [ "$SOURCE_DIR" != "nixmcp" ]; then
-                      COVERAGE_ARGS=$(echo "$COVERAGE_ARGS" | sed "s/--cov=nixmcp/--cov=$SOURCE_DIR/")
-                   fi
-                fi
-
+                SOURCE_DIR="nixmcp"
                 echo "Running tests..."
                 pytest tests/ -v $COVERAGE_ARGS $PYTEST_ARGS
-
                 if [ -n "$COVERAGE_ARGS" ] && echo "$COVERAGE_ARGS" | grep -q 'html'; then
                   echo "✅ Coverage report generated. HTML report available in htmlcov/"
                 elif [ -n "$COVERAGE_ARGS" ]; then
@@ -198,19 +165,16 @@
               category = "development";
               help = "Count lines of code in the project";
               command = ''
-                # Simple version that just shows the main statistics
                 echo "=== NixMCP Lines of Code Statistics ==="
                 SRC_LINES=$(find ./nixmcp -name '*.py' -type f | xargs wc -l | tail -n 1 | awk '{print $1}')
                 TEST_LINES=$(find ./tests -name '*.py' -type f | xargs wc -l | tail -n 1 | awk '{print $1}')
-                CONFIG_LINES=$(find . -path './.venv' -prune -o -path './.mypy_cache' -prune -o -path './htmlcov' -prune -o -path './coverage_report' -prune -o -type f \( -name '*.json' -o -name '*.toml' -o -name '*.ini' -o -name '*.yml' -o -name '*.yaml' -o -name '*.nix' \) -print | xargs wc -l | tail -n 1 | awk '{print $1}')
+                # Corrected path pruning for loc command
+                CONFIG_LINES=$(find . -path './.venv' -prune -o -path './.mypy_cache' -prune -o -path './htmlcov' -prune -o -path './.direnv' -prune -o -path './result' -prune -o -path './.git' -prune -o -type f \( -name '*.json' -o -name '*.toml' -o -name '*.ini' -o -name '*.yml' -o -name '*.yaml' -o -name '*.nix' -o -name '*.lock' -o -name '*.md' -o -name '*.rules' -o -name '*.hints' -o -name '*.in' \) -print | xargs wc -l | tail -n 1 | awk '{print $1}')
                 TOTAL_PYTHON=$((SRC_LINES + TEST_LINES))
-                
                 echo "Source code (nixmcp directory): $SRC_LINES lines"
                 echo "Test code (tests directory): $TEST_LINES lines"
                 echo "Configuration files: $CONFIG_LINES lines"
                 echo "Total Python code: $TOTAL_PYTHON lines"
-                
-                # Show code/test ratio
                 if [ "$SRC_LINES" -gt 0 ]; then
                   RATIO=$(echo "scale=2; $TEST_LINES / $SRC_LINES" | bc)
                   echo "Test to code ratio: $RATIO:1"
@@ -223,14 +187,16 @@
               help = "Lint code with Black (check) and Flake8";
               command = ''
                 echo "--- Checking formatting with Black ---"
-                if [ -d "nixmcp" ]; then black --check nixmcp/ tests/
-                elif [ -d "server" ]; then black --check server/ tests/ *.py
-                else black --check --exclude='\.venv/' *.py tests/; fi
+                black --check nixmcp/ tests/
                 echo "--- Running Flake8 linter ---"
-                if [ -d "nixmcp" ]; then flake8 nixmcp/ tests/
-                elif [ -d "server" ]; then flake8 server/ tests/ *.py
-                else flake8 --exclude='\.venv/' *.py tests/; fi
+                flake8 nixmcp/ tests/
               '';
+            }
+            {
+              name = "typecheck"; # Added a dedicated command for clarity
+              category = "development";
+              help = "Run pyright type checker";
+              command = "pyright"; # Direct command
             }
             {
               name = "format";
@@ -238,9 +204,7 @@
               help = "Format code with Black";
               command = ''
                 echo "--- Formatting code with Black ---"
-                if [ -d "nixmcp" ]; then black nixmcp/ tests/
-                elif [ -d "server" ]; then black server/ tests/ *.py
-                else black --exclude='\.venv/' *.py tests/; fi
+                black nixmcp/ tests/
                 echo "✅ Code formatted"
               '';
             }
@@ -249,7 +213,7 @@
               category = "distribution";
               help = "Build package distributions (sdist and wheel)";
               command = ''
-                echo "--- Building package ---"
+                 echo "--- Building package ---"
                 rm -rf dist/ build/ *.egg-info
                 python -m build
                 echo "✅ Build complete in dist/"
@@ -260,7 +224,7 @@
               category = "distribution";
               help = "Upload package distribution to PyPI (requires ~/.pypirc)";
               command = ''
-                if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then echo "Run 'build' first."; exit 1; fi
+                 if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then echo "Run 'build' first."; exit 1; fi
                 if [ ! -f "$HOME/.pypirc" ]; then echo "Warning: ~/.pypirc not found."; fi
                 echo "--- Uploading to PyPI ---"
                 twine upload dist/*
@@ -268,26 +232,17 @@
               '';
             }
           ];
-
-          # --- STARTUP HOOK WITH AUTO MENU ---
           devshell.startup.venvActivate.text = ''
-            # Run the setup script non-interactively first to ensure venv exists
-            echo "Ensuring Python virtual environment is set up..."
+             echo "Ensuring Python virtual environment is set up..."
             ${setupVenvScript}/bin/setup-venv
-
-            # Activate the virtual environment for the interactive shell
             echo "Activating virtual environment..."
             source .venv/bin/activate
-
             echo ""
             echo "✅ NixMCP Dev Environment Activated."
             echo "   Virtual env ./.venv is active."
             echo ""
-
-            # Automatically display the devshell menu
             menu
           '';
         };
-
       });
 }

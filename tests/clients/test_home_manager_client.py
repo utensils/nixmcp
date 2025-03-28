@@ -2,6 +2,7 @@ import unittest
 import threading
 import time
 import requests
+from unittest import mock
 from unittest.mock import patch, call
 
 # Import the HomeManagerClient class
@@ -252,7 +253,9 @@ class TestHomeManagerClient(unittest.TestCase):
         client = HomeManagerClient()
         client.load_in_background()  # Start first load
         self.assertTrue(client.loading_in_progress)
-        self.assertTrue(client.loading_thread.is_alive())
+        self.assertIsNotNone(client.loading_thread)
+        if client.loading_thread:  # Add a guard to satisfy type checker
+            self.assertTrue(client.loading_thread.is_alive())
 
         client.load_in_background()  # Try starting again
 
@@ -383,7 +386,7 @@ class TestHomeManagerClient(unittest.TestCase):
         """Test invalidate_cache method calls underlying cache methods."""
         client = HomeManagerClient()
         # Mock the cache
-        mock_cache = unittest.mock.MagicMock()
+        mock_cache = mock.MagicMock()
         # Replace the client's html_client.cache with our mock
         client.html_client.cache = mock_cache
 

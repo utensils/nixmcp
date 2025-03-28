@@ -339,6 +339,8 @@ async def test_empty_dataset_not_cached(real_cache_dir):
 
     # Check no cache files were created for data
     cache_key = darwin_client.cache_key
+    # Ensure cache is not None before accessing its methods
+    assert html_client.cache is not None, "HTMLClient cache should not be None"
     json_path = html_client.cache._get_data_cache_path(cache_key)
     pickle_path = html_client.cache._get_binary_data_cache_path(cache_key)
 
@@ -425,6 +427,7 @@ async def test_expired_cache_ttl_reload(real_cache_dir):
 
         # Verify content was fetched from web
         assert metadata1["from_cache"] is False
+        assert content1 is not None
         assert "false" in content1
 
         # Verify cache file was created
@@ -444,6 +447,7 @@ async def test_expired_cache_ttl_reload(real_cache_dir):
 
         # Verify content was fetched from web again
         assert metadata3["from_cache"] is False
+        assert content3 is not None
         assert "true" in content3  # Content has changed
         assert content3 != content1
 
@@ -474,6 +478,7 @@ async def test_reject_invalid_cached_data(real_cache_dir):
     cache_key = "darwin_data_v1.0.0"
 
     # Get cache file paths
+    assert html_client.cache is not None, "HTMLClient cache should not be None"
     json_path = html_client.cache._get_data_cache_path(cache_key)
     pickle_path = html_client.cache._get_binary_data_cache_path(cache_key)
 
@@ -623,6 +628,7 @@ async def test_darwin_client_expired_cache(real_cache_dir):
 
         # Check if JSON and pickle files were created
         cache_key = darwin_client.cache_key
+        assert html_client.cache is not None, "HTMLClient cache should not be None"
         json_path = html_client.cache._get_data_cache_path(cache_key)
         pickle_path = html_client.cache._get_binary_data_cache_path(cache_key)
 
@@ -650,6 +656,8 @@ async def test_darwin_client_expired_cache(real_cache_dir):
 
         # We need to explicitly invalidate the cache to ensure the HTML gets reloaded
         darwin_client.invalidate_cache()
+        # Ensure cache is not None before accessing invalidate
+        assert html_client.cache is not None, "HTMLClient cache should not be None"
         html_client.cache.invalidate(darwin_client.OPTION_REFERENCE_URL)
 
         # Use the same client to avoid caching issues

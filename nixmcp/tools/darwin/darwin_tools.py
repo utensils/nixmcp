@@ -66,7 +66,7 @@ async def darwin_search(query: str, limit: int = 20, context: Optional[DarwinCon
         Results formatted as text
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return "Error: no Darwin context available"
 
@@ -105,7 +105,7 @@ async def darwin_info(name: str, context: Optional[DarwinContext] = None) -> str
         Detailed information formatted as text
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return "Error: no Darwin context available"
 
@@ -168,7 +168,7 @@ async def darwin_stats(context: Optional[DarwinContext] = None) -> str:
         Statistics about nix-darwin options
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return "Error: no Darwin context available"
 
@@ -211,7 +211,7 @@ async def darwin_list_options(context: Optional[DarwinContext] = None) -> str:
         Formatted list of top-level option categories and their statistics
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return "Error: no Darwin context available"
 
@@ -252,7 +252,7 @@ async def darwin_options_by_prefix(option_prefix: str, context: Optional[DarwinC
         Formatted list of options under the given prefix
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return "Error: no Darwin context available"
 

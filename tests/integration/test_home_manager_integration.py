@@ -3,7 +3,7 @@
 import unittest
 import logging
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 # Configure logging for tests with more verbose output
 logging.basicConfig(
@@ -155,6 +155,10 @@ class TestHomeManagerDocStructure(unittest.TestCase):
                 return
 
             # Get all dt elements (terms)
+            if not isinstance(dl, Tag):
+                self.skipTest("Definition list is not a Tag element")
+                return
+
             dt_elements = dl.find_all("dt")
 
             # Process a few options

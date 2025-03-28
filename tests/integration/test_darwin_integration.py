@@ -210,6 +210,7 @@ def test_darwin_integration_cache_directory():
     assert hasattr(context.client, "html_cache")
 
     # Verify cache directory path
+    assert context.client.html_cache is not None, "HTML cache should not be None"
     cache_dir = context.client.html_cache.cache_dir
 
     # Ensure cache_dir is a proper path object
@@ -237,6 +238,7 @@ def test_darwin_integration_cache_directory():
     cache_key = context.client.cache_key
 
     # Check that no empty data files were created
+    assert context.client.html_client.cache is not None, "HTML client cache should not be None"
     json_path = context.client.html_client.cache._get_data_cache_path(cache_key)
     # pickle_path not used but kept for reference
     # pickle_path = context.client.html_client.cache._get_binary_data_cache_path(cache_key)

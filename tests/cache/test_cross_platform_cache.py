@@ -43,6 +43,8 @@ class TestCrossplatformIntegration:
         with mock.patch.dict(os.environ, {"NIXMCP_CACHE_TTL": "7200"}):  # 2 hours
             client = HomeManagerClient()
             assert client.cache_ttl == 7200
+            # Check if cache is not None before accessing ttl
+            assert client.html_client.cache is not None
             assert client.html_client.cache.ttl == 7200
 
     def test_home_manager_client_html_caching(self):

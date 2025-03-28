@@ -62,15 +62,18 @@ class HTMLClient:
         }
 
         # Try to get content from cache if caching is enabled and not forcing refresh
-        if self.use_cache and not force_refresh:
-            cached_content, cache_metadata = self.cache.get(url)
-            metadata.update(cache_metadata)
+        if self.use_cache and not force_refresh and self.cache is not None:
+            cache_result = self.cache.get(url)
+            if cache_result and len(cache_result) == 2:
+                cached_content, cache_metadata = cache_result
+                if cache_metadata and isinstance(cache_metadata, dict):
+                    metadata.update(cache_metadata)
 
-            if cached_content is not None:
-                logger.debug(f"Fetched content from cache for URL: {url}")
-                metadata["from_cache"] = True
-                metadata["success"] = True
-                return cached_content, metadata
+                if cached_content is not None:
+                    logger.debug(f"Fetched content from cache for URL: {url}")
+                    metadata["from_cache"] = True
+                    metadata["success"] = True
+                    return cached_content, metadata
 
         # Fetch content from the web
         logger.debug(f"Fetching content from web for URL: {url}")
@@ -83,7 +86,7 @@ class HTMLClient:
             metadata["success"] = True
 
             # Store in cache if caching is enabled
-            if self.use_cache:
+            if self.use_cache and self.cache is not None:
                 cache_result = self.cache.set(url, content)
                 metadata["cache_result"] = cache_result
 
@@ -104,7 +107,7 @@ class HTMLClient:
         Returns:
             Metadata about the cache clear operation
         """
-        if not self.use_cache:
+        if not self.use_cache or self.cache is None:
             return {"cache_enabled": False}
 
         return self.cache.clear()
@@ -116,7 +119,7 @@ class HTMLClient:
         Returns:
             Dictionary with cache usage statistics
         """
-        if not self.use_cache:
+        if not self.use_cache or self.cache is None:
             return {"cache_enabled": False}
 
         return self.cache.get_stats()

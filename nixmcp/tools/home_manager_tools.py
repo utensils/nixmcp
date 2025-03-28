@@ -35,6 +35,10 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
             logger.info(f"Adding wildcards to query: {wildcard_query}")
             query = wildcard_query
 
+        # Ensure context is not None before accessing its attributes
+        if context is None:
+            return "Error: Home Manager context not available"
+
         results = context.search_options(query, limit)
         options = results.get("options", [])
 
@@ -196,6 +200,10 @@ def home_manager_info(name: str, context=None) -> str:
     context = get_context_or_fallback(context, "home_manager_context")
 
     try:
+        # Ensure context is not None before accessing its attributes
+        if context is None:
+            return f"Error: Home Manager context not available for option '{name}'"
+
         info = context.get_option(name)
 
         if not info.get("found", False):
@@ -356,6 +364,10 @@ def home_manager_stats(context=None) -> str:
     context = get_context_or_fallback(context, "home_manager_context")
 
     try:
+        # Ensure context is not None before accessing its attributes
+        if context is None:
+            return "Error: Home Manager context not available"
+
         stats = context.get_stats()
 
         if "error" in stats:
@@ -433,6 +445,10 @@ def home_manager_list_options(context=None) -> str:
     context = get_context_or_fallback(context, "home_manager_context")
 
     try:
+        # Ensure context is not None before accessing its attributes
+        if context is None:
+            return "Error: Home Manager context not available"
+
         result = context.get_options_list()
 
         if not result.get("found", False):
@@ -537,6 +553,10 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
     context = get_context_or_fallback(context, "home_manager_context")
 
     try:
+        # Ensure context is not None before accessing its attributes
+        if context is None:
+            return f"Error: Home Manager context not available for prefix '{option_prefix}'"
+
         result = context.get_options_by_prefix(option_prefix)
 
         if not result.get("found", False):

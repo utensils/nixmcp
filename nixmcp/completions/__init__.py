@@ -123,56 +123,74 @@ async def complete_resource_uri(
 
     # NixOS package completions
     if re.match(NIXOS_PACKAGE_PATTERN, uri):
-        partial_name = re.match(NIXOS_PACKAGE_PATTERN, uri).group(1)
-        result = await complete_nixos_package_name(partial_name, es_client)
-        logger.debug(f"Package completion result for '{partial_name}': {len(result.get('items', []))} items")
-        return result
+        match_result = re.match(NIXOS_PACKAGE_PATTERN, uri)
+        if match_result:
+            partial_name = match_result.group(1)
+            result = await complete_nixos_package_name(partial_name, es_client)
+            logger.debug(f"Package completion result for '{partial_name}': {len(result.get('items', []))} items")
+            return result
 
     # NixOS option completions
     elif re.match(NIXOS_OPTION_PATTERN, uri):
-        partial_name = re.match(NIXOS_OPTION_PATTERN, uri).group(1)
-        result = await complete_nixos_option_name(partial_name, es_client)
-        logger.debug(f"Option completion result for '{partial_name}': {len(result.get('items', []))} items")
-        return result
+        match_result = re.match(NIXOS_OPTION_PATTERN, uri)
+        if match_result:
+            partial_name = match_result.group(1)
+            result = await complete_nixos_option_name(partial_name, es_client)
+            logger.debug(f"Option completion result for '{partial_name}': {len(result.get('items', []))} items")
+            return result
 
     # NixOS search/packages completions
     elif re.match(NIXOS_SEARCH_PACKAGES_PATTERN, uri):
-        partial_query = re.match(NIXOS_SEARCH_PACKAGES_PATTERN, uri).group(1)
-        result = await complete_nixos_package_name(partial_query, es_client, is_search=True)
-        logger.debug(f"Package search completion result for '{partial_query}': {len(result.get('items', []))} items")
-        return result
+        match_result = re.match(NIXOS_SEARCH_PACKAGES_PATTERN, uri)
+        if match_result:
+            partial_query = match_result.group(1)
+            result = await complete_nixos_package_name(partial_query, es_client, is_search=True)
+            logger.debug(
+                f"Package search completion result for '{partial_query}': {len(result.get('items', []))} items"
+            )
+            return result
 
     # NixOS search/options completions
     elif re.match(NIXOS_SEARCH_OPTIONS_PATTERN, uri):
-        partial_query = re.match(NIXOS_SEARCH_OPTIONS_PATTERN, uri).group(1)
-        result = await complete_nixos_option_name(partial_query, es_client, is_search=True)
-        logger.debug(f"Option search completion result for '{partial_query}': {len(result.get('items', []))} items")
-        return result
+        match_result = re.match(NIXOS_SEARCH_OPTIONS_PATTERN, uri)
+        if match_result:
+            partial_query = match_result.group(1)
+            result = await complete_nixos_option_name(partial_query, es_client, is_search=True)
+            logger.debug(f"Option search completion result for '{partial_query}': {len(result.get('items', []))} items")
+            return result
 
     # NixOS search/programs completions
     elif re.match(NIXOS_SEARCH_PROGRAMS_PATTERN, uri):
-        partial_program = re.match(NIXOS_SEARCH_PROGRAMS_PATTERN, uri).group(1)
-        result = await complete_nixos_program_name(partial_program, es_client)
-        logger.debug(f"Program search completion result for '{partial_program}': {len(result.get('items', []))} items")
-        return result
+        match_result = re.match(NIXOS_SEARCH_PROGRAMS_PATTERN, uri)
+        if match_result:
+            partial_program = match_result.group(1)
+            result = await complete_nixos_program_name(partial_program, es_client)
+            logger.debug(
+                f"Program search completion result for '{partial_program}': {len(result.get('items', []))} items"
+            )
+            return result
 
     # Home Manager option completions
     elif re.match(HOME_MANAGER_OPTION_PATTERN, uri):
-        partial_name = re.match(HOME_MANAGER_OPTION_PATTERN, uri).group(1)
-        result = await complete_home_manager_option_name(partial_name, hm_client)
-        logger.debug(
-            f"Home Manager option completion result for '{partial_name}': {len(result.get('items', []))} items"
-        )
-        return result
+        match_result = re.match(HOME_MANAGER_OPTION_PATTERN, uri)
+        if match_result:
+            partial_name = match_result.group(1)
+            result = await complete_home_manager_option_name(partial_name, hm_client)
+            logger.debug(
+                f"Home Manager option completion result for '{partial_name}': {len(result.get('items', []))} items"
+            )
+            return result
 
     # Home Manager search completions
     elif re.match(HOME_MANAGER_SEARCH_PATTERN, uri):
-        partial_query = re.match(HOME_MANAGER_SEARCH_PATTERN, uri).group(1)
-        result = await complete_home_manager_option_name(partial_query, hm_client, is_search=True)
-        logger.debug(
-            f"Home Manager search completion result for '{partial_query}': {len(result.get('items', []))} items"
-        )
-        return result
+        match_result = re.match(HOME_MANAGER_SEARCH_PATTERN, uri)
+        if match_result:
+            partial_query = match_result.group(1)
+            result = await complete_home_manager_option_name(partial_query, hm_client, is_search=True)
+            logger.debug(
+                f"Home Manager search completion result for '{partial_query}': {len(result.get('items', []))} items"
+            )
+            return result
 
     # Base resource URI completion (first level paths)
     elif uri in ["nixos://", "nixos:", "nixos"]:

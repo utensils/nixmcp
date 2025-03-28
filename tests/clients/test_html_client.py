@@ -62,7 +62,8 @@ class TestHTMLClient:
     @mock.patch("requests.get")
     def test_fetch_from_cache(self, mock_get):
         """Test fetching content from cache."""
-        # First, store content in cache
+        # First, ensure cache is available and store content in cache
+        assert self.client.cache is not None
         self.client.cache.set(self.test_url, self.test_content)
 
         # Now fetch the content (should come from cache)
@@ -80,7 +81,8 @@ class TestHTMLClient:
     @mock.patch("requests.get")
     def test_fetch_force_refresh(self, mock_get):
         """Test forcing a refresh from web."""
-        # First, store content in cache
+        # First, ensure cache is available and store content in cache
+        assert self.client.cache is not None
         self.client.cache.set(self.test_url, self.test_content)
 
         # Set up mock response with different content
@@ -118,7 +120,8 @@ class TestHTMLClient:
 
     def test_clear_cache(self):
         """Test clearing the cache."""
-        # Store some content in cache
+        # Ensure cache is available and store some content in cache
+        assert self.client.cache is not None
         self.client.cache.set(self.test_url, self.test_content)
         self.client.cache.set("https://example.com/other", "Other content")
 
@@ -130,6 +133,7 @@ class TestHTMLClient:
         assert result["files_removed"] == 2
 
         # Verify cache is empty
+        assert self.client.cache is not None
         content, _ = self.client.cache.get(self.test_url)
         assert content is None
 
@@ -153,6 +157,7 @@ class TestHTMLClient:
         # Verify stats
         assert stats["hits"] == 1
         assert stats["writes"] == 1
+        assert self.client.cache is not None
         assert str(stats["cache_dir"]) == str(self.client.cache.cache_dir)
         assert stats["file_count"] == 1
         # Note: depending on implementation, misses might be counted differently

@@ -115,7 +115,7 @@ def parse_multi_word_query(query: str) -> dict:
     return result
 
 
-def get_context_or_fallback(context: Optional[T], context_name: str) -> T:
+def get_context_or_fallback(context: Optional[T], context_name: str) -> Optional[T]:
     """Get the provided context or fall back to global context.
 
     Args:
@@ -123,13 +123,18 @@ def get_context_or_fallback(context: Optional[T], context_name: str) -> T:
         context_name: The name of the context to retrieve from server if not provided
 
     Returns:
-        The provided context or the global context from the server
+        The provided context or the global context from the server, or None if not found
     """
     if context is None:
         # Import here to avoid circular imports
         import nixmcp.server
 
-        return getattr(nixmcp.server, context_name)
+        # Handle various context types
+        if hasattr(nixmcp.server, context_name):
+            return getattr(nixmcp.server, context_name)
+        else:
+            logger.warning(f"Context '{context_name}' not found in server")
+            return None
 
     return context
 

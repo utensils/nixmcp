@@ -65,7 +65,7 @@ def get_darwin_status(context=None) -> Dict[str, Any]:
         Status information.
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return {
                 "error": "No Darwin context available",
@@ -96,7 +96,7 @@ def search_darwin_options(query: str, limit: int = 20, context=None) -> Dict[str
         Search results.
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return {
                 "error": "No Darwin context available",
@@ -139,7 +139,7 @@ def get_darwin_option(option_name: str, context=None) -> Dict[str, Any]:
         Option information.
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return {
                 "error": "No Darwin context available",
@@ -180,7 +180,7 @@ def get_darwin_statistics(context=None) -> Dict[str, Any]:
         Statistics information.
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return {
                 "error": "No Darwin context available",
@@ -211,7 +211,7 @@ def get_darwin_categories(context=None) -> Dict[str, Any]:
         Categories information.
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return {
                 "error": "No Darwin context available",
@@ -248,7 +248,7 @@ def get_darwin_options_by_prefix(option_prefix: str, context=None) -> Dict[str, 
         Options information.
     """
     try:
-        ctx = get_context_or_fallback(context, darwin_context)
+        ctx = get_context_or_fallback(context, "darwin_context")
         if not ctx:
             return {
                 "error": "No Darwin context available",

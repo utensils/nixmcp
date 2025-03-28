@@ -243,13 +243,15 @@ class HomeManagerContext:
                 "xsession",
             ]
 
-            result = {"options": {}}
+            # Create result with proper type structure
+            options_dict: Dict[str, Dict[str, Any]] = {}
+            result: Dict[str, Any] = {"options": options_dict}
 
             for option in top_level_options:
                 # Get all options that start with this prefix
                 options_data = self.get_options_by_prefix(option)
                 if options_data.get("found", False):
-                    result["options"][option] = {
+                    options_dict[option] = {
                         "count": options_data.get("count", 0),
                         "enable_options": options_data.get("enable_options", []),
                         "types": options_data.get("types", {}),
@@ -261,9 +263,10 @@ class HomeManagerContext:
                         return options_data
 
                     # Include the option even if no matches found
-                    result["options"][option] = {"count": 0, "enable_options": [], "types": {}, "has_children": False}
+                    options_dict[option] = {"count": 0, "enable_options": [], "types": {}, "has_children": False}
 
-            result["count"] = len(result["options"])
+            # Set count and found flag on the result
+            result["count"] = len(options_dict)
             result["found"] = True
             return result
         except Exception as e:
