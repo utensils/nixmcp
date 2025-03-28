@@ -1,12 +1,14 @@
+# .github/workflows/ci.yml
+
 name: CI
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]  # Also run CI on version tags
+    branches: [main]
+    tags: ["v*"] # Run CI on version tags
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:  # Allow manual trigger
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
 
 # Ensure we don't run this workflow concurrently for the same push/PR
 concurrency:
@@ -18,138 +20,255 @@ jobs:
     name: Build Flake
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: cachix/install-nix-action@v23
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27 # Updated version
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command flakes
-      
+            accept-flake-config = true # Recommended for flakes
+
+      # Optional: Use Cachix for faster builds (Requires CACHIX_AUTH_TOKEN secret)
+      # - name: Use Cachix Binary Cache
+      #   uses: cachix/cachix-action@v15
+      #   with:
+      #     name: <your-cache-name> # Replace with your Cachix cache name (e.g., utensils-nixmcp)
+      #     authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
       - name: Cache Nix store
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/nix
+            /nix/store # Add /nix/store if not using Cachix and runner allows access
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
-      
-      - name: Build flake
+
+      - name: Build flake and check dev environment
         run: |
-          nix flake check
+          nix flake check --accept-flake-config
           nix develop -c echo "Flake development environment builds successfully"
+
   lint:
-    name: Lint
+    name: Lint Code
     runs-on: ubuntu-latest
     needs: [build]
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: cachix/install-nix-action@v23
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command flakes
-      
+            accept-flake-config = true
+
+      # Optional: Use Cachix
+      # - name: Use Cachix Binary Cache
+      #   uses: cachix/cachix-action@v15
+      #   with:
+      #     name: <your-cache-name>
+      #     authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
       - name: Cache Nix store
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/nix
+            /nix/store
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
-      
-      - name: Run lint
+
+      - name: Run linters (Black, Flake8)
         run: |
-          # Use nix develop to run linting tools defined in flake.nix
+          # Use nix develop to run linting tools defined in flake.nix command 'lint'
           nix develop --command lint
+
+  typecheck:
+    name: Type Check (pyright)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      # Optional: Use Cachix
+      # - name: Use Cachix Binary Cache
+      #   uses: cachix/cachix-action@v15
+      #   with:
+      #     name: <your-cache-name>
+      #     authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Cache Nix store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/nix
+            /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+
+      - name: Run pyright type checker
+        run: |
+          # Assumes pyright is available in the devShell
+          # If not, add `pkgs.nodePackages.pyright` to flake.nix
+          nix develop --command pyright
 
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [build] # Doesn't strictly need lint/typecheck, can run in parallel
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: cachix/install-nix-action@v23
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command flakes
-      
+            accept-flake-config = true
+
+      # Optional: Use Cachix
+      # - name: Use Cachix Binary Cache
+      #   uses: cachix/cachix-action@v15
+      #   with:
+      #     name: <your-cache-name>
+      #     authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
       - name: Cache Nix store
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/nix
+            /nix/store
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
-      
+
       - name: Cache Python virtual environment
+        id: cache-venv # Give the cache step an ID
         uses: actions/cache@v4
         with:
           path: .venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('requirements.txt') }}
+          # Updated cache key includes pyproject.toml and setup.py
+          key: ${{ runner.os }}-venv-${{ hashFiles('requirements.txt', 'pyproject.toml', 'setup.py') }}
           restore-keys: |
             ${{ runner.os }}-venv-
-      
-      - name: Setup and run tests
+
+      - name: Setup Python environment and run tests
         run: |
-          # Use nix develop to set up environment and run tests
+          # setup command now handles venv creation and dependency installation
           nix develop --command setup
+          # run-tests command executes pytest with coverage
           nix develop --command run-tests
-          
+
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          
+        uses: codecov/codecov-action@v4 # Updated version
+        # No need to specify token explicitly if using GitHub Actions integration correctly
+        # token: ${{ secrets.CODECOV_TOKEN }} # Only needed for private repos or specific configs
+        files: ./coverage.xml # Path relative to repo root
+        fail_ci_if_error: true # Optional: fail CI if upload error
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: coverage-report-${{ runner.os }}
           path: |
-            ./htmlcov
+            ./htmlcov/
             ./coverage.xml
 
   publish:
-    name: Publish
-    needs: [build, lint, test]
+    name: Build and Publish to PyPI
+    # Run only when a 'v*' tag is pushed
     if: startsWith(github.ref, 'refs/tags/v')
+    needs: [lint, typecheck, test] # Ensure quality checks pass before publishing
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/nixmcp
     permissions:
-      id-token: write  # Required for trusted publishing
+      id-token: write # Required for trusted publishing
+
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Set up Python
-        uses: actions/setup-python@v5
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
         with:
-          python-version: "3.11"
-      
-      - name: Install build dependencies
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      # Optional: Use Cachix
+      # - name: Use Cachix Binary Cache
+      #   uses: cachix/cachix-action@v15
+      #   with:
+      #     name: <your-cache-name>
+      #     authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Cache Nix store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/nix
+            /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+
+      - name: Build package distributions using Nix environment
         run: |
+          # Use the 'build' command defined in flake.nix
+          nix develop --command build
+          ls -l dist/ # List built files
+
+      - name: Verify built package installation (Wheel)
+        run: |
+          # Create a new minimal venv
+          python3 -m venv .verifier-venv
+          source .verifier-venv/bin/activate
           python -m pip install --upgrade pip
-          pip install build
-      
-      - name: Build package
-        run: |
-          python -m build
-          
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install .
-      
-      - name: Publish to PyPI
+          # Find the wheel file
+          WHEEL_FILE=$(ls dist/*.whl)
+          echo "Verifying wheel: $WHEEL_FILE"
+          # Install only the wheel
+          python -m pip install "$WHEEL_FILE"
+          # Check if it can be imported and print version
+          echo "Checking installation..."
+          python -c "import nixmcp; print(f'Successfully installed nixmcp version: {nixmcp.__version__}')"
+          deactivate
+
+      - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          verbose: true
+        # No 'with' block needed if using trusted publishing and defaults
+
+      # Optional: Create GitHub Release
+      # - name: Create GitHub Release
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     gh release create ${{ github.ref_name }} \
+      #       --repo ${{ github.repository }} \
+      #       --title "Release ${{ github.ref_name }}" \
+      #       --generate-notes \
+      #       dist/*

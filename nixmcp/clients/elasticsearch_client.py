@@ -2,10 +2,10 @@
 Elasticsearch client for accessing NixOS package and option data via search.nixos.org API.
 """
 
-import os
 import logging
+import os
 import re
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Import SimpleCache and HTTP helper
 from nixmcp.cache.simple_cache import SimpleCache
@@ -60,6 +60,28 @@ FIELD_OPT_ADDED_IN = "option_added_in"
 FIELD_OPT_DEPRECATED_IN = "option_deprecated_in"
 
 FIELD_TYPE = "type"  # Used for filtering options vs packages
+
+# Boost Constants
+BOOST_PKG_NAME = 10.0
+BOOST_PKG_PNAME = 8.0
+BOOST_PKG_PREFIX_NAME = 7.0
+BOOST_PKG_PREFIX_PNAME = 6.0
+BOOST_PKG_WILDCARD_NAME = 5.0
+BOOST_PKG_WILDCARD_PNAME = 4.0
+BOOST_PKG_DESC = 3.0
+BOOST_PKG_PROGRAMS = 6.0
+
+BOOST_OPT_NAME_EXACT = 10.0
+BOOST_OPT_NAME_PREFIX = 8.0
+BOOST_OPT_NAME_WILDCARD = 6.0
+BOOST_OPT_DESC_TERM = 4.0
+BOOST_OPT_DESC_PHRASE = 6.0
+BOOST_OPT_SERVICE_DESC = 2.0
+
+BOOST_PROG_TERM = 10.0
+BOOST_PROG_PREFIX = 5.0
+BOOST_PROG_WILDCARD = 3.0
+
 
 # --- Elasticsearch Client Class ---
 
@@ -125,36 +147,33 @@ class ElasticsearchClient:
         # If there's an error property in the result, handle it properly
         if "error" in result:
             error_details = result["error"]
+            error_message = f"Elasticsearch request failed: {error_details}"  # Default
 
             # Pass through the error directly if it's a simple string
             if isinstance(error_details, str):
-                # Look for specific error patterns
                 if "authentication failed" in error_details.lower() or "unauthorized" in error_details.lower():
-                    result["error_message"] = f"Authentication failed: {error_details}"
+                    error_message = f"Authentication failed: {error_details}"
                 elif "timed out" in error_details.lower() or "timeout" in error_details.lower():
-                    result["error_message"] = f"Request timed out: {error_details}"
+                    error_message = f"Request timed out: {error_details}"
                 elif "connect" in error_details.lower():
-                    result["error_message"] = f"Connection error: {error_details}"
+                    error_message = f"Connection error: {error_details}"
                 elif "server error" in error_details.lower() or "500" in error_details:
-                    result["error_message"] = f"Server error: {error_details}"
+                    error_message = f"Server error: {error_details}"
                 elif "invalid query" in error_details.lower() or "400" in error_details:
-                    result["error_message"] = f"Invalid query: {error_details}"
-                else:
-                    # Generic error
-                    result["error_message"] = f"Elasticsearch request failed: {error_details}"
+                    error_message = f"Invalid query: {error_details}"
             # Handle ES-specific error object structure
             elif isinstance(error_details, dict) and (es_error := error_details.get("error", {})):
                 if isinstance(es_error, dict) and (reason := es_error.get("reason")):
-                    result["error_message"] = f"Elasticsearch error: {reason}"
+                    error_message = f"Elasticsearch error: {reason}"
                 elif isinstance(es_error, str):
-                    result["error_message"] = f"Elasticsearch error: {es_error}"
+                    error_message = f"Elasticsearch error: {es_error}"
                 else:
-                    result["error_message"] = "Unknown Elasticsearch error format"
+                    error_message = "Unknown Elasticsearch error format"
             else:
-                result["error_message"] = "Unknown error during Elasticsearch query"
+                error_message = "Unknown error during Elasticsearch query"
 
-            # Make sure we're not returning a result with both an error and valid results
-            # This ensures test mocks return error objects only
+            result["error_message"] = error_message
+            # Ensure hits are removed on error
             if "hits" in result:
                 del result["hits"]
 
@@ -168,17 +187,15 @@ class ElasticsearchClient:
             score = hit.get("_score", 0.0)
 
             if result_type == "package":
-                # Consolidate version lookup
-                version = source.get(FIELD_PKG_VERSION, source.get("package_pversion", ""))  # pversion fallback
+                version = source.get(FIELD_PKG_VERSION, source.get("package_pversion", ""))
                 item = {
                     "name": source.get(FIELD_PKG_NAME, ""),
                     "pname": source.get(FIELD_PKG_PNAME, ""),
                     "version": version,
                     "description": source.get(FIELD_PKG_DESC, ""),
-                    "channel": source.get(FIELD_PKG_CHANNEL, ""),  # Include channel info
+                    "channel": source.get(FIELD_PKG_CHANNEL, ""),
                     "score": score,
                     "programs": source.get(FIELD_PKG_PROGRAMS, []),
-                    # Include other potentially useful fields directly if needed later
                     "longDescription": source.get(FIELD_PKG_LONG_DESC, ""),
                     "license": source.get(FIELD_PKG_LICENSE, ""),
                     "homepage": source.get(FIELD_PKG_HOMEPAGE, ""),
@@ -189,16 +206,14 @@ class ElasticsearchClient:
                 }
                 parsed_items.append(item)
             elif result_type == "option":
-                # Filter out non-option types that might sneak into results
                 if source.get(FIELD_TYPE) == "option":
                     item = {
                         "name": source.get(FIELD_OPT_NAME, ""),
                         "description": source.get(FIELD_OPT_DESC, ""),
                         "type": source.get(FIELD_OPT_TYPE, ""),
-                        "default": source.get(FIELD_OPT_DEFAULT, None),  # Use None for potentially null defaults
-                        "example": source.get(FIELD_OPT_EXAMPLE, None),  # Use None for potentially null examples
+                        "default": source.get(FIELD_OPT_DEFAULT, None),
+                        "example": source.get(FIELD_OPT_EXAMPLE, None),
                         "score": score,
-                        # Include other option fields if needed for search result context
                         "declarations": source.get(FIELD_OPT_DECL, []),
                         "readOnly": source.get(FIELD_OPT_READONLY, False),
                         "manual_url": source.get(FIELD_OPT_MANUAL_URL, ""),
@@ -211,169 +226,164 @@ class ElasticsearchClient:
 
     def _build_term_phrase_queries(self, terms: List[str], phrases: List[str]) -> List[Dict[str, Any]]:
         """Build ES 'should' clauses for matching terms/phrases in option descriptions."""
-        # Boosts can be constants if needed: TERM_BOOST = 4.0, PHRASE_BOOST = 6.0
         clauses = []
         for term in terms:
-            clauses.append({"match": {FIELD_OPT_DESC: {"query": term, "boost": 4.0}}})
+            clauses.append({"match": {FIELD_OPT_DESC: {"query": term, "boost": BOOST_OPT_DESC_TERM}}})
         for phrase in phrases:
-            clauses.append({"match_phrase": {FIELD_OPT_DESC: {"query": phrase, "boost": 6.0}}})
+            clauses.append({"match_phrase": {FIELD_OPT_DESC: {"query": phrase, "boost": BOOST_OPT_DESC_PHRASE}}})
         return clauses
+
+    def _build_package_query_dsl(self, query: str) -> Dict[str, Any]:
+        """Builds the core Elasticsearch query DSL for packages."""
+        should_clauses = [
+            {"term": {FIELD_PKG_NAME: {"value": query, "boost": BOOST_PKG_NAME}}},
+            {"term": {FIELD_PKG_PNAME: {"value": query, "boost": BOOST_PKG_PNAME}}},
+            {"prefix": {FIELD_PKG_NAME: {"value": query, "boost": BOOST_PKG_PREFIX_NAME}}},
+            {"prefix": {FIELD_PKG_PNAME: {"value": query, "boost": BOOST_PKG_PREFIX_PNAME}}},
+            {"wildcard": {FIELD_PKG_NAME: {"value": f"*{query}*", "boost": BOOST_PKG_WILDCARD_NAME}}},
+            {"wildcard": {FIELD_PKG_PNAME: {"value": f"*{query}*", "boost": BOOST_PKG_WILDCARD_PNAME}}},
+            {"match": {FIELD_PKG_DESC: {"query": query, "boost": BOOST_PKG_DESC}}},
+            {"match": {FIELD_PKG_PROGRAMS: {"query": query, "boost": BOOST_PKG_PROGRAMS}}},
+        ]
+        return {"bool": {"should": should_clauses, "minimum_should_match": 1}}
+
+    def _build_option_name_clauses(self, query: str) -> List[Dict[str, Any]]:
+        """Builds clauses for matching the option name based on query structure."""
+        should_clauses = []
+        if "*" in query:  # Explicit wildcard query
+            should_clauses.append(
+                {
+                    "wildcard": {
+                        FIELD_OPT_NAME: {"value": query, "case_insensitive": True, "boost": BOOST_OPT_NAME_WILDCARD}
+                    }
+                }
+            )
+        elif "." in query:  # Hierarchical path query
+            should_clauses.append({"prefix": {FIELD_OPT_NAME: {"value": query, "boost": BOOST_OPT_NAME_EXACT}}})
+            should_clauses.append(
+                {
+                    "wildcard": {
+                        FIELD_OPT_NAME: {
+                            "value": f"{query}.*",
+                            "case_insensitive": True,
+                            "boost": BOOST_OPT_NAME_PREFIX,
+                        }
+                    }
+                }
+            )
+            should_clauses.append(
+                {
+                    "wildcard": {
+                        FIELD_OPT_NAME: {
+                            "value": f"{query}*",
+                            "case_insensitive": True,
+                            "boost": BOOST_OPT_NAME_WILDCARD,
+                        }
+                    }
+                }
+            )
+        else:  # Simple term query
+            should_clauses.extend(
+                [
+                    {"term": {FIELD_OPT_NAME: {"value": query, "boost": BOOST_OPT_NAME_EXACT}}},
+                    {"prefix": {FIELD_OPT_NAME: {"value": query, "boost": BOOST_OPT_NAME_PREFIX}}},
+                    {
+                        "wildcard": {
+                            FIELD_OPT_NAME: {
+                                "value": f"*{query}*",
+                                "case_insensitive": True,
+                                "boost": BOOST_OPT_NAME_WILDCARD,
+                            }
+                        }
+                    },
+                    {"match": {FIELD_OPT_DESC: {"query": query, "boost": BOOST_OPT_DESC_TERM}}},
+                ]
+            )
+        return should_clauses
+
+    def _build_option_query_dsl(
+        self, query: str, additional_terms: List[str], quoted_terms: List[str]
+    ) -> Dict[str, Any]:
+        """Builds the core Elasticsearch query DSL for options."""
+        is_service_path = query.startswith("services.")
+        service_name = query.split(".", 2)[1] if is_service_path and len(query.split(".")) > 1 else ""
+
+        # Build clauses for matching the option name
+        name_clauses = self._build_option_name_clauses(query)
+
+        # Build clauses for description matching
+        desc_clauses = self._build_term_phrase_queries(additional_terms, quoted_terms)
+
+        # Combine all clauses
+        should_clauses = name_clauses + desc_clauses
+
+        # Boost matches mentioning the service name in description for service paths
+        if is_service_path and service_name:
+            should_clauses.append({"match": {FIELD_OPT_DESC: {"query": service_name, "boost": BOOST_OPT_SERVICE_DESC}}})
+
+        # Use dis_max for combining different types of matches effectively
+        # The outer bool/must structure is kept to align with test expectations
+        query_part = {"dis_max": {"queries": should_clauses}}
+        return {"bool": {"must": [query_part]}}
+
+    def _build_program_query_dsl(self, query: str) -> Dict[str, Any]:
+        """Builds the core Elasticsearch query DSL for programs."""
+        should_clauses = [
+            {"term": {FIELD_PKG_PROGRAMS: {"value": query, "boost": BOOST_PROG_TERM}}},
+            {"prefix": {FIELD_PKG_PROGRAMS: {"value": query, "boost": BOOST_PROG_PREFIX}}},
+            {"wildcard": {FIELD_PKG_PROGRAMS: {"value": f"*{query}*", "boost": BOOST_PROG_WILDCARD}}},
+        ]
+        return {"bool": {"should": should_clauses, "minimum_should_match": 1}}
 
     def _build_search_query(
         self, query: str, search_type: str, additional_terms: List[str] = [], quoted_terms: List[str] = []
     ) -> Dict[str, Any]:
-        """Builds the core Elasticsearch query based on type and terms."""
-
+        """Builds the full Elasticsearch query including filters."""
         base_filter = []
         if search_type == "option":
             base_filter.append({"term": {FIELD_TYPE: "option"}})
+        # Add other base filters if needed
 
-        # --- Package Query Logic ---
+        query_dsl: Dict[str, Any] = {}
         if search_type == "package":
-            # Boosts: NAME=10, PNAME=8, PREFIX_NAME=7, PREFIX_PNAME=6,
-            # WILDCARD_NAME=5, WILDCARD_PNAME=4, DESC=3, PROGRAMS=6
-            should_clauses = [
-                {"term": {FIELD_PKG_NAME: {"value": query, "boost": 10}}},
-                {"term": {FIELD_PKG_PNAME: {"value": query, "boost": 8}}},
-                {"prefix": {FIELD_PKG_NAME: {"value": query, "boost": 7}}},
-                {"prefix": {FIELD_PKG_PNAME: {"value": query, "boost": 6}}},
-                {"wildcard": {FIELD_PKG_NAME: {"value": f"*{query}*", "boost": 5}}},
-                {"wildcard": {FIELD_PKG_PNAME: {"value": f"*{query}*", "boost": 4}}},
-                {"match": {FIELD_PKG_DESC: {"query": query, "boost": 3}}},
-                {"match": {FIELD_PKG_PROGRAMS: {"query": query, "boost": 6}}},
-                # {"match": {FIELD_PKG_LONG_DESC: {"query": query, "boost": 1}}}, # Lower boost for long desc
-            ]
-            return {"bool": {"should": should_clauses, "minimum_should_match": 1, "filter": base_filter}}
-
-        # --- Option Query Logic ---
+            query_dsl = self._build_package_query_dsl(query)
         elif search_type == "option":
-            # Boosts: NAME=10, PREFIX=8, WILDCARD=6, DESC_TERM=4, DESC_PHRASE=6, SERVICE_DESC=2
-            additional_terms = additional_terms or []
-            quoted_terms = quoted_terms or []
-            is_service_path = query.startswith("services.")
-            service_name = query.split(".", 2)[1] if is_service_path and len(query.split(".")) > 1 else ""
-
-            should_clauses = []
-
-            # Main query matching (name primarily)
-            if "*" in query:  # Explicit wildcard query
-                should_clauses.append(
-                    {"wildcard": {FIELD_OPT_NAME: {"value": query, "case_insensitive": True, "boost": 6}}}
-                )
-            elif "." in query:  # Hierarchical path query
-                # Exact prefix match on the path itself
-                should_clauses.append({"prefix": {FIELD_OPT_NAME: {"value": query, "boost": 10}}})
-                # Wildcard match for options *under* this path
-                should_clauses.append(
-                    {"wildcard": {FIELD_OPT_NAME: {"value": f"{query}.*", "case_insensitive": True, "boost": 8}}}
-                )
-                # Wildcard match for the path itself with a wildcard (crucial for test_hierarchical_path_wildcards)
-                should_clauses.append(
-                    {"wildcard": {FIELD_OPT_NAME: {"value": f"{query}*", "case_insensitive": True, "boost": 7}}}
-                )
-            else:  # Simple term query
-                should_clauses.extend(
-                    [
-                        {"term": {FIELD_OPT_NAME: {"value": query, "boost": 10}}},  # Exact match
-                        {"prefix": {FIELD_OPT_NAME: {"value": query, "boost": 8}}},  # Prefix match
-                        {
-                            "wildcard": {FIELD_OPT_NAME: {"value": f"*{query}*", "case_insensitive": True, "boost": 6}}
-                        },  # Contains match
-                        {"match": {FIELD_OPT_DESC: {"query": query, "boost": 4}}},  # Match in description
-                    ]
-                )
-
-            # Add clauses for additional terms/phrases in description
-            should_clauses.extend(self._build_term_phrase_queries(additional_terms, quoted_terms))
-
-            # Boost matches mentioning the service name in description for service paths
-            if is_service_path and service_name:
-                should_clauses.append({"match": {FIELD_OPT_DESC: {"query": service_name, "boost": 2.0}}})
-
-            # If we have additional terms, ALL base clauses and additional term clauses must have *some* match
-            min_match = 1  # By default, any clause can match
-            if additional_terms or quoted_terms:
-                # Require at least one base query match AND one additional term/phrase match?
-                # This might be too strict. Let's keep min_match = 1 for broader results.
-                # Alternative: Wrap base and additional in separate 'must' bools if needed.
-                pass
-
-            # Create a query structure that matches what tests expect
-            if is_service_path and service_name:
-                # Special structure for service paths with nested bool
-                service_path_query = {"bool": {"should": should_clauses, "minimum_should_match": min_match}}
-
-                # Return with special nested structure for service paths that tests expect
-                return {"bool": {"must": [service_path_query], "filter": base_filter}}
-            else:
-                # For regular options, also use a "must" structure but with a simpler inner query
-                # The test_regular_option_query_structure test expects a "must" key in the bool query
-                regular_query = {"dis_max": {"queries": should_clauses}}
-
-                return {"bool": {"must": [regular_query], "filter": base_filter}}
-
-        # --- Program Query Logic ---
+            query_dsl = self._build_option_query_dsl(query, additional_terms, quoted_terms)
         elif search_type == "program":
-            # Boosts: TERM=10, PREFIX=5, WILDCARD=3
-            should_clauses = [
-                {"term": {FIELD_PKG_PROGRAMS: {"value": query, "boost": 10}}},
-                {"prefix": {FIELD_PKG_PROGRAMS: {"value": query, "boost": 5}}},
-                {"wildcard": {FIELD_PKG_PROGRAMS: {"value": f"*{query}*", "boost": 3}}},
-            ]
-            return {"bool": {"should": should_clauses, "minimum_should_match": 1, "filter": base_filter}}
-
+            query_dsl = self._build_program_query_dsl(query)
         else:
-            # Fallback or error for unknown type (should be caught earlier)
             logger.error(f"Invalid search_type '{search_type}' passed to _build_search_query")
             return {"match_none": {}}
+
+        # Combine the generated DSL with the base filter
+        if "bool" in query_dsl:
+            # Merge the base filter into the existing bool query's filter clause
+            query_dsl["bool"]["filter"] = query_dsl["bool"].get("filter", []) + base_filter
+        else:
+            # If the DSL is not already a bool query, wrap it
+            query_dsl = {"bool": {"must": [query_dsl], "filter": base_filter}}
+
+        return query_dsl
 
     # --- Public Search Methods ---
 
     def search_packages(
         self, query: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
     ) -> Dict[str, Any]:
-        """Search for NixOS packages.
-
-        Args:
-            query: Search query string
-            limit: Maximum number of results to return
-            offset: Number of results to skip
-            channel: NixOS channel to search in (unstable or stable)
-
-        Returns:
-            Dictionary with package search results
-        """
+        """Search for NixOS packages."""
         logger.info(f"Searching packages: query='{query}', limit={limit}, channel={channel}")
-
-        # Set the channel for this query
         self.set_channel(channel)
 
-        # Handle queries that look like package names with versions (e.g., "python311Packages.requests")
-        # Basic split attempt, might need refinement
         match = re.match(r"([a-zA-Z0-9_-]+?)([\d.]+)?Packages\.(.*)", query)
         if match:
             base_pkg, _, sub_pkg = match.groups()
             logger.debug(f"Query resembles specific package version: {base_pkg}, {sub_pkg}")
-            # Potentially adjust query to search for base_pkg and filter/boost sub_pkg?
-            # For now, treat as regular search term.
 
-        # Build the query using the helper
         es_query = self._build_search_query(query, search_type="package")
-
-        request_data = {
-            "from": offset,
-            "size": limit,
-            "query": es_query,
-            # Add sorting? Default is by score.
-            "sort": [{"_score": "desc"}],
-        }
+        request_data = {"from": offset, "size": limit, "query": es_query, "sort": [{"_score": "desc"}]}
         data = self.safe_elasticsearch_query(self.es_packages_url, request_data)
 
-        if error_msg := data.get("error_message"):
-            return {"count": 0, "packages": [], "error": error_msg}
-
-        # Also check for error field which might be set by safe_elasticsearch_query
-        if error_msg := data.get("error"):
+        if error_msg := data.get("error_message") or data.get("error"):
             return {"count": 0, "packages": [], "error": error_msg}
 
         hits = data.get("hits", {}).get("hits", [])
@@ -388,51 +398,30 @@ class ElasticsearchClient:
         limit: int = 50,
         offset: int = 0,
         channel: str = "unstable",
-        additional_terms: List[str] = [],
-        quoted_terms: List[str] = [],
+        additional_terms: Optional[List[str]] = None,
+        quoted_terms: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Search for NixOS options with multi-word and hierarchical path support.
-
-        Args:
-            query: Search query string
-            limit: Maximum number of results to return
-            offset: Number of results to skip
-            channel: NixOS channel to search in (unstable or stable)
-            additional_terms: Additional terms to include in the search
-            quoted_terms: Quoted phrases to include in the search
-
-        Returns:
-            Dictionary with option search results
-        """
-        # Use the provided terms or empty lists if None was passed despite the default
-        additional_terms = additional_terms if additional_terms is not None else []
-        quoted_terms = quoted_terms if quoted_terms is not None else []
+        """Search for NixOS options."""
+        add_terms = additional_terms or []
+        q_terms = quoted_terms or []
         logger.info(
-            f"Searching options: query='{query}', add_terms={additional_terms}, "
-            f"quoted={quoted_terms}, limit={limit}, channel={channel}"
+            f"Searching options: query='{query}', add_terms={add_terms}, "
+            f"quoted={q_terms}, limit={limit}, channel={channel}"
         )
-
-        # Set the channel for this query
         self.set_channel(channel)
 
         es_query = self._build_search_query(
-            query, search_type="option", additional_terms=additional_terms, quoted_terms=quoted_terms
+            query, search_type="option", additional_terms=add_terms, quoted_terms=q_terms
         )
         request_data = {
             "from": offset,
             "size": limit,
             "query": es_query,
-            "sort": [{"_score": "desc", FIELD_OPT_NAME: "asc"}],  # Sort by score, then name
-            # Aggregations removed for simplicity, add back if needed
+            "sort": [{"_score": "desc", FIELD_OPT_NAME: "asc"}],
         }
         data = self.safe_elasticsearch_query(self.es_options_url, request_data)
 
-        if error_msg := data.get("error_message"):
-            # Pass through the error from safe_elasticsearch_query
-            return {"count": 0, "options": [], "error": error_msg}
-
-        # Also check for error field which might be set by safe_elasticsearch_query
-        if error_msg := data.get("error"):
+        if error_msg := data.get("error_message") or data.get("error"):
             return {"count": 0, "options": [], "error": error_msg}
 
         hits = data.get("hits", {}).get("hits", [])
@@ -444,106 +433,55 @@ class ElasticsearchClient:
     def search_programs(
         self, program: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
     ) -> Dict[str, Any]:
-        """Search for packages providing a specific program.
-
-        Args:
-            program: Program name to search for
-            limit: Maximum number of results to return
-            offset: Number of results to skip
-            channel: NixOS channel to search in (unstable or stable)
-
-        Returns:
-            Dictionary with package search results
-        """
+        """Search for packages providing a specific program."""
         logger.info(f"Searching packages providing program: '{program}', limit={limit}, channel={channel}")
-
-        # Set the channel for this query
         self.set_channel(channel)
 
         es_query = self._build_search_query(program, search_type="program")
         request_data = {"from": offset, "size": limit, "query": es_query}
         data = self.safe_elasticsearch_query(self.es_packages_url, request_data)
 
-        if error_msg := data.get("error_message"):
-            return {"count": 0, "packages": [], "error": error_msg}
-
-        # Also check for error field which might be set by safe_elasticsearch_query
-        if error_msg := data.get("error"):
+        if error_msg := data.get("error_message") or data.get("error"):
             return {"count": 0, "packages": [], "error": error_msg}
 
         hits = data.get("hits", {}).get("hits", [])
         total = data.get("hits", {}).get("total", {}).get("value", 0)
-        packages = self._parse_hits(hits, "package")  # Parse as packages
+        packages = self._parse_hits(hits, "package")
 
-        # Post-filter/adjust the programs list within each package if necessary
-        # The ES query should prioritize packages where the program matches well
+        # Post-filter programs list
+        program_lower = program.lower()
+        filtered_packages = []
         for pkg in packages:
-            all_programs = pkg.get("all_programs", pkg.get("programs", []))  # Get original list if available
-            matching_programs = []
-            program_lower = program.lower()
-            if isinstance(all_programs, list):
-                if "*" in program:  # Simple wildcard logic
-                    # Avoid complex regex, use basic contains/startswith/endswith
-                    if program.startswith("*") and program.endswith("*"):
-                        term = program_lower[1:-1]
-                        matching_programs = [p for p in all_programs if term in p.lower()]
-                    elif program.startswith("*"):
-                        term = program_lower[1:]
-                        matching_programs = [p for p in all_programs if p.lower().endswith(term)]
-                    elif program.endswith("*"):
-                        term = program_lower[:-1]
-                        matching_programs = [p for p in all_programs if p.lower().startswith(term)]
-                    else:  # Wildcard in the middle - treat as contains
-                        term = program_lower.replace("*", "")
-                        matching_programs = [p for p in all_programs if term in p.lower()]
-                else:  # Exact or partial match
-                    matching_programs = [p for p in all_programs if program_lower == p.lower()]  # Prioritize exact
-                    if not matching_programs:  # Fallback to contains if no exact match
-                        matching_programs = [p for p in all_programs if program_lower in p.lower()]
+            all_programs = pkg.get("programs", [])
+            if not isinstance(all_programs, list):
+                continue
 
-            pkg["programs"] = matching_programs  # Overwrite with filtered list
-            if "all_programs" in pkg:
-                del pkg["all_programs"]  # Clean up temporary field
+            matching_programs = [p for p in all_programs if program_lower in p.lower()]
 
-        # Filter out packages where no programs ended up matching after post-filtering
-        packages = [pkg for pkg in packages if pkg.get("programs")]
-        # Note: Total count might be higher than len(packages) after filtering
+            if matching_programs:
+                pkg["programs"] = matching_programs
+                filtered_packages.append(pkg)
 
-        return {"count": total, "packages": packages}  # Return total from ES, but filtered packages
+        return {"count": total, "packages": filtered_packages}  # Return ES total, but filtered packages
 
     # --- Get Specific Item Methods ---
 
     def get_package(self, package_name: str, channel: str = "unstable") -> Dict[str, Any]:
-        """Get detailed information for a specific package by its attribute name.
-
-        Args:
-            package_name: Name of the package to retrieve
-            channel: NixOS channel to search in (unstable or stable)
-
-        Returns:
-            Dictionary with package information
-        """
+        """Get detailed information for a specific package."""
         logger.info(f"Getting package details for: {package_name}, channel={channel}")
-
-        # Set the channel for this query
         self.set_channel(channel)
         request_data = {"size": 1, "query": {"term": {FIELD_PKG_NAME: {"value": package_name}}}}
         data = self.safe_elasticsearch_query(self.es_packages_url, request_data)
 
-        if error_msg := data.get("error_message"):
-            return {"name": package_name, "error": error_msg, "found": False}
-
-        # Also check for error field which might be set by safe_elasticsearch_query
-        if error_msg := data.get("error"):
+        if error_msg := data.get("error_message") or data.get("error"):
             return {"name": package_name, "error": error_msg, "found": False}
 
         hits = data.get("hits", {}).get("hits", [])
         if not hits:
-            logger.warning(f"Package '{package_name}' not found.")
             return {"name": package_name, "error": "Package not found", "found": False}
 
         packages = self._parse_hits(hits, "package")
-        if not packages:  # Should not happen if hits exist, but safety check
+        if not packages:
             return {"name": package_name, "error": "Failed to parse package data", "found": False}
 
         result = packages[0]
@@ -551,18 +489,8 @@ class ElasticsearchClient:
         return result
 
     def get_option(self, option_name: str, channel: str = "unstable") -> Dict[str, Any]:
-        """Get detailed information for a specific NixOS option by its full name.
-
-        Args:
-            option_name: Name of the option to retrieve
-            channel: NixOS channel to search in (unstable or stable)
-
-        Returns:
-            Dictionary with option information
-        """
+        """Get detailed information for a specific NixOS option."""
         logger.info(f"Getting option details for: {option_name}, channel={channel}")
-
-        # Set the channel for this query
         self.set_channel(channel)
 
         # Query for exact option name, filtering by type:option
@@ -574,23 +502,14 @@ class ElasticsearchClient:
                     "filter": [{"term": {FIELD_TYPE: "option"}}],
                 }
             },
-            # "_source": [...] # Specify fields if needed, but parsing handles known ones
         }
         data = self.safe_elasticsearch_query(self.es_options_url, request_data)
+        hits = data.get("hits", {}).get("hits", [])
 
-        if error_msg := data.get("error_message") or data.get("error"):
-            # Don't immediately return error, try prefix search if it looks like a path
-            if "." not in option_name:
-                return {"name": option_name, "error": error_msg, "found": False}
-            logger.warning(f"Exact match failed for '{option_name}', trying prefix. Error: {error_msg}")
-            hits = []  # Allow prefix search below
-        else:
-            hits = data.get("hits", {}).get("hits", [])
-
-        if not hits and "." in option_name:  # Try prefix search only if exact match failed and it's a path
+        if not hits and "." in option_name:  # Try prefix search if exact match failed
             logger.debug(f"Option '{option_name}' not found with exact match, trying prefix search.")
             prefix_request_data = {
-                "size": 1,  # Only need one example if prefix matches multiple
+                "size": 1,
                 "query": {
                     "bool": {
                         "must": [{"prefix": {FIELD_OPT_NAME: {"value": option_name}}}],
@@ -599,28 +518,19 @@ class ElasticsearchClient:
                 },
             }
             prefix_data = self.safe_elasticsearch_query(self.es_options_url, prefix_request_data)
-            hits = prefix_data.get("hits", {}).get("hits", [])  # Overwrite hits
+            hits = prefix_data.get("hits", {}).get("hits", [])
 
         if not hits:
-            logger.warning(f"Option '{option_name}' not found.")
             error_msg = "Option not found"
-
-            # Add service path context if applicable
+            not_found_result = {"name": option_name, "error": error_msg, "found": False}
             if option_name.startswith("services."):
                 parts = option_name.split(".", 2)
                 if len(parts) > 1:
                     service_name = parts[1]
-                    error_msg = f"Option not found. Try common patterns for '{service_name}' service."
-                    not_found_result = {
-                        "name": option_name,
-                        "error": error_msg,
-                        "found": False,
-                        "is_service_path": True,
-                        "service_name": service_name,
-                    }
-                    return not_found_result
-
-            return {"name": option_name, "error": error_msg, "found": False}
+                    not_found_result["error"] = f"Option not found. Try common patterns for '{service_name}' service."
+                    not_found_result["is_service_path"] = True
+                    not_found_result["service_name"] = service_name
+            return not_found_result
 
         # Parse the found option
         options = self._parse_hits(hits, "option")
@@ -639,145 +549,84 @@ class ElasticsearchClient:
                 service_prefix = f"services.{service_name}."
                 logger.debug(f"Fetching related options for service prefix: {service_prefix}")
                 related_query = {
-                    "size": 5,  # Limit related options
+                    "size": 5,
                     "query": {
                         "bool": {
                             "must": [{"prefix": {FIELD_OPT_NAME: service_prefix}}],
-                            "must_not": [{"term": {FIELD_OPT_NAME: result["name"]}}],  # Exclude self
+                            "must_not": [{"term": {FIELD_OPT_NAME: result["name"]}}],
                             "filter": [{"term": {FIELD_TYPE: "option"}}],
                         }
                     },
                 }
                 related_data = self.safe_elasticsearch_query(self.es_options_url, related_query)
                 related_hits = related_data.get("hits", {}).get("hits", [])
-                related_options = self._parse_hits(related_hits, "option")  # Parse related
+                related_options = self._parse_hits(related_hits, "option")
 
                 result["is_service_path"] = True
                 result["service_name"] = service_name
-                result["related_options"] = related_options  # Add parsed related options
+                result["related_options"] = related_options
 
         return result
 
     # --- Stats Methods ---
 
     def get_package_stats(self, channel: str = "unstable") -> Dict[str, Any]:
-        """Get statistics about NixOS packages (channels, licenses, platforms).
-
-        Args:
-            channel: NixOS channel to get statistics for (unstable or stable)
-
-        Returns:
-            Dictionary with package statistics
-        """
+        """Get statistics about NixOS packages."""
         logger.info(f"Getting package statistics for channel: {channel}")
-
-        # Set the channel for this query
         self.set_channel(channel)
         request_data = {
-            "size": 0,  # No hits needed
-            "query": {"match_all": {}},  # Query all packages
+            "size": 0,
+            "query": {"match_all": {}},
             "aggs": {
                 "channels": {"terms": {"field": FIELD_PKG_CHANNEL, "size": 10}},
                 "licenses": {"terms": {"field": FIELD_PKG_LICENSE, "size": 10}},
                 "platforms": {"terms": {"field": FIELD_PKG_PLATFORMS, "size": 10}},
             },
         }
-        # Use _search endpoint for aggregations
         return self.safe_elasticsearch_query(self.es_packages_url, request_data)
 
     def count_options(self, channel: str = "unstable") -> Dict[str, Any]:
-        """Get an accurate count of NixOS options using the count API.
-
-        Args:
-            channel: NixOS channel to count options for (unstable or stable)
-
-        Returns:
-            Dictionary with options count
-        """
+        """Get an accurate count of NixOS options using the count API."""
         logger.info(f"Getting options count for channel: {channel}")
-
-        # Set the channel for this query
         self.set_channel(channel)
         count_endpoint = self.es_options_url.replace("/_search", "/_count")
         request_data = {"query": {"term": {FIELD_TYPE: "option"}}}
 
-        # Use safe_query but process the specific count response format
         result = self.safe_elasticsearch_query(count_endpoint, request_data)
-
         if error_msg := result.get("error_message") or result.get("error"):
             return {"count": 0, "error": error_msg}
 
-        # Extract count from the specific '_count' API response structure
-        count = result.get("count", 0)
-        return {"count": count}
+        return {"count": result.get("count", 0)}
 
     def search_packages_with_version(
         self, query: str, version_pattern: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
     ) -> Dict[str, Any]:
-        """Search for packages with a specific version pattern.
-
-        Args:
-            query: Package name to search for
-            version_pattern: Version pattern to match
-            limit: Maximum number of results to return
-            offset: Number of results to skip
-            channel: NixOS channel to search in (unstable or stable)
-
-        Returns:
-            Dictionary with package search results
-        """
+        """Search for packages with a specific version pattern."""
         logger.info(
             f"Searching packages with version pattern: query='{query}', version='{version_pattern}', channel={channel}"
         )
-
-        # Set the channel for this query
-        self.set_channel(channel)
-
-        # This is a placeholder method - implement the actual logic as needed
-        # For now, we'll just call search_packages and filter the results
-        results = self.search_packages(query, limit=limit, offset=offset, channel=channel)
+        results = self.search_packages(query, limit=limit * 2, offset=offset, channel=channel)  # Fetch more initially
 
         if "error" in results:
             return results
 
-        # Filter packages by version pattern
         packages = results.get("packages", [])
-        filtered_packages = []
-        for pkg in packages:
-            if version_pattern in pkg.get("version", ""):
-                filtered_packages.append(pkg)
+        filtered_packages = [pkg for pkg in packages if version_pattern in pkg.get("version", "")][:limit]
 
         return {"count": len(filtered_packages), "packages": filtered_packages}
 
     # --- Advanced/Other Methods ---
 
     def advanced_query(
-        self, index_type: str, query: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
+        self, index_type: str, query_string: str, limit: int = 50, offset: int = 0, channel: str = "unstable"
     ) -> Dict[str, Any]:
-        """Execute a raw query directly against the Elasticsearch API.
-
-        Args:
-            index_type: Type of index to query, either "packages" or "options"
-            query: Raw Elasticsearch query string in Lucene format
-            limit: Maximum number of results to return
-            offset: Offset to start returning results from
-            channel: NixOS channel to search in (unstable or stable)
-
-        Returns:
-            Raw Elasticsearch response
-        """
-        logger.info(f"Running advanced query on {index_type}: {query}, channel={channel}")
-
-        # Set the channel for this query
+        """Execute a raw query directly using Lucene syntax."""
+        logger.info(f"Running advanced query on {index_type}: {query_string}, channel={channel}")
         self.set_channel(channel)
 
         if index_type not in ["packages", "options"]:
             return {"error": f"Invalid index type: {index_type}. Must be 'packages' or 'options'"}
 
-        # Determine endpoint
         endpoint = self.es_packages_url if index_type == "packages" else self.es_options_url
-
-        # For advanced query, we use the query_string query type to allow Lucene syntax
-        request_data = {"from": offset, "size": limit, "query": {"query_string": {"query": query}}}
-
+        request_data = {"from": offset, "size": limit, "query": {"query_string": {"query": query_string}}}
         return self.safe_elasticsearch_query(endpoint, request_data)
