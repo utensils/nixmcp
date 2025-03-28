@@ -36,7 +36,7 @@ class DarwinOption:
 class DarwinClient:
     """Client for fetching and parsing nix-darwin documentation."""
 
-    BASE_URL = "https://daiderd.com/nix-darwin/manual"
+    BASE_URL = "https://nix-darwin.github.io/nix-darwin/manual"
     OPTION_REFERENCE_URL = f"{BASE_URL}/index.html"
 
     def __init__(self, html_client: Optional[HTMLClient] = None, cache_ttl: int = 86400):
@@ -68,7 +68,8 @@ class DarwinClient:
         self.error_message = ""
 
         # Version for cache compatibility
-        self.data_version = "1.0.0"
+        # Bump version to 1.1.0 due to HTML structure and parsing changes
+        self.data_version = "1.1.0"
 
         # Cache key for data
         self.cache_key = f"darwin_data_v{self.data_version}"
@@ -213,82 +214,72 @@ class DarwinClient:
         self.word_index = defaultdict(set)
         self.prefix_index = defaultdict(list)
 
-        # Find option definitions (dl elements)
-        option_dls: Sequence[PageElement] = []
+        # The nix-darwin documentation format is different from NixOS/Home Manager
+        # It uses definition lists (dl) with anchored option names
+
+        # Find all option entries (links with opt- prefix)
+        option_links: Sequence[PageElement] = []
         if isinstance(soup, BeautifulSoup) or isinstance(soup, Tag):
-            option_dls = soup.find_all("dl", class_="variablelist")
-        logger.info(f"Found {len(option_dls)} variablelist elements")
+            option_links = soup.find_all(
+                "a", attrs={"id": lambda x: bool(x) and isinstance(x, str) and x.startswith("opt-")}
+            )
+
+            # If no direct links found, try links with href to options
+            if not option_links:
+                option_links = soup.find_all(
+                    "a", attrs={"href": lambda x: bool(x) and isinstance(x, str) and x.startswith("#opt-")}
+                )
+
+        logger.info(f"Found {len(option_links)} option links")
 
         total_processed = 0
 
-        for dl in option_dls:
-            # Process each dt/dd pair
-            dts: Sequence[PageElement] = []
-            if isinstance(dl, Tag):
-                dts = dl.find_all("dt")
+        # Process each option link
+        for link in option_links:
+            if not isinstance(link, Tag):
+                continue
 
-            for dt in dts:
-                # Get the option element with the id
-                option_link = None
-                if isinstance(dt, Tag):
-                    # BeautifulSoup's find method accepts keyword arguments directly for attributes
-                    # Use a lambda that returns a boolean for attribute matching
-                    option_link = dt.find(
-                        "a", attrs={"id": lambda x: bool(x) and isinstance(x, str) and x.startswith("opt-")}
-                    )
+            # Extract option name from the link
+            option_id = ""
+            if link.get("id"):
+                option_id = str(link.get("id", ""))
+            elif link.get("href"):
+                href_value = link.get("href", "")
+                if isinstance(href_value, str):
+                    option_id = href_value.lstrip("#")
+            else:
+                continue
 
-                if not option_link and isinstance(dt, Tag):
-                    # Try finding a link with href to an option
-                    # Use a lambda that returns a boolean for attribute matching
-                    option_link = dt.find(
-                        "a", attrs={"href": lambda x: bool(x) and isinstance(x, str) and x.startswith("#opt-")}
-                    )
-                    if not option_link:
-                        continue
+            if not option_id.startswith("opt-"):
+                continue
 
-                # Extract option id from the element
-                option_id = ""
-                if option_link and isinstance(option_link, Tag):
-                    if option_link.get("id"):
-                        option_id = str(option_link.get("id", ""))
-                    elif option_link.get("href"):
-                        href_value = option_link.get("href", "")
-                        if isinstance(href_value, str):
-                            option_id = href_value.lstrip("#")
-                    else:
-                        continue
+            # Get the option name
+            option_name = option_id[4:]  # Remove the 'opt-' prefix
 
-                if not option_id.startswith("opt-"):
-                    continue
+            # Find the parent dl element that contains this option's details
+            parent_dl = link.find_parent("dl")
+            if not parent_dl or not isinstance(parent_dl, Tag):
+                continue
 
-                # Find the option name inside the link
-                option_code = None
-                if isinstance(dt, Tag):
-                    # BeautifulSoup's find method accepts class_ for class attribute
-                    option_code = dt.find("code", class_="option")
-                if option_code and hasattr(option_code, "text"):
-                    option_name = option_code.text.strip()
-                else:
-                    # Fall back to ID-based name
-                    option_name = option_id[4:]  # Remove the opt- prefix
+            # The option description is in the dd element after the dt containing the link
+            dt_parent = link.find_parent("dt")
+            if not dt_parent or not isinstance(dt_parent, Tag):
+                continue
 
-                # Get the description from the dd
-                dd = None
-                if isinstance(dt, Tag):
-                    dd = dt.find_next("dd")
-                if not dd or not isinstance(dd, Tag):
-                    continue
+            dd = dt_parent.find_next_sibling("dd")
+            if not dd or not isinstance(dd, Tag):
+                continue
 
-                # Process the option details
-                option = self._parse_option_details(option_name, dd)
-                if option:
-                    self.options[option_name] = option
-                    self._index_option(option_name, option)
-                    total_processed += 1
+            # Process the option details
+            option = self._parse_option_details(option_name, dd)
+            if option:
+                self.options[option_name] = option
+                self._index_option(option_name, option)
+                total_processed += 1
 
-                    # Log progress every 250 options to reduce log verbosity
-                    if total_processed % 250 == 0:
-                        logger.info(f"Processed {total_processed} options...")
+                # Log progress every 250 options to reduce log verbosity
+                if total_processed % 250 == 0:
+                    logger.info(f"Processed {total_processed} options...")
 
         # Update statistics
         self.total_options = len(self.options)
@@ -313,12 +304,25 @@ class DarwinClient:
             example = ""
             declared_by = ""
 
-            # Extract paragraphs for description
-            paragraphs: Sequence[PageElement] = []
-            if isinstance(dd, Tag):
-                paragraphs = dd.find_all("p", recursive=False)
-            if paragraphs:
-                description = " ".join(p.get_text(strip=True) for p in paragraphs if hasattr(p, "get_text"))
+            # In nix-darwin, the description is the first part of the content before any metadata
+            if hasattr(dd, "get_text"):
+                full_text = dd.get_text(strip=True)
+
+                # Get everything before the first "*Type:*" or similar marker
+                markers = ["*Type:*", "*Default:*", "*Example:*", "*Declared by:*"]
+                marker_positions = []
+                for marker in markers:
+                    pos = full_text.find(marker)
+                    if pos != -1:
+                        marker_positions.append(pos)
+
+                if marker_positions:
+                    # Get description up to the first marker
+                    first_marker_pos = min(marker_positions)
+                    description = full_text[:first_marker_pos].strip()
+                else:
+                    # If no markers found, use the whole text as description
+                    description = full_text
 
             # Extract metadata using the helper function
             metadata = self._extract_metadata_from_dd(dd)
@@ -350,42 +354,32 @@ class DarwinClient:
             "declared_by": "",
         }
 
-        # Find the type, default, and example information using spans
-        type_element = None
-        if isinstance(dd, Tag):
-            # Use attrs for more reliable matching
-            type_element = dd.find("span", string="Type:")
-        if (
-            type_element
-            and isinstance(type_element, Tag)
-            and type_element.parent
-            and hasattr(type_element.parent, "get_text")
-        ):
-            metadata["type"] = type_element.parent.get_text().replace("Type:", "").strip()
+        # nix-darwin uses a different format with the metadata directly in the text
+        # For example: "*Type:* boolean" or "*Default:* false"
 
-        default_element = None
-        if isinstance(dd, Tag):
-            default_element = dd.find("span", string="Default:")
-        if (
-            default_element
-            and isinstance(default_element, Tag)
-            and default_element.parent
-            and hasattr(default_element.parent, "get_text")
-        ):
-            metadata["default"] = default_element.parent.get_text().replace("Default:", "").strip()
+        # Extract text content
+        if hasattr(dd, "get_text"):
+            content = dd.get_text(separator=" ", strip=True)
 
-        example_element = None
-        if isinstance(dd, Tag):
-            example_element = dd.find("span", string="Example:")
-        if (
-            example_element
-            and isinstance(example_element, Tag)
-            and example_element.parent
-            and hasattr(example_element.parent, "get_text")
-        ):
-            example_value = example_element.parent.get_text().replace("Example:", "").strip()
-            if example_value:
-                metadata["example"] = example_value
+            # Extract type
+            type_match = re.search(r"\*Type:\*\s*([^\n*]+)", content)
+            if type_match:
+                metadata["type"] = type_match.group(1).strip()
+
+            # Extract default
+            default_match = re.search(r"\*Default:\*\s*([^\n*]+)", content)
+            if default_match:
+                metadata["default"] = default_match.group(1).strip()
+
+            # Extract example
+            example_match = re.search(r"\*Example:\*\s*([^\n*]+)", content)
+            if example_match:
+                metadata["example"] = example_match.group(1).strip()
+
+            # Extract declared by
+            declared_match = re.search(r"\*Declared by:\*\s*([^\n*]+)", content)
+            if declared_match:
+                metadata["declared_by"] = declared_match.group(1).strip()
 
         # Alternative approach: look for itemizedlists if fields are missing
         if not metadata["type"] or not metadata["default"] or not metadata["example"]:

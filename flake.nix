@@ -194,6 +194,30 @@
               '';
             }
             {
+              name = "loc";
+              category = "development";
+              help = "Count lines of code in the project";
+              command = ''
+                # Simple version that just shows the main statistics
+                echo "=== NixMCP Lines of Code Statistics ==="
+                SRC_LINES=$(find ./nixmcp -name '*.py' -type f | xargs wc -l | tail -n 1 | awk '{print $1}')
+                TEST_LINES=$(find ./tests -name '*.py' -type f | xargs wc -l | tail -n 1 | awk '{print $1}')
+                CONFIG_LINES=$(find . -path './.venv' -prune -o -path './.mypy_cache' -prune -o -path './htmlcov' -prune -o -path './coverage_report' -prune -o -type f \( -name '*.json' -o -name '*.toml' -o -name '*.ini' -o -name '*.yml' -o -name '*.yaml' -o -name '*.nix' \) -print | xargs wc -l | tail -n 1 | awk '{print $1}')
+                TOTAL_PYTHON=$((SRC_LINES + TEST_LINES))
+                
+                echo "Source code (nixmcp directory): $SRC_LINES lines"
+                echo "Test code (tests directory): $TEST_LINES lines"
+                echo "Configuration files: $CONFIG_LINES lines"
+                echo "Total Python code: $TOTAL_PYTHON lines"
+                
+                # Show code/test ratio
+                if [ "$SRC_LINES" -gt 0 ]; then
+                  RATIO=$(echo "scale=2; $TEST_LINES / $SRC_LINES" | bc)
+                  echo "Test to code ratio: $RATIO:1"
+                fi
+              '';
+            }
+            {
               name = "lint";
               category = "development";
               help = "Lint code with Black (check) and Flake8";

@@ -56,7 +56,7 @@ class TestNixOSContext(unittest.TestCase):
         result = self.context.search_programs("vim", 10)
 
         # Verify the method called the client correctly
-        self.es_client_mock.search_programs.assert_called_once_with("vim", 10)
+        self.es_client_mock.search_programs.assert_called_once_with("vim", 10, channel="unstable")
 
         # Verify the result
         self.assertEqual(result, expected_result)
@@ -80,7 +80,9 @@ class TestNixOSContext(unittest.TestCase):
         result = self.context.search_packages_with_version("python", "3.11.*", 10)
 
         # Verify the method called the client correctly
-        self.es_client_mock.search_packages_with_version.assert_called_once_with("python", "3.11.*", 10)
+        self.es_client_mock.search_packages_with_version.assert_called_once_with(
+            "python", "3.11.*", 10, channel="unstable"
+        )
 
         # Verify the result
         self.assertEqual(result, expected_result)
@@ -96,7 +98,7 @@ class TestNixOSContext(unittest.TestCase):
 
         # Verify the method called the client correctly
         self.es_client_mock.advanced_query.assert_called_once_with(
-            "packages", "package_attr_name:python* AND package_version:3.11*", 10
+            "packages", "package_attr_name:python* AND package_version:3.11*", 10, channel="unstable"
         )
 
         # Verify the result
@@ -115,10 +117,10 @@ class TestNixOSContext(unittest.TestCase):
         self.es_client_mock.get_package_stats.return_value = expected_result
 
         # Call the method
-        result = self.context.get_package_stats("python*")
+        result = self.context.get_package_stats()
 
         # Verify the method called the client correctly
-        self.es_client_mock.get_package_stats.assert_called_once_with("python*")
+        self.es_client_mock.get_package_stats.assert_called_once_with(channel="unstable")
 
         # Verify the result
         self.assertEqual(result, expected_result)
@@ -133,7 +135,7 @@ class TestNixOSContext(unittest.TestCase):
         result = self.context.count_options()
 
         # Verify the method called the client correctly
-        self.es_client_mock.count_options.assert_called_once()
+        self.es_client_mock.count_options.assert_called_once_with(channel="unstable")
 
         # Verify the result
         self.assertEqual(result, expected_result)

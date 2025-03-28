@@ -31,10 +31,20 @@ Look, we both know you're just going to skim this README and then complain when 
 
 There. Was that so hard? Now your AI assistant can actually give you correct information about NixOS instead of hallucinating package names from 2019.
 
+## Recent Improvements (v0.1.4)
+
+- **Enhanced Channel Support**: Added consistent channel parameter support across all NixOS context methods
+- **Default Improvements**: Standardized default values (limit=20 instead of inconsistent limit=10)
+- **Better Type Annotations**: Improved type annotations with proper typing (Optional, List)
+- **Documentation Updates**: Enhanced docstrings with better parameter descriptions
+- **Test Updates**: Fixed tests to properly verify channel parameter usage
+
 ## Features
 
 - Complete MCP server implementation for NixOS, Home Manager, and nix-darwin resources
 - Access to NixOS packages and system options through the NixOS Elasticsearch API
+  - Support for multiple NixOS channels (unstable, stable, and specific versions like 24.11)
+  - Consistent channel parameter across all NixOS search and info operations
 - Access to Home Manager configuration options through in-memory parsed documentation
 - Access to nix-darwin macOS configuration options through in-memory parsed documentation
 - Get detailed package, system option, and Home Manager option metadata
@@ -128,9 +138,14 @@ The server implements both MCP resources and tools for accessing NixOS, Home Man
 ### MCP Tools
 
 #### NixOS Tools
-- `nixos_search` - Search for packages, options, or programs with automatic wildcard handling
-- `nixos_info` - Get detailed information about a specific package or option
-- `nixos_stats` - Get statistical information about NixOS packages and options with accurate counts
+- `nixos_search` - Search for packages, options, or programs with automatic wildcard handling (supports `channel` parameter)
+- `nixos_info` - Get detailed information about a specific package or option (supports `channel` parameter)
+- `nixos_stats` - Get statistical information about NixOS packages and options with accurate counts (supports `channel` parameter)
+
+The NixOS tools support the following channels:
+- `unstable` - Latest NixOS unstable channel (default)
+- `stable` - Current stable NixOS release (currently 24.11)
+- `24.11` - Specific version reference
 
 #### Home Manager Tools
 - `home_manager_search` - Search for Home Manager configuration options
@@ -425,8 +440,14 @@ What macOS dock options are available in nix-darwin?
 Search for PostgreSQL options in NixOS:
 ~nixos_search(query="postgresql", type="options")
 
-Get details about the Firefox package:
-~nixos_info(name="firefox", type="package")
+Get details about the Firefox package from unstable channel:
+~nixos_info(name="firefox", type="package", channel="unstable")
+
+Search for nginx in stable NixOS:
+~nixos_search(query="nginx", type="packages", channel="stable")
+
+Get NixOS stats:
+~nixos_stats(channel="unstable")
 
 # Tool usage for Home Manager
 Search for shell configuration options:

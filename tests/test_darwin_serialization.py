@@ -38,96 +38,96 @@ async def test_darwin_cache_serialization_integration(temp_cache_dir):
     html_content = """
     <html>
     <body>
-        <dl class="variablelist">
+        <dl>
             <dt>
                 <a id="opt-test.option1"></a>
-                <code class="option">test.option1</code>
+                <code>test.option1</code>
             </dt>
             <dd>
-                <p>Test option 1 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 1</p>
+                Test option 1 description.
+                *Type:* string
+                *Default:* default value 1
             </dd>
             <dt>
                 <a id="opt-test.option2"></a>
-                <code class="option">test.option2</code>
+                <code>test.option2</code>
             </dt>
             <dd>
-                <p>Test option 2 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> int</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 2</p>
+                Test option 2 description.
+                *Type:* int
+                *Default:* default value 2
             </dd>
             <dt>
                 <a id="opt-test.option3"></a>
-                <code class="option">test.option3</code>
+                <code>test.option3</code>
             </dt>
             <dd>
-                <p>Test option 3 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> boolean</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 3</p>
+                Test option 3 description.
+                *Type:* boolean
+                *Default:* default value 3
             </dd>
             <dt>
                 <a id="opt-test.option4"></a>
-                <code class="option">test.option4</code>
+                <code>test.option4</code>
             </dt>
             <dd>
-                <p>Test option 4 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 4</p>
+                Test option 4 description.
+                *Type:* string
+                *Default:* default value 4
             </dd>
             <dt>
                 <a id="opt-test.option5"></a>
-                <code class="option">test.option5</code>
+                <code>test.option5</code>
             </dt>
             <dd>
-                <p>Test option 5 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 5</p>
+                Test option 5 description.
+                *Type:* string
+                *Default:* default value 5
             </dd>
             <dt>
                 <a id="opt-test.option6"></a>
-                <code class="option">test.option6</code>
+                <code>test.option6</code>
             </dt>
             <dd>
-                <p>Test option 6 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 6</p>
+                Test option 6 description.
+                *Type:* string
+                *Default:* default value 6
             </dd>
             <dt>
                 <a id="opt-test.option7"></a>
-                <code class="option">test.option7</code>
+                <code>test.option7</code>
             </dt>
             <dd>
-                <p>Test option 7 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 7</p>
+                Test option 7 description.
+                *Type:* string
+                *Default:* default value 7
             </dd>
             <dt>
                 <a id="opt-test.option8"></a>
-                <code class="option">test.option8</code>
+                <code>test.option8</code>
             </dt>
             <dd>
-                <p>Test option 8 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 8</p>
+                Test option 8 description.
+                *Type:* string
+                *Default:* default value 8
             </dd>
             <dt>
                 <a id="opt-test.option9"></a>
-                <code class="option">test.option9</code>
+                <code>test.option9</code>
             </dt>
             <dd>
-                <p>Test option 9 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 9</p>
+                Test option 9 description.
+                *Type:* string
+                *Default:* default value 9
             </dd>
             <dt>
                 <a id="opt-test.option10"></a>
-                <code class="option">test.option10</code>
+                <code>test.option10</code>
             </dt>
             <dd>
-                <p>Test option 10 description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> string</p>
-                <p><span class="emphasis"><em>Default:</em></span> default value 10</p>
+                Test option 10 description.
+                *Type:* string
+                *Default:* default value 10
             </dd>
         </dl>
     </body>

@@ -319,20 +319,38 @@ class TestIntegrationScenarios(unittest.TestCase):
         mock_search.assert_called_once()
         mock_set_channel.assert_called_with("24.11")
 
-    @patch.object(ElasticsearchClient, "set_channel")
-    def test_multi_channel_support(self, mock_set_channel):
+    def test_multi_channel_support(self):
         """Test that search supports multiple channels."""
-        # Call nixos_search with different channels
-        nixos_search("services.postgresql", "options", 10, channel="unstable")
-        mock_set_channel.assert_called_with("unstable")
+        # Create a test context with a mock ElasticsearchClient
+        test_context = NixOSContext()
 
-        nixos_search("services.postgresql", "options", 10, channel="24.11")
-        mock_set_channel.assert_called_with("24.11")
+        # Patch the search_options method to avoid actual API calls
+        with patch.object(test_context.es_client, "search_options", return_value={"options": [], "count": 0}):
+            # Mock the set_channel method to track calls
+            original_set_channel = test_context.es_client.set_channel
+            channel_calls = []
 
-        # Test fallback to unstable for unknown channel
-        nixos_search("services.postgresql", "options", 10, channel="invalid")
-        # Last call should be to unstable as fallback
-        mock_set_channel.assert_called_with("invalid")
+            def mock_set_channel(channel):
+                channel_calls.append(channel)
+                return original_set_channel(channel)
+
+            # Replace the set_channel method with our tracking version
+            test_context.es_client.set_channel = mock_set_channel
+
+            # Clear previous calls
+            channel_calls.clear()
+
+            # Test with unstable channel
+            nixos_search("services.postgresql", "options", 10, channel="unstable", context=test_context)
+            self.assertEqual(channel_calls[-1], "unstable")
+
+            # Test with 24.11 channel
+            nixos_search("services.postgresql", "options", 10, channel="24.11", context=test_context)
+            self.assertEqual(channel_calls[-1], "24.11")
+
+            # Test with invalid channel
+            nixos_search("services.postgresql", "options", 10, channel="invalid", context=test_context)
+            self.assertEqual(channel_calls[-1], "invalid")
 
     @patch.object(NixOSContext, "get_option")
     def test_option_hierarchy_pattern_examples(self, mock_get_option):

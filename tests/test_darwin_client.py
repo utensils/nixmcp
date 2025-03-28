@@ -25,36 +25,28 @@ def sample_html():
     return """
     <html>
     <body>
-        <dl class="variablelist">
+        <dl>
             <dt>
-                <span class="term">
-                    <a id="opt-system.defaults.dock.autohide"></a>
-                    <a class="term" href="#opt-system.defaults.dock.autohide">
-                        <code class="option">system.defaults.dock.autohide</code>
-                    </a>
-                </span>
+                <a id="opt-system.defaults.dock.autohide"></a>
+                <code>system.defaults.dock.autohide</code>
             </dt>
             <dd>
-                <p>Whether to automatically hide and show the dock.</p>
-                <p><span class="emphasis"><em>Type:</em></span> boolean</p>
-                <p><span class="emphasis"><em>Default:</em></span> false</p>
-                <p><span class="emphasis"><em>Example:</em></span> true</p>
-                <p>Declared by: <code>system/defaults.nix</code></p>
+                Whether to automatically hide and show the dock. The default is false.
+                *Type:* boolean
+                *Default:* false
+                *Example:* true
+                *Declared by:* &lt;nix-darwin/modules/system/defaults.nix&gt;
             </dd>
             <dt>
-                <span class="term">
-                    <a id="opt-system.defaults.dock.orientation"></a>
-                    <a class="term" href="#opt-system.defaults.dock.orientation">
-                        <code class="option">system.defaults.dock.orientation</code>
-                    </a>
-                </span>
+                <a id="opt-system.defaults.dock.orientation"></a>
+                <code>system.defaults.dock.orientation</code>
             </dt>
             <dd>
-                <p>Position of the dock on screen.</p>
-                <div class="itemizedlist">Type: string</div>
-                <div class="itemizedlist">Default: bottom</div>
-                <div class="itemizedlist">Example: left</div>
-                <div class="itemizedlist">Declared by: system/defaults.nix</div>
+                Position of the dock on screen. The default is "bottom".
+                *Type:* string
+                *Default:* bottom
+                *Example:* left
+                *Declared by:* &lt;nix-darwin/modules/system/defaults.nix&gt;
             </dd>
         </dl>
     </body>

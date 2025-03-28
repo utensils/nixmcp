@@ -299,12 +299,12 @@ class TestNixOSContext(unittest.TestCase):
 
     def setUp(self):
         """Set up the test environment."""
-        self.context = NixOSContext()
-        # Ensure we're using the correct endpoints
-        self.context.es_client.es_packages_url = "https://search.nixos.org/backend/latest-42-nixos-unstable/_search"
-        self.context.es_client.es_options_url = (
-            "https://search.nixos.org/backend/latest-42-nixos-unstable-options/_search"
-        )
+        # Mock the ElasticsearchClient to avoid real API calls
+        with patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient") as mock_client_class:
+            self.es_client_mock = mock_client_class.return_value
+            self.context = NixOSContext()
+            # Replace the real client with our mock
+            self.context.es_client = self.es_client_mock
 
     def test_get_status(self):
         """Test getting server status."""
@@ -322,6 +322,17 @@ class TestNixOSContext(unittest.TestCase):
 
     def test_search_packages(self):
         """Test searching for packages through the context."""
+        # Set up the mock to return some results
+        mock_packages = {
+            "count": 2,
+            "packages": [
+                {"name": "python3", "version": "3.10.12", "description": "Python programming language"},
+                {"name": "python39", "version": "3.9.18", "description": "Python 3.9"},
+            ],
+        }
+        self.es_client_mock.search_packages.return_value = mock_packages
+
+        # Call the method
         result = self.context.search_packages("python", limit=5)
 
         # Verify the structure of the response
@@ -330,46 +341,95 @@ class TestNixOSContext(unittest.TestCase):
         self.assertIsInstance(result["packages"], list)
         self.assertGreater(len(result["packages"]), 0)
 
+        # Verify the mock was called correctly
+        self.es_client_mock.search_packages.assert_called_once_with("python", 5, channel="unstable")
+
     def test_search_options(self):
         """Test searching for options through the context."""
+        # Set up the mock to return some results
+        mock_options = {
+            "count": 2,
+            "options": [
+                {
+                    "name": "services.nginx.enable",
+                    "description": "Whether to enable nginx.",
+                    "type": "boolean",
+                    "default": "false",
+                },
+                {
+                    "name": "services.nginx.virtualHosts",
+                    "description": "Declarative vhost config",
+                    "type": "attribute set",
+                    "default": "{}",
+                },
+            ],
+        }
+        self.es_client_mock.search_options.return_value = mock_options
+
+        # Call the method
         result = self.context.search_options("services.nginx", limit=5)
 
-        # Check if we got an error (which can happen with actual API)
-        if "error" in result:
-            self.assertIsInstance(result["error"], str)
-        else:
-            # Verify the expected structure
-            self.assertIn("options", result)
-            self.assertIn("count", result)
-            self.assertIsInstance(result["options"], list)
+        # Verify the expected structure
+        self.assertIn("options", result)
+        self.assertIn("count", result)
+        self.assertIsInstance(result["options"], list)
+        self.assertGreater(len(result["options"]), 0)
+
+        # Verify the mock was called correctly
+        self.es_client_mock.search_options.assert_called_once_with(
+            "services.nginx", limit=5, channel="unstable", additional_terms=[], quoted_terms=[]
+        )
 
     def test_get_package(self):
         """Test getting a specific package through the context."""
+        # Set up the mock to return a package
+        mock_package = {
+            "name": "python",
+            "version": "3.10.12",
+            "description": "Python programming language",
+            "homepage": "https://www.python.org",
+            "license": "MIT",
+            "found": True,
+        }
+        self.es_client_mock.get_package.return_value = mock_package
+
+        # Call the method
         result = self.context.get_package("python")
 
-        # Check that the response has the expected structure, but don't validate actual contents
+        # Check that the response has the expected structure
         self.assertIn("name", result)
+        self.assertEqual(result["name"], "python")
+        self.assertIn("description", result)
+        self.assertIn("version", result)
+        self.assertTrue(result.get("found", False))
 
-        # If not found (which can happen with actual API), just verify error structure
-        if not result.get("found", False):
-            self.assertIn("error", result)
-        else:
-            # If found, verify the standard fields
-            self.assertIn("description", result)
+        # Verify the mock was called correctly
+        self.es_client_mock.get_package.assert_called_once_with("python", channel="unstable")
 
     def test_get_option(self):
         """Test getting a specific option through the context."""
+        # Set up the mock to return an option
+        mock_option = {
+            "name": "services.nginx.enable",
+            "description": "Whether to enable nginx.",
+            "type": "boolean",
+            "default": "false",
+            "found": True,
+        }
+        self.es_client_mock.get_option.return_value = mock_option
+
+        # Call the method
         result = self.context.get_option("services.nginx.enable")
 
-        # Check that the response has the expected structure, but don't validate actual contents
+        # Check that the response has the expected structure
         self.assertIn("name", result)
+        self.assertEqual(result["name"], "services.nginx.enable")
+        self.assertIn("description", result)
+        self.assertIn("type", result)
+        self.assertTrue(result.get("found", False))
 
-        # If not found (which can happen with actual API), just verify error structure
-        if not result.get("found", False):
-            self.assertIn("error", result)
-        else:
-            # If found, verify the standard fields
-            self.assertIn("description", result)
+        # Verify the mock was called correctly
+        self.es_client_mock.get_option.assert_called_once_with("services.nginx.enable", channel="unstable")
 
 
 class TestMCPTools(unittest.TestCase):

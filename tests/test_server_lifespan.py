@@ -164,34 +164,53 @@ class TestErrorHandling(NixMCPTestBase):
     def test_connection_error_handling(self):
         """Test handling of connection errors.
 
-        Instead of mocking network errors, we use a real but invalid endpoint to
-        generate actual connection errors. This provides a more realistic test
-        of how the application will handle connection failures in production.
+        Instead of mocking network errors, we use the updated error handling in NixOSContext
+        to verify that connection errors are handled properly.
 
         The test:
-        1. Configures a client with an invalid endpoint URL
-        2. Attempts to make a real request that will fail
+        1. Creates a mock ElasticsearchClient that raises an exception
+        2. Attempts to make calls that will trigger the exception handlers
         3. Verifies the application handles the error gracefully
         4. Confirms the error response follows the expected format
         """
-        # Use a real but invalid endpoint to generate an actual connection error
-        invalid_client = ElasticsearchClient()
-        invalid_client.es_packages_url = "https://nonexistent-server.nixos.invalid/_search"
+        # Create a context with a mocked client
+        context = NixOSContext()
 
-        # Replace the context's client with our invalid one
-        original_client = self.context.es_client
-        self.context.es_client = invalid_client
+        # Create a client that raises exceptions for all methods
+        mock_client = MagicMock()
+        mock_client.get_package.side_effect = Exception("Connection error")
+        mock_client.search_packages.side_effect = Exception("Connection error")
+        mock_client.search_options.side_effect = Exception("Connection error")
+        mock_client.get_option.side_effect = Exception("Connection error")
 
-        try:
-            # Test that the get_package method handles the error gracefully
-            result = self.context.get_package("python")
+        # Replace the context's client with our mock
+        context.es_client = mock_client
 
-            # Verify the result contains an error message and found=False
-            assert result.get("found", True) is False
-            assert "error" in result
-        finally:
-            # Restore the original client
-            self.context.es_client = original_client
+        # Test get_package error handling
+        result = context.get_package("python")
+        assert result.get("found", True) is False
+        assert "error" in result
+        assert "Connection error" in result["error"]
+
+        # Test search_packages error handling
+        result = context.search_packages("python")
+        assert result.get("count") == 0
+        assert len(result.get("packages", [])) == 0
+        assert "error" in result
+        assert "Connection error" in result["error"]
+
+        # Test search_options error handling
+        result = context.search_options("nginx")
+        assert result.get("count") == 0
+        assert len(result.get("options", [])) == 0
+        assert "error" in result
+        assert "Connection error" in result["error"]
+
+        # Test get_option error handling
+        result = context.get_option("services.nginx.enable")
+        assert result.get("found", True) is False
+        assert "error" in result
+        assert "Connection error" in result["error"]
 
     def test_search_with_invalid_parameters(self):
         """Test search with invalid parameters."""

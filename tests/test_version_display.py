@@ -3,6 +3,7 @@ Test to verify version information is properly displayed for real packages.
 """
 
 import unittest
+from unittest.mock import patch
 from nixmcp.contexts.nixos_context import NixOSContext
 from nixmcp.tools.nixos_tools import nixos_info
 
@@ -12,50 +13,48 @@ class TestVersionDisplay(unittest.TestCase):
 
     def test_real_package_version_display(self):
         """Test that version information is correctly displayed for an actual NixOS package."""
-        # Use redis as our test package
+        # Use a mock context and package instead of making real API calls
+        # This makes the test more reliable and not dependent on API availability
         package_name = "redis"
 
-        # Create a real context (this will make actual API calls)
-        # Note: This is an integration test that requires internet access
+        # Create a mock context
         context = NixOSContext()
 
-        # Print the debug message to fetch package
-        print(f"\nFetching package info for '{package_name}'...")
+        # Create a mock package info that contains version
+        mock_package_info = {
+            "name": package_name,
+            "version": "7.0.15",
+            "description": "An open source, advanced key-value store",
+            "homepage": "https://redis.io/",
+            "license": "BSD-3-Clause",
+            "found": True,
+        }
 
-        # Get the package info
-        package_info = context.get_package(package_name)
+        # Replace the get_package method to return our mock data
+        with patch.object(NixOSContext, "get_package", return_value=mock_package_info):
+            # Get the package info
+            package_info = context.get_package(package_name)
 
-        # Print raw package info for debugging
-        print(f"Raw package info: {package_info}")
+            # Verify the version field exists
+            self.assertIn("version", package_info)
 
-        # Verify the version field exists
-        self.assertIn("version", package_info)
+            # Get the version value
+            version = package_info.get("version", "")
+            self.assertEqual(version, "7.0.15")
 
-        # Print the version value for debugging
-        version = package_info.get("version", "")
-        print(f"Version value: '{version}'")
+            # Now check the formatted output
+            result = nixos_info(package_name, type="package", context=context)
 
-        # Now check the formatted output
-        result = nixos_info(package_name, type="package", context=context)
+            # Check that version is displayed in the output
+            self.assertIn("**Version:**", result)
 
-        # Print a snippet of the output
-        print(f"Result snippet: {result[:200]}...")
-
-        # Check that version is displayed in the output
-        self.assertIn("**Version:**", result)
-
-        # Version line should be displayed regardless of content
-        if version:
-            # If version is available, it should be displayed
+            # Version line should be displayed with the correct value
             version_string = f"**Version:** {version}"
             self.assertIn(version_string, result)
-        else:
-            # If version is not available, a user-friendly message should be displayed
-            self.assertIn("**Version:** Not available", result)
 
-        # Also check for other important fields
-        self.assertIn("**Description:**", result)
-        self.assertIn("**Homepage:**", result)
+            # Also check for other important fields
+            self.assertIn("**Description:**", result)
+            self.assertIn("**Homepage:**", result)
 
 
 if __name__ == "__main__":

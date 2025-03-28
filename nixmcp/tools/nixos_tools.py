@@ -36,7 +36,28 @@ def _format_search_results(results: Dict[str, Any], query: str, search_type: str
     # Note: 'programs' search actually returns packages with program info
     items_key = "options" if search_type == "options" else "packages"
     items = results.get(items_key, [])
-    count = len(items)
+
+    # Prioritize exact matches for better search relevance
+    # First check for exact matches to promote to the top
+    exact_matches = []
+    close_matches = []
+    other_matches = []
+
+    for item in items:
+        name = item.get("name", "Unknown")
+        # Put exact matches first
+        if name.lower() == query.lower():
+            exact_matches.append(item)
+        # Then options/packages that start with the query
+        elif name.lower().startswith(query.lower()):
+            close_matches.append(item)
+        # Then all other matches
+        else:
+            other_matches.append(item)
+
+    # Reassemble prioritized list
+    sorted_items = exact_matches + close_matches + other_matches
+    count = len(sorted_items)
 
     if count == 0:
         # For service paths, we'll add suggestions in the nixos_search function
@@ -51,7 +72,7 @@ def _format_search_results(results: Dict[str, Any], query: str, search_type: str
     else:
         output_lines = [f"Found {count} {search_type} matching '{query}':", ""]
 
-    for item in items:
+    for item in sorted_items:
         name = item.get("name", "Unknown")
         version = item.get("version")
         desc = item.get("description")
@@ -69,8 +90,22 @@ def _format_search_results(results: Dict[str, Any], query: str, search_type: str
             output_lines.append(f"  Programs: {', '.join(programs)}")
 
         if desc:
+            # Handle HTML content by converting simple tags to plain text
+            if desc.startswith("<rendered-html>"):
+                # Simple HTML tag removal for clear text display
+                desc = desc.replace("<rendered-html>", "")
+                desc = desc.replace("</rendered-html>", "")
+                desc = desc.replace("<p>", "")
+                desc = desc.replace("</p>", " ")
+                desc = desc.replace("<code>", "`")
+                desc = desc.replace("</code>", "`")
+                desc = desc.replace("<a href=", "[")
+                desc = desc.replace("</a>", "]")
+                # Clean up extra whitespace
+                desc = " ".join(desc.split())
+
             # Simple truncation for very long descriptions in search results
-            desc_short = (desc[:150] + "...") if len(desc) > 153 else desc
+            desc_short = (desc[:250] + "...") if len(desc) > 253 else desc
             output_lines.append(f"  {desc_short}")
 
         output_lines.append("")  # Blank line after each item
@@ -181,12 +216,49 @@ def _get_service_suggestion(service_name: str, channel: str) -> str:
     return output
 
 
+# Import re at the top level to avoid local variable issues
+import re
+
+
 def _format_option_info(info: Dict[str, Any], channel: str) -> str:
     """Formats detailed option information."""
     name = info.get("name", "Unknown Option")
     output_lines = [f"# {name}", ""]
 
     if desc := info.get("description"):
+        # Handle HTML content in description
+        if desc.startswith("<rendered-html>"):
+            # First, handle links properly before touching other tags
+            # Handle links like <a href="...">text</a> with different quote styles
+            # Use the re module imported at the top level
+            if "<a href" in desc:
+                # Handle double-quoted hrefs
+                desc = re.sub(r'<a href="([^"]+)">([^<]+)</a>', r"[\2](\1)", desc)
+                # Handle single-quoted hrefs
+                desc = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"[\2](\1)", desc)
+
+            # Remove HTML container
+            desc = desc.replace("<rendered-html>", "")
+            desc = desc.replace("</rendered-html>", "")
+
+            # Convert common HTML tags to Markdown
+            desc = desc.replace("<p>", "")
+            desc = desc.replace("</p>", "\n\n")
+            desc = desc.replace("<code>", "`")
+            desc = desc.replace("</code>", "`")
+            desc = desc.replace("<ul>", "\n")
+            desc = desc.replace("</ul>", "\n")
+            desc = desc.replace("<li>", "- ")
+            desc = desc.replace("</li>", "\n")
+
+            # Remove any remaining HTML tags
+            desc = re.sub(r"<[^>]*>", "", desc)
+
+            # Clean up whitespace and normalize line breaks
+            desc = "\n".join([line.strip() for line in desc.split("\n")])
+            # Remove multiple consecutive empty lines
+            desc = re.sub(r"\n{3,}", "\n\n", desc)
+
         output_lines.extend([f"**Description:** {desc}", ""])
 
     if opt_type := info.get("type"):
@@ -279,16 +351,69 @@ def _format_option_info(info: Dict[str, Any], channel: str) -> str:
     if info.get("is_service_path") and (related := info.get("related_options")):
         service_name = info.get("service_name", "")
         output_lines.extend(["", f"## Related Options for {service_name} Service", ""])
+
+        # Group related options by their sub-paths for better organization
+        related_groups = {}
         for opt in related:
-            related_name = opt.get("name", "")
-            related_type = opt.get("type")
-            related_desc = opt.get("description")
-            line = f"- `{related_name}`"
-            if related_type:
-                line += f" ({related_type})"
-            output_lines.append(line)
-            if related_desc:
-                output_lines.append(f"  {related_desc}")
+            opt_name = opt.get("name", "")
+            if "." in opt_name:
+                # Extract the part after the service name
+                prefix = f"services.{service_name}."
+                if opt_name.startswith(prefix):
+                    remainder = opt_name[len(prefix) :]
+                    group = remainder.split(".")[0] if "." in remainder else "_direct"
+                else:
+                    group = "_other"
+            else:
+                group = "_other"
+
+            if group not in related_groups:
+                related_groups[group] = []
+            related_groups[group].append(opt)
+
+        # First show direct options
+        if "_direct" in related_groups:
+            for opt in related_groups["_direct"]:
+                related_name = opt.get("name", "")
+                related_type = opt.get("type")
+                related_desc = opt.get("description")
+                if related_desc and related_desc.startswith("<rendered-html>"):
+                    # Simple HTML to text conversion
+                    related_desc = related_desc.replace("<rendered-html>", "")
+                    related_desc = related_desc.replace("</rendered-html>", "")
+                    related_desc = related_desc.replace("<p>", "")
+                    related_desc = related_desc.replace("</p>", " ")
+                    related_desc = " ".join(related_desc.split())
+
+                line = f"- `{related_name}`"
+                if related_type:
+                    line += f" ({related_type})"
+                output_lines.append(line)
+                if related_desc:
+                    output_lines.append(f"  {related_desc}")
+
+            # Remove this group so it's not repeated
+            del related_groups["_direct"]
+
+        # Then show groups with counts and examples
+        for group, opts in sorted(related_groups.items()):
+            if group == "_other":
+                continue  # Skip miscellaneous options
+
+            output_lines.append(f"\n### {group} options ({len(opts)})")
+            # Show first 5 options in each group
+            for i, opt in enumerate(opts[:5]):
+                related_name = opt.get("name", "")
+                related_type = opt.get("type")
+                line = f"- `{related_name}`"
+                if related_type:
+                    line += f" ({related_type})"
+                output_lines.append(line)
+
+            # If there are more, indicate it
+            if len(opts) > 5:
+                output_lines.append(f"- ...and {len(opts) - 5} more")
+
         # Add full service example including common options
         output_lines.append(_get_service_suggestion(service_name, channel))
 

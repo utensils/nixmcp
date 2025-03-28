@@ -43,40 +43,131 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
                 return f"Error: {results['error']}"
             return f"No Home Manager options found for '{query}'."
 
-        output = f"Found {len(options)} Home Manager options for '{query}':\n\n"
+        # Sort and prioritize results by relevance:
+        # 1. Exact matches
+        # 2. Name begins with query
+        # 3. Path contains exact query term
+        # 4. Description or other matches
+        exact_matches = []
+        starts_with_matches = []
+        contains_matches = []
+        other_matches = []
 
-        # Group options by category for better organization
-        options_by_category = {}
+        search_term = query.replace("*", "").lower()
+
         for opt in options:
-            category = opt.get("category", "Uncategorized")
-            if category not in options_by_category:
-                options_by_category[category] = []
-            options_by_category[category].append(opt)
+            name = opt.get("name", "").lower()
+            # Extract last path component for more precise matching
+            last_component = name.split(".")[-1] if "." in name else name
 
-        # Print options grouped by category
-        for category, category_options in options_by_category.items():
-            output += f"## {category}\n\n"
-            for opt in category_options:
-                output += f"- {opt.get('name', 'Unknown')}\n"
-                if opt.get("type"):
-                    output += f"  Type: {opt.get('type')}\n"
-                if opt.get("description"):
-                    output += f"  {opt.get('description')}\n"
-                output += "\n"
+            if name == search_term or last_component == search_term:
+                exact_matches.append(opt)
+            elif name.startswith(search_term) or last_component.startswith(search_term):
+                starts_with_matches.append(opt)
+            elif search_term in name:
+                contains_matches.append(opt)
+            else:
+                other_matches.append(opt)
 
-        # Add usage hint if results contain program options
-        program_options = [opt for opt in options if "programs." in opt.get("name", "")]
-        if program_options:
-            program_name = program_options[0].get("name", "").split(".")[1] if len(program_options) > 0 else ""
-            if program_name:
-                output += f"\n## Usage Example for {program_name}\n\n"
+        # Reassemble in priority order
+        prioritized_options = exact_matches + starts_with_matches + contains_matches + other_matches
+
+        output = f"Found {len(prioritized_options)} Home Manager options for '{query}':\n\n"
+
+        # First, extract any program-specific options, identified by their path
+        program_options = {}
+        other_options = []
+
+        for opt in prioritized_options:
+            name = opt.get("name", "")
+            if name.startswith("programs."):
+                parts = name.split(".")
+                if len(parts) > 1:
+                    program = parts[1]
+                    if program not in program_options:
+                        program_options[program] = []
+                    program_options[program].append(opt)
+            else:
+                other_options.append(opt)
+
+        # First show program-specific options if the search seems to be for a program
+        if program_options and (
+            query.lower().startswith("program") or any(prog.lower() in query.lower() for prog in program_options.keys())
+        ):
+            for program, options_list in sorted(program_options.items()):
+                output += f"## programs.{program}\n\n"
+                for opt in options_list:
+                    name = opt.get("name", "Unknown")
+                    # Extract just the relevant part after programs.{program}
+                    if name.startswith(f"programs.{program}."):
+                        short_name = name[(len(f"programs.{program}.")) :]
+                        display_name = short_name if short_name else name
+                    else:
+                        display_name = name
+
+                    output += f"- {display_name}\n"
+                    if opt.get("type"):
+                        output += f"  Type: {opt.get('type')}\n"
+                    if opt.get("description"):
+                        output += f"  {opt.get('description')}\n"
+                    output += "\n"
+
+                # Add usage example for this program
+                output += f"### Usage Example for {program}\n\n"
                 output += "```nix\n"
                 output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
                 output += "{ config, pkgs, ... }:\n"
                 output += "{\n"
-                output += f"  programs.{program_name} = {{\n"
+                output += f"  programs.{program} = {{\n"
                 output += "    enable = true;\n"
-                output += "    # Add more configuration options here\n"
+                output += "    # Add configuration options here\n"
+                output += "  };\n"
+                output += "}\n"
+                output += "```\n\n"
+
+        # Group remaining options by category for better organization
+        if other_options:
+            options_by_category = {}
+            for opt in other_options:
+                category = opt.get("category", "Uncategorized")
+                if category not in options_by_category:
+                    options_by_category[category] = []
+                options_by_category[category].append(opt)
+
+            # Print options grouped by category
+            for category, category_options in sorted(options_by_category.items()):
+                if len(category_options) == 0:
+                    continue
+
+                output += f"## {category}\n\n"
+                for opt in category_options:
+                    output += f"- {opt.get('name', 'Unknown')}\n"
+                    if opt.get("type"):
+                        output += f"  Type: {opt.get('type')}\n"
+                    if opt.get("description"):
+                        output += f"  {opt.get('description')}\n"
+                    output += "\n"
+
+        # If no specific program was identified but we have program options,
+        # add a generic program usage example
+        if not program_options and other_options and any("programs." in opt.get("name", "") for opt in other_options):
+            all_programs = set()
+            for opt in other_options:
+                if "programs." in opt.get("name", ""):
+                    parts = opt.get("name", "").split(".")
+                    if len(parts) > 1:
+                        all_programs.add(parts[1])
+
+            if all_programs:
+                primary_program = sorted(all_programs)[0]
+                output += f"\n## Usage Example for {primary_program}\n\n"
+                output += "```nix\n"
+                output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
+                output += "{ config, pkgs, ... }:\n"
+                output += "{\n"
+                output += f"  programs.{primary_program} = {{\n"
+                output += "    enable = true;\n"
+                output += "    # Add configuration options here\n"
                 output += "  };\n"
                 output += "}\n"
                 output += "```\n"
@@ -488,36 +579,65 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
             if "_direct" in grouped_options:
                 output += "## Direct Options\n\n"
                 for opt in grouped_options["_direct"]:
-                    output += f"- **{opt.get('name', '')}**"
+                    name = opt.get("name", "")
+                    # Display the full option name but highlight the key part
+                    if name.startswith(option_prefix):
+                        parts = name.split(".")
+                        short_name = parts[-1]
+                        output += f"- **{name}** ({short_name})"
+                    else:
+                        output += f"- **{name}**"
+
                     if opt.get("type"):
                         output += f" ({opt.get('type')})"
                     output += "\n"
                     if opt.get("description"):
-                        output += f"  {opt.get('description')}\n"
+                        # Clean up description if it has HTML
+                        desc = opt.get("description")
+                        if desc.startswith("<"):
+                            desc = desc.replace("<p>", "").replace("</p>", " ")
+                            desc = desc.replace("<code>", "`").replace("</code>", "`")
+                            # Clean up whitespace
+                            desc = " ".join(desc.split())
+                        output += f"  {desc}\n"
                 output += "\n"
 
                 # Remove the _direct group so it's not repeated
                 del grouped_options["_direct"]
 
-            # Then show grouped options
-            for group, group_opts in sorted(grouped_options.items()):
-                output += f"## {group}\n\n"
-                output += f"**{len(group_opts)}** options - "
-                # Add a tip to dive deeper
-                full_path = f"{option_prefix}.{group}"
-                output += "To see all options in this group, use:\n"
-                output += f'`home_manager_options_by_prefix(option_prefix="{full_path}")`\n\n'
+            # Then show grouped options - split into multiple sections to avoid truncation
+            grouped_list = sorted(grouped_options.items())
 
-                # Show a sample of options from this group (up to 3)
-                for opt in group_opts[:3]:
-                    name_parts = opt.get("name", "").split(".")
-                    if len(name_parts) > 0:
-                        short_name = name_parts[-1]
-                        output += f"- **{short_name}**"
-                        if opt.get("type"):
-                            output += f" ({opt.get('type')})"
-                        output += "\n"
-                output += "\n"
+            # Show at most 10 groups per section to avoid truncation
+            group_chunks = [grouped_list[i : i + 10] for i in range(0, len(grouped_list), 10)]
+
+            for chunk_idx, chunk in enumerate(group_chunks):
+                if len(group_chunks) > 1:
+                    output += f"## Option Groups (Part {chunk_idx+1} of {len(group_chunks)})\n\n"
+                else:
+                    output += "## Option Groups\n\n"
+
+                for group, group_opts in chunk:
+                    output += f"### {group} options ({len(group_opts)})\n\n"
+                    # Add a tip to dive deeper
+                    full_path = f"{option_prefix}.{group}"
+                    output += "To see all options in this group, use:\n"
+                    output += f'`home_manager_options_by_prefix(option_prefix="{full_path}")`\n\n'
+
+                    # Show a sample of options from this group (up to 5)
+                    for opt in group_opts[:5]:
+                        name_parts = opt.get("name", "").split(".")
+                        if len(name_parts) > 0:
+                            short_name = name_parts[-1]
+                            output += f"- **{short_name}**"
+                            if opt.get("type"):
+                                output += f" ({opt.get('type')})"
+                            output += "\n"
+
+                    # If there are more, indicate it
+                    if len(group_opts) > 5:
+                        output += f"- ...and {len(group_opts) - 5} more\n"
+                    output += "\n"
         else:
             # This is a top-level option, show enable options first if available
             enable_options = result.get("enable_options", [])
@@ -541,25 +661,38 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
                         grouped_options[group] = []
                     grouped_options[group].append(opt)
 
-            # List groups with option counts
+            # List groups with option counts - chunk this too to avoid truncation
             if grouped_options:
-                output += "## Option Groups\n\n"
-                for group, group_opts in sorted(grouped_options.items()):
-                    if group == "_direct":
-                        continue
-                    output += f"- **{group}**: {len(group_opts)} options\n"
-                    # Add a tip to dive deeper for groups with significant options
-                    if len(group_opts) > 5:
-                        full_path = f"{option_prefix}.{group}"
-                        output += f'  To see all options, use: `home_manager_options_by_prefix("{full_path}")`\n'
-                output += "\n"
+                sorted_groups = sorted(grouped_options.items())
+                # Show at most 20 groups per section to avoid truncation
+                group_chunks = [sorted_groups[i : i + 20] for i in range(0, len(sorted_groups), 20)]
+
+                for chunk_idx, chunk in enumerate(group_chunks):
+                    if len(group_chunks) > 1:
+                        output += f"## Option Groups (Part {chunk_idx+1} of {len(group_chunks)})\n\n"
+                    else:
+                        output += "## Option Groups\n\n"
+
+                    for group, group_opts in chunk:
+                        if group == "_direct":
+                            continue
+                        output += f"- **{group}**: {len(group_opts)} options\n"
+                        # Add a tip to dive deeper for groups with significant options
+                        if len(group_opts) > 5:
+                            full_path = f"{option_prefix}.{group}"
+                            cmd = f'home_manager_options_by_prefix(option_prefix="{full_path}")'
+                            output += f"  To see all options, use: `{cmd}`\n"
+                    output += "\n"
+
+        # Always include a section about examples
+        output += "## Usage Examples\n\n"
 
         # Add usage example based on the option prefix
         parts = option_prefix.split(".")
         if len(parts) > 0:
             if parts[0] == "programs" and len(parts) > 1:
                 program_name = parts[1]
-                output += f"## Example Configuration for {program_name}\n\n"
+                output += f"### Example Configuration for {program_name}\n\n"
                 output += "```nix\n"
                 output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
                 output += "{ config, pkgs, ... }:\n"
@@ -572,7 +705,7 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
                 output += "```\n"
             elif parts[0] == "services" and len(parts) > 1:
                 service_name = parts[1]
-                output += f"## Example Configuration for {service_name} service\n\n"
+                output += f"### Example Configuration for {service_name} service\n\n"
                 output += "```nix\n"
                 output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
                 output += "{ config, pkgs, ... }:\n"
@@ -581,6 +714,17 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
                 output += "    enable = true;\n"
                 output += "    # Add service configuration options here\n"
                 output += "  };\n"
+                output += "}\n"
+                output += "```\n"
+            else:
+                output += "### General Home Manager Configuration\n\n"
+                output += "```nix\n"
+                output += "# In your home configuration (e.g., ~/.config/nixpkgs/home.nix)\n"
+                output += "{ config, pkgs, ... }:\n"
+                output += "{\n"
+                output += f"  {option_prefix} = {{\n"
+                output += "    # Add configuration options here\n"
+                output += "  }};\n"
                 output += "}\n"
                 output += "```\n"
 

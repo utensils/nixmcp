@@ -168,7 +168,7 @@ Both tools above support the `channel` parameter with values:
   
 ### nix-darwin Tools
 - `darwin_search(query, limit=20, context=None)`: 
-  Search for nix-darwin options with automatic wildcard handling
+  Search for nix-darwin options with automatic wildcard handling and enhanced fuzzy search using Levenshtein distance
 - `darwin_info(name, context=None)`: 
   Get detailed information about a specific nix-darwin option
 - `darwin_stats(context=None)`: 
@@ -207,13 +207,13 @@ Both tools above support the `channel` parameter with values:
 ### HTML Documentation Parsing (Home Manager and nix-darwin features)
 - Fetches and parses HTML docs from:
   - Home Manager: nix-community.github.io/home-manager/
-  - nix-darwin: daiderd.com/nix-darwin/manual/
+  - nix-darwin: nix-darwin.github.io/nix-darwin/manual/
 - Multi-level caching system for improved performance and resilience:
   - HTML content cache to filesystem using cross-platform cache paths
   - Processed in-memory data structures persisted to disk cache
   - Option data serialized to both JSON and binary formats for complex structures
   - Uses OS-specific standard cache locations
-  - Implements proper TTL expiration of cached content
+  - Implements proper TTL expiration of cached content with legacy cache cleanup
   - Provides comprehensive fallback mechanisms and error handling
   - Tracks detailed cache statistics for monitoring
 - Options are indexed in memory with specialized search indices
@@ -297,6 +297,9 @@ To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
 - List commands: `menu`
 - Lint and format: `lint`, `format`
 - Setup uv: `setup-uv`
+- Count lines of code: `loc`
+- Build distributions: `build`
+- Publish to PyPI: `publish`
 
 ## Code Style
 - Python 3.11+ with type hints

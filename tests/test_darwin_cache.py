@@ -573,19 +573,19 @@ async def test_darwin_client_expired_cache(real_cache_dir):
     html_content = """
     <html>
     <body>
-        <dl class="variablelist">
+        <dl>
     """
 
     # Add a main test option
     html_content += """
             <dt>
                 <a id="opt-system.defaults.dock.autohide"></a>
-                <code class="option">system.defaults.dock.autohide</code>
+                <code>system.defaults.dock.autohide</code>
             </dt>
             <dd>
-                <p>Whether to automatically hide and show the dock.</p>
-                <p><span class="emphasis"><em>Type:</em></span> boolean</p>
-                <p><span class="emphasis"><em>Default:</em></span> false</p>
+                Whether to automatically hide and show the dock. The default is false.
+                *Type:* boolean
+                *Default:* false
             </dd>
     """
 
@@ -594,12 +594,12 @@ async def test_darwin_client_expired_cache(real_cache_dir):
         html_content += f"""
             <dt>
                 <a id="opt-system.defaults.option{i}"></a>
-                <code class="option">system.defaults.option{i}</code>
+                <code>system.defaults.option{i}</code>
             </dt>
             <dd>
-                <p>Test option {i} description.</p>
-                <p><span class="emphasis"><em>Type:</em></span> boolean</p>
-                <p><span class="emphasis"><em>Default:</em></span> false</p>
+                Test option {i} description.
+                *Type:* boolean
+                *Default:* false
             </dd>
         """
 
@@ -638,8 +638,8 @@ async def test_darwin_client_expired_cache(real_cache_dir):
 
         # Create updated HTML content with the same structure but updated default value
         updated_html_content = html_content.replace(
-            '<p><span class="emphasis"><em>Default:</em></span> false</p>',
-            '<p><span class="emphasis"><em>Default:</em></span> true</p>',
+            "*Default:* false",
+            "*Default:* true",
         )
 
         # For the updated test approach, we'll add all option HTML elements to the updated content
