@@ -182,10 +182,14 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4 # Updated version
-        # No need to specify token explicitly if using GitHub Actions integration correctly
-        # token: ${{ secrets.CODECOV_TOKEN }} # Only needed for private repos or specific configs
-        files: ./coverage.xml # Path relative to repo root
-        fail_ci_if_error: true # Optional: fail CI if upload error
+        with:
+          # Specify the file using the 'file' input
+          file: ./coverage.xml
+          # fail_ci_if_error is now the default behavior, but can be explicitly set
+          fail_ci_if_error: true # Optional: fail CI if upload error
+        # The token is usually picked up automatically via GitHub Actions integration
+        # env:
+        #  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # Only needed for private repos or specific configs
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
