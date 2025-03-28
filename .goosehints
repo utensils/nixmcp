@@ -246,6 +246,15 @@ Both tools above support the `channel` parameter with values:
 
 ## Testing
 - Use pytest with code coverage reporting (target: 80%)
+- Test organization follows the module structure:
+  - `tests/cache/` - Tests for caching components
+  - `tests/clients/` - Tests for API clients (with nested `darwin/` directory)
+  - `tests/contexts/` - Tests for application contexts (with nested `darwin/` directory)
+  - `tests/completions/` - Tests for MCP completions
+  - `tests/resources/` - Tests for MCP resources (with nested `darwin/` directory)
+  - `tests/tools/` - Tests for MCP tools (with nested `darwin/` directory)
+  - `tests/utils/` - Tests for utility functions
+  - `tests/integration/` - End-to-end integration tests
 - Use dependency injection for testable components:
   - Pass mock contexts directly to resource/tool functions
   - Avoid patching global state
