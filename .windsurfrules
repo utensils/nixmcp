@@ -85,6 +85,16 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
 - Test organization mirrors module structure
 - Use dependency injection for testable components
 
+### Dependency Management
+- Project uses `pyproject.toml` for dependency specification (PEP 621)
+- Core dependencies:
+  - `mcp>=1.5.0`: Base MCP framework
+  - `requests>=2.32.3`: HTTP client for API interactions
+  - `python-dotenv>=1.1.0`: Environment variable management
+  - `beautifulsoup4>=4.13.3`: HTML parsing for documentation
+- Dev dependencies defined in `[project.optional-dependencies]`
+- Setup script ensures all dependencies are properly installed
+
 ### Installation & Usage
 - Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
 - Claude Code configuration: Add to `~/.config/claude/config.json`
