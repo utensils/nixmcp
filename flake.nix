@@ -68,19 +68,9 @@
              echo "No setup.py or pyproject.toml found, skipping editable install."
           fi
 
-          # Verify key dependencies are installed
-          echo "Verifying dependencies..."
-          if ! python -c "import requests" &>/dev/null; then
-            echo "Warning: 'requests' package not found. Installing explicitly..."
-            if command -v uv >/dev/null 2>&1; then
-              uv pip install requests>=2.32.3
-            else
-              python -m pip install requests>=2.32.3
-            fi
-          fi
-          
-          echo "Installed packages:"
-          pip list | grep -E 'requests|mcp|beautifulsoup4|python-dotenv'
+          # List installed packages for verification
+          echo "Installed dependencies:"
+          pip list | grep -E "requests|mcp|beautifulsoup4|python-dotenv"
           
           echo "✓ Python environment setup complete in ./.venv"
           echo "---------------------------------------------"
@@ -127,7 +117,7 @@
               name = "setup";
               category = "environment";
               help = "Set up/update Python virtual environment (.venv) and install dependencies";
-              command = "${setupVenvScript}/bin/setup-venv";
+              command = "rm -rf .venv && ${setupVenvScript}/bin/setup-venv";
             }
             {
               name = "run";
@@ -171,9 +161,9 @@
                 # Check if running in CI environment
                 # Use command substitution to avoid unbound variable errors
                 if [ "$(printenv CI 2>/dev/null)" != "" ] || [ "$(printenv GITHUB_ACTIONS 2>/dev/null)" != "" ]; then
-                  # In CI, don't add any coverage args to avoid conflicts
-                  COVERAGE_ARGS=""
-                  echo "Running in CI environment without additional coverage arguments..."
+                  # In CI, use consistent coverage args
+                  COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
+                  echo "Running in CI environment with coverage reporting..."
                 else
                   # Check if --no-coverage flag is passed
                   if [ $# -gt 0 ] && [ "$1" = "--no-coverage" ]; then

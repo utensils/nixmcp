@@ -1,341 +1,99 @@
-# CLAUDE.md - MCP-NixOS Project Guidelines
+# MCP-NixOS Project Guidelines
 
-## IMPORTANT: Source of Truth Rule
-CLAUDE.md is the primary source of truth for coding rules and guidelines.
-When updating rules:
-1. Modify CLAUDE.md first
-2. Run these commands to sync to other rule files:
-   ```
-   cp CLAUDE.md .windsurfrules
-   cp CLAUDE.md .cursorrules
-   cp CLAUDE.md .goosehints
-   ```
+## Source of Truth & Code Patterns
 
-## IMPORTANT: Match Existing Code Patterns
-When modifying or adding to this codebase, always:
-1. Follow the existing code style and patterns in each module
-2. Study nearby code before making changes to understand the established approach
-3. Maintain consistency with the surrounding code (naming, structure, error handling)
-4. Respect the architectural boundaries between modules
-5. Use the same patterns for similar functionality
-6. Adhere to Python best practices while maintaining consistency with the codebase
-
-This ensures the codebase remains cohesive and maintainable.
+- CLAUDE.md is the primary source of truth for coding rules
+- Sync changes to other rule files: `.windsurfrules`, `.cursorrules`, `.goosehints`
+- Always follow existing code patterns and module structure
+- Maintain architectural boundaries and consistency
 
 ## Project Overview
-MCP-NixOS is a Model Context Protocol (MCP) server for NixOS resources, Home Manager configuration options, and nix-darwin macOS configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, Home Manager user configuration options, and nix-darwin macOS system configuration options. Communication happens over standard input/output streams using a JSON-based message format.
 
-**NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
+MCP-NixOS provides MCP resources and tools for NixOS packages, system options, Home Manager configuration, and nix-darwin macOS configuration. Communication uses JSON-based messages over standard I/O.
 
-## Project Structure
-The codebase follows a modular architecture:
+## Architecture
 
-- `mcp-nixos/__init__.py` - Package version and metadata
-- `mcp-nixos/__main__.py` - Entry point for direct execution
-- `mcp-nixos/cache/` - Caching components:
-  - `simple_cache.py` - In-memory caching with TTL and size limits
-  - `html_cache.py` - Multi-format filesystem caching (HTML, JSON, binary data)
-- `mcp-nixos/clients/` - API clients:
-  - `elasticsearch_client.py` - Client for NixOS Elasticsearch API
-  - `home_manager_client.py` - Client for parsing and caching Home Manager docs
-  - `darwin/darwin_client.py` - Client for parsing and caching nix-darwin docs
-  - `html_client.py` - HTTP client with filesystem caching
-- `mcp-nixos/contexts/` - Application contexts:
-  - `nixos_context.py` - NixOS context
-  - `home_manager_context.py` - Home Manager context
-  - `darwin/darwin_context.py` - nix-darwin context
-- `mcp-nixos/resources/` - MCP resource definitions:
-  - `nixos_resources.py` - NixOS resources
-  - `home_manager_resources.py` - Home Manager resources
-  - `darwin/darwin_resources.py` - nix-darwin resources
-- `mcp-nixos/tools/` - MCP tool implementations:
-  - `nixos_tools.py` - NixOS tools
-  - `home_manager_tools.py` - Home Manager tools
-  - `darwin/darwin_tools.py` - nix-darwin tools
-- `mcp-nixos/utils/` - Utility functions and helpers:
-  - `cache_helpers.py` - Cross-platform cache directory management
-  - `helpers.py` - General utility functions
-- `mcp-nixos/logging.py` - Centralized logging configuration
-- `mcp-nixos/server.py` - FastMCP server implementation
+### Core Components
+- **Cache**: Simple in-memory and filesystem HTML caching
+- **Clients**: Elasticsearch, Home Manager, nix-darwin, HTML
+- **Contexts**: Application state management for each platform
+- **Resources**: MCP resource definitions using URL schemes
+- **Tools**: Search, info, and statistics tools
+- **Utils**: Cross-platform helpers and cache management
+- **Server**: FastMCP server implementation
 
-## MCP Implementation Guidelines
+### Implementation Guidelines
 
-### Resource Definitions
-- Use `nixos://` scheme for NixOS resources, `home-manager://` for Home Manager, `darwin://` for nix-darwin
-- Follow consistent path hierarchy: `scheme://category/action/parameter`
-- Place parameters in curly braces: `nixos://package/{package_name}`
-- Use type hints and clear docstrings 
-- Return structured data as a dictionary
-- For errors, use `{"error": message, "found": false}` pattern
+**Resources**
+- Use consistent URL schemes: `nixos://`, `home-manager://`, `darwin://`
+- Follow path hierarchy: `scheme://category/action/parameter`
+- Parameters in curly braces: `nixos://package/{package_name}`
+- Return structured data as dictionaries
+- Errors: `{"error": message, "found": false}`
 
-### Tool Definitions
-- Use clear function names with type hints (return type `str` for human-readable output)
-- Include optional `context` parameter for dependency injection in tests
-- Use detailed Google-style docstrings with Args/Returns sections
-- Catch exceptions and return user-friendly error messages
-- Use provided context or fall back to global contexts
+**Tools**
+- Functions with type hints (return `str` for human-readable output)
+- Include `context` parameter for dependency injection
+- Detailed Google-style docstrings
+- Catch exceptions for user-friendly error messages
 
-### Context Management
-- Use lifespan context manager for resource initialization
-- Initialize shared resources at startup and clean up on shutdown:
-  - Home Manager and nix-darwin data are eagerly loaded during server startup
-  - 10-second timeout with fallback to background loading for resilience
-  - Proper shutdown and cleanup of all contexts
-- Pass contexts to resources and tools that need them
-- Prefer dependency injection over global state access
+**Context Management**
+- Lifespan management for initialization/cleanup
+- Eager loading with fallbacks and timeouts
+- Prefer dependency injection over global state
 
-### Best Practices
-- Use resources for retrieving data, tools for actions/processing with formatted output
-- Always use proper type annotations (Optional, Union, List, Dict, etc.)
-- Follow strict null safety guidelines:
-  - Always check for None before accessing attributes (`if ctx is not None: ctx.method()`)
-  - Use the Optional type for attributes or parameters that may be None
-  - Add defensive guards for regex match operations and string comparisons
-  - Check result values from external APIs and provide appropriate fallbacks
-- Log all errors with appropriate detail
-- Return user-friendly error messages with suggestions where possible
-- For search tools, handle empty results gracefully and support wildcards
-- Ensure code passes both linting (`lint`) and type checking (`typecheck`) before committing
+**Best Practices**
+- Type annotations (Optional, Union, List, Dict)
+- Strict null safety with defensive programming
+- Detailed error logging and user-friendly messages
+- Support wildcard searches and handle empty results
 
-## MCP Resources
+## API Reference
 
-### NixOS Resources
-- `nixos://status`: NixOS server status information
-- `nixos://package/{package_name}`: NixOS package information
-- `nixos://search/packages/{query}`: NixOS package search
-- `nixos://search/options/{query}`: NixOS options search
-- `nixos://option/{option_name}`: NixOS option information
-- `nixos://search/programs/{program}`: Packages providing specific programs
-- `nixos://packages/stats`: NixOS package statistics
+### NixOS Resources & Tools
+- Status, package info/search, option info/search, program search
+- `nixos_search()`, `nixos_info()`, `nixos_stats()`
+- Multiple channels: unstable (default), stable (24.11)
 
-### Home Manager Resources
-- `home-manager://status`: Home Manager context status information
-- `home-manager://search/options/{query}`: Home Manager options search
-- `home-manager://option/{option_name}`: Home Manager option information
-- `home-manager://options/stats`: Home Manager options statistics
-- `home-manager://options/list`: Hierarchical list of all top-level options
-- `home-manager://options/prefix/{option_prefix}`: Get options by prefix path
-- Category-specific endpoints for various option groups:
-  - `home-manager://options/programs`
-  - `home-manager://options/services`
-  - `home-manager://options/home`
-  - And many more (accounts, fonts, gtk, xdg, etc.)
+### Home Manager Resources & Tools
+- Status, option info/search, hierarchical lists, prefix paths
+- `home_manager_search()`, `home_manager_info()`, `home_manager_options_by_prefix()`
 
-### nix-darwin Resources
-- `darwin://status`: nix-darwin context status information
-- `darwin://search/options/{query}`: nix-darwin options search
-- `darwin://option/{option_name}`: nix-darwin option information
-- `darwin://options/stats`: nix-darwin options statistics
-- `darwin://options/categories`: List of top-level option categories
-- `darwin://options/prefix/{option_prefix}`: Get options by prefix path
-- Category-specific endpoints for macOS configuration areas:
-  - `darwin://options/documentation`
-  - `darwin://options/environment`
-  - `darwin://options/fonts`
-  - `darwin://options/homebrew`
-  - `darwin://options/launchd`
-  - `darwin://options/networking`
-  - `darwin://options/nix`
-  - `darwin://options/nixpkgs`
-  - `darwin://options/power`
-  - `darwin://options/programs`
-  - `darwin://options/security`
-  - `darwin://options/services`
-  - `darwin://options/system`
-  - `darwin://options/time`
-  - `darwin://options/users`
-
-## MCP Tools
-
-### NixOS Tools
-- `nixos_search(query, type="packages", limit=20, channel="unstable", context=None)`: 
-  Search for packages, options, or programs with automatic wildcard handling
-- `nixos_info(name, type="package", channel="unstable", context=None)`: 
-  Get detailed information about a specific package or option
-  
-Both tools above support the `channel` parameter with values:
-  - `"unstable"`: Latest NixOS unstable channel (default)
-  - `"stable"`: Current stable NixOS release (currently 24.11)
-  - `"24.11"`: Specific version reference (same as "stable" currently)
-- `nixos_stats(channel="unstable", context=None)`: 
-  Get statistical information about NixOS packages and options, with accurate option counts using Elasticsearch's Count API
-
-### Home Manager Tools
-- `home_manager_search(query, limit=20, context=None)`: 
-  Search for Home Manager options with automatic wildcard handling
-- `home_manager_info(name, context=None)`: 
-  Get detailed information about a specific Home Manager option
-- `home_manager_stats(context=None)`: 
-  Get statistical information about Home Manager options
-- `home_manager_list_options(context=None)`: 
-  List all top-level Home Manager option categories
-- `home_manager_options_by_prefix(option_prefix, context=None)`: 
-  Get all Home Manager options under a specific prefix
-  
-### nix-darwin Tools
-- `darwin_search(query, limit=20, context=None)`: 
-  Search for nix-darwin options with automatic wildcard handling and enhanced fuzzy search using Levenshtein distance
-- `darwin_info(name, context=None)`: 
-  Get detailed information about a specific nix-darwin option
-- `darwin_stats(context=None)`: 
-  Get statistical information about nix-darwin options
-- `darwin_list_options(context=None)`: 
-  List all top-level nix-darwin option categories
-- `darwin_options_by_prefix(option_prefix, context=None)`: 
-  Get all nix-darwin options under a specific prefix
-
-## Searching for Options
-
-### Best Practices
-- Use full hierarchical paths for precise option searching:
-  - NixOS: `services.postgresql` for all PostgreSQL options
-  - Home Manager: `programs.git` for all Git options
-  - nix-darwin: `system.defaults.dock` for all dock options
-  - Wildcards are automatically added where appropriate (services.postgresql*)
-- Service paths get special handling with automatic suggestions
-- Multiple query strategies are used: exact match, prefix match, wildcard match
-- For NixOS specifically, multiple channels are supported: unstable (default), stable (current release), or specific version (e.g., 24.11)
+### nix-darwin Resources & Tools
+- Status, option info/search, category lists, prefix paths
+- `darwin_search()`, `darwin_info()`, `darwin_options_by_prefix()`
 
 ## System Requirements
 
-### Elasticsearch API (NixOS features)
-- Uses NixOS search Elasticsearch API
-- Configure with environment variables (defaults provided):
-  ```
-  ELASTICSEARCH_URL=https://search.nixos.org/backend
-  ELASTICSEARCH_USER=aWVSALXpZv
-  ELASTICSEARCH_PASSWORD=X8gPHnzL52wFEekuxsfQ9cSh
-  ```
-- Supports multiple channels (unstable, 24.11) via different indices
-- Uses Elasticsearch's Count API for accurate option counts beyond the default 10,000 result limit
-- Provides enhanced search capabilities with field-specific boosts and query optimization
+### APIs & Configuration
+- Elasticsearch API for NixOS features
+- HTML parsing for Home Manager and nix-darwin
+- Multi-level caching with filesystem persistence
+- Environment configuration via ENV variables
 
-### HTML Documentation Parsing (Home Manager and nix-darwin features)
-- Fetches and parses HTML docs from:
-  - Home Manager: nix-community.github.io/home-manager/
-  - nix-darwin: nix-darwin.github.io/nix-darwin/manual/
-- Multi-level caching system for improved performance and resilience:
-  - HTML content cache to filesystem using cross-platform cache paths
-  - Processed in-memory data structures persisted to disk cache
-  - Option data serialized to both JSON and binary formats for complex structures
-  - Uses OS-specific standard cache locations
-  - Implements proper TTL expiration of cached content with legacy cache cleanup
-  - Provides comprehensive fallback mechanisms and error handling
-  - Tracks detailed cache statistics for monitoring
-- Options are indexed in memory with specialized search indices
-- Enhanced eager loading during server startup:
-  - First tries to load from serialized memory cache (fastest)
-  - If that fails, loads from HTML cache (medium speed)
-  - If both fail, fetches fresh HTML from web (slowest)
-  - 10-second timeout prevents hanging if there are loading issues
-  - Falls back to background loading if all methods fail
-  - Maintains resilience with multiple fallback mechanisms
-  - Supports force refresh to bypass cache when needed
-- Related options are automatically suggested based on hierarchical paths
+### Configuration
+- `LOG_LEVEL`, `LOG_FILE`
+- `MCP_NIXOS_CACHE_DIR`, `MCP_NIXOS_CACHE_TTL`
+- `ELASTICSEARCH_URL`, `ELASTICSEARCH_USER`, `ELASTICSEARCH_PASSWORD`
 
-## Configuration
-- `LOG_LEVEL`: Set logging level (default: INFO)
-- `LOG_FILE`: Optional log file path (default: logs to stdout/stderr)
-- `MCP_NIXOS_CACHE_DIR`: Custom directory for filesystem cache (default: OS-specific standard location)
-- `MCP_NIXOS_CACHE_TTL`: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
-- Environment variables for Elasticsearch API credentials (see above)
+## Development
 
-### Cache Directory Locations
-- Linux: `$XDG_CACHE_HOME/mcp-nixos/` (typically `~/.cache/mcp-nixos/`)
-- macOS: `~/Library/Caches/mcp-nixos/`
-- Windows: `%LOCALAPPDATA%\mcp-nixos\Cache\`
+### Testing
+- 80%+ code coverage with pytest
+- Static type checking (zero-tolerance policy)
+- Linting with Black and Flake8
+- Test organization mirrors module structure
+- Use dependency injection for testable components
 
-### Cache File Types
-- `*.html` - Raw HTML content from Home Manager documentation
-- `*.data.json` - Serialized structured data (options metadata, statistics)
-- `*.data.pickle` - Binary serialized complex data structures (search indices, default dictionaries, sets)
+### Installation & Usage
+- Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
+- Claude Code configuration: Add to `~/.config/claude/config.json`
+- Development: `nix develop`, `run`, `run-tests`, `lint`, `format`
 
-## Testing
-- Use pytest with code coverage reporting (target: 80%)
-- Run static type checking with `typecheck` command:
-  - Zero-tolerance policy for type errors
-  - Checks for null safety and proper type usage
-  - Run on CI for all pull requests
-- Run linting checks with `lint` command:
-  - Enforces code style with Black
-  - Checks for issues with Flake8
-  - No unused imports allowed
-  - No f-string placeholders without variables
-- Test organization follows the module structure:
-  - `tests/cache/` - Tests for caching components
-  - `tests/clients/` - Tests for API clients (with nested `darwin/` directory)
-  - `tests/contexts/` - Tests for application contexts (with nested `darwin/` directory)
-  - `tests/completions/` - Tests for MCP completions
-  - `tests/resources/` - Tests for MCP resources (with nested `darwin/` directory)
-  - `tests/tools/` - Tests for MCP tools (with nested `darwin/` directory)
-  - `tests/utils/` - Tests for utility functions
-  - `tests/integration/` - End-to-end integration tests
-- Use dependency injection for testable components:
-  - Pass mock contexts directly to resource/tool functions
-  - Avoid patching global state
-- Mock external dependencies (Elasticsearch, Home Manager docs) 
-- Test both success paths and error handling
-- Always check for None values before accessing attributes in tests
-- **IMPORTANT**: Mock test functions, not production code:
-  ```python
-  # GOOD: Clean production code with mocking in tests
-  def production_function():
-      result = make_api_request()
-      return process_result(result)
-  
-  # In tests:
-  @patch("module.make_api_request")
-  def test_production_function(mock_api):
-      mock_api.return_value = {"test": "data"}
-      result = production_function()
-      assert result == expected_result
-  ```
-
-## Installation and Usage
-
-### Installation Methods
-- pip: `pip install mcp-nixos`
-- uv: `uv pip install mcp-nixos`
-- uvx (for Claude Code): `uvx mcp-nixos`
-
-### MCP Configuration
-To configure Claude Code to use mcp-nixos, add to `~/.config/claude/config.json`:
-```json
-{
-  "mcpServers": {
-    "nixos": {
-      "command": "uvx",
-      "args": ["mcp-nixos"],
-      "env": {
-        "LOG_LEVEL": "INFO",
-        "LOG_FILE": "/path/to/mcp-nixos.log"
-      }
-    }
-  }
-}
-```
-
-### Development Commands
-- Development environment: `nix develop`
-- Run server: `run [--port=PORT]`
-- Run tests: `run-tests [--no-coverage]`
-- List commands: `menu`
-- Lint and format: `lint`, `format`
-- Setup uv: `setup-uv`
-- Count lines of code: `loc`
-- Build distributions: `build`
-- Publish to PyPI: `publish`
-
-## Code Style
-- Python 3.11+ with type hints
-- 4-space indentation, 120 characters max line length
-- PEP 8 naming: snake_case for functions/variables, CamelCase for classes
+### Code Style
+- Python 3.11+ with strict type hints
+- PEP 8 naming conventions
 - Google-style docstrings
-- Specific exception handling (avoid bare except)
-- Black for formatting, Flake8 for linting
-- Flake8 config: max-line-length=120, ignore=E402,E203
-- Strict null safety to prevent "None" type errors:
-  - Check for None before accessing attributes (`if obj is not None: obj.method()`)
-  - Guard regex match results with if statements before accessing group() methods
-  - Add type assertion for string operations (`if s is not None: "text" in s`)
-- Use pyright's strict type checking with zero-tolerance policy for type errors
+- Black formatting, 120 char line limit
+- Strict null safety practices
+- Zero-tolerance for type errors

@@ -120,23 +120,14 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
-      - name: Cache Python virtual environment
-        id: cache-venv
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('pyproject.toml', 'setup.py') }}
-          restore-keys: |
-            ${{ runner.os }}-venv-
       - name: Setup Python environment and run tests
         run: |
-          # First, explicitly set up venv and install dependencies
+          # Set up the environment using the setup command from flake.nix
+          # This will clean any existing .venv and create a fresh one
           nix develop --command setup
           
-          # Then, verify that dependencies were installed correctly
-          nix develop --command bash -c 'source .venv/bin/activate && pip list | grep requests'
-          
-          # Now run tests
+          # Run tests using the run-tests command from flake.nix
+          # This will use the proper test command with coverage reporting
           nix develop --command run-tests
 
       - name: Upload coverage reports to Codecov
