@@ -25,9 +25,10 @@
           set -e
           echo "--- Setting up Python virtual environment ---"
 
-          if [ ! -f "requirements.txt" ]; then
-            echo "Warning: requirements.txt not found. Creating an empty one."
-            touch requirements.txt
+          # Check for pyproject.toml or setup.py
+          if [ ! -f "pyproject.toml" ] && [ ! -f "setup.py" ]; then
+            echo "Error: Neither pyproject.toml nor setup.py found. Cannot install dependencies."
+            exit 1
           fi
 
           if [ ! -d ".venv" ]; then
@@ -46,13 +47,14 @@
             python -m pip install --upgrade pip setuptools wheel
           fi
 
-          echo "Installing dependencies from requirements.txt..."
+          echo "Installing dependencies from pyproject.toml..."
           if command -v uv >/dev/null 2>&1; then
             echo "(Using uv)"
-            uv pip install -r requirements.txt
+            # Install with all optional dependencies for development
+            uv pip install ".[dev]"
           else
             echo "(Using pip)"
-            python -m pip install -r requirements.txt
+            python -m pip install ".[dev]"
           fi
 
           if [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
@@ -137,11 +139,21 @@
                   echo "Activating venv..."
                   source .venv/bin/activate
                 fi
-                COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
+                # Check if --no-coverage flag is passed
                 if [ $# -gt 0 ] && [ "$1" = "--no-coverage" ]; then
                   COVERAGE_ARGS=""
                   echo "Running without coverage reporting..."
                   shift
+                else
+                  # Check if pytest-cov is already configured in pytest.ini or conftest.py
+                  # to avoid duplicate coverage arguments
+                  if grep -q "addopts.*--cov" pytest.ini 2>/dev/null || \
+                     grep -q "addopts.*--cov" conftest.py 2>/dev/null; then
+                    echo "Coverage configuration detected in pytest config files. Not adding coverage args."
+                    COVERAGE_ARGS=""
+                  else
+                    COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
+                  fi
                 fi
                 SOURCE_DIR="mcp_nixos"
                 echo "Running tests..."

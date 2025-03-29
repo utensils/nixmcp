@@ -30,7 +30,6 @@ This ensures the codebase remains cohesive and maintainable.
 
 MCP-NixOS is a Model Context Protocol (MCP) server for NixOS resources, Home Manager configuration options, and nix-darwin macOS configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, Home Manager user configuration options, and nix-darwin macOS system configuration options. Communication happens over standard input/output streams using a JSON-based message format.
 
-**NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
 
 ## Project Structure
 
@@ -289,7 +288,6 @@ Both tools above support the `channel` parameter with values:
   - `tests/cache/` - Tests for caching components
   - `tests/clients/` - Tests for API clients (with nested `darwin/` directory)
   - `tests/contexts/` - Tests for application contexts (with nested `darwin/` directory)
-  - `tests/completions/` - Tests for MCP completions
   - `tests/resources/` - Tests for MCP resources (with nested `darwin/` directory)
   - `tests/tools/` - Tests for MCP tools (with nested `darwin/` directory)
   - `tests/utils/` - Tests for utility functions

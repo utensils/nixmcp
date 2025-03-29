@@ -1,6 +1,5 @@
 include README.md
 include LICENSE
-include requirements.txt
 include pyproject.toml
 include pytest.ini
 recursive-include mcp_nixos *

@@ -125,7 +125,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('requirements.txt', 'pyproject.toml', 'setup.py') }}
+          key: ${{ runner.os }}-venv-${{ hashFiles('pyproject.toml', 'setup.py') }}
           restore-keys: |
             ${{ runner.os }}-venv-
       - name: Setup Python environment and run tests

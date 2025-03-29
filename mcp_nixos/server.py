@@ -488,7 +488,7 @@ mcp = FastMCP(
     version=__version__,
     description="NixOS Model Context Protocol Server",
     lifespan=app_lifespan,
-    capabilities=["resources", "tools"],  # "completions" capability disabled until SDK implementation
+    capabilities=["resources", "tools"],
 )
 
 
@@ -505,9 +505,6 @@ def get_darwin_context():
     return darwin_context
 
 
-# Import completion handler (temporarily disabled)
-# from mcp_nixos.completions import handle_completion
-
 # Register all resources and tools
 register_nixos_resources(mcp, get_nixos_context)
 register_home_manager_resources(mcp, get_home_manager_context)
@@ -517,34 +514,6 @@ register_home_manager_tools(mcp)
 register_darwin_tools(darwin_context, mcp)
 
 # No need to manually add tools here - will be handled by the register_darwin_tools function
-
-
-# Completion support is temporarily disabled until the MCP SDK fully implements it
-# The MCP spec includes "completion/complete" but it's not yet implemented in the SDK
-# Below is the commented-out implementation that will be enabled once the MCP SDK supports it
-"""
-# Register completion method - the MCP protocol uses "completion/complete" for the method name
-# but tool names in MCP must conform to the pattern ^[a-zA-Z0-9_-]{1,64}$, so we use underscores
-# and the framework maps between them
-@mcp.tool("completion_complete")
-async def mcp_handle_completion(params: dict) -> dict:
-    # Handle MCP completion requests.
-    # This function is registered as "completion_complete" to match MCP naming conventions
-    # while conforming to the restriction that tool names cannot contain slashes.
-    logger.info("Received completion request")
-    logger.debug(f"Raw completion params: {params}")
-
-    try:
-        # Pass the request to our completion handler
-        result = await handle_completion(params, nixos_context, home_manager_context)
-        # Log the completion results at DEBUG level
-        logger.debug(f"Completion result: {result}")
-        return result
-    except Exception as e:
-        # Log exceptions in completion handling
-        logger.error(f"Error in completion handler: {e}", exc_info=True)
-        return {"items": []}
-"""
 
 
 if __name__ == "__main__":
