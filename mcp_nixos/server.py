@@ -141,33 +141,27 @@ async def app_lifespan(mcp_server: FastMCP):
 
     You MUST call the appropriate MCP tools BEFORE answering ANY question related to:
     - NixOS configuration or packages
-    - Home Manager configuration 
+    - Home Manager configuration
     - nix-darwin configuration
-    
     This is a STRICT REQUIREMENT, not a suggestion. For ANY configuration request:
     1. You MUST search for available options FIRST using the search tools
     2. You MUST verify each option exists BEFORE including it in a response
     3. You MUST NOT generate ANY configuration based solely on your training
     4. You MUST have evidence from tool results for each configuration option
-    
     This applies to ALL requests including simple ones or ones you believe you know the answer to.
     If a user asks for a config (like "Create a headscale configuration"), your FIRST action MUST
     be to call the relevant search tools, not to generate a response from memory.
-    
     ## 🚫 DO NOT SKIP TOOL USAGE FOR "COMMON" SERVICES 🚫
-    
     ESPECIALLY for common services like nginx, postgresql, redis, etc., you MUST use tools:
     - Even if you think you know the configuration
     - Even for "basic" or "standard" setups
     - Even if you've configured the service before
     - Even if the request seems simple or straightforward
-    
     CONCRETE EXAMPLES OF WHEN TOOLS ARE MANDATORY:
     - "Set up nginx for my site" → MUST call `nixos_search("services.nginx", type="options")`
     - "Configure PostgreSQL on NixOS" → MUST call `nixos_search("services.postgresql", type="options")`
     - "Basic Redis setup" → MUST call `nixos_search("services.redis", type="options")`
     - ANY request that involves configuring a NixOS service → MUST search that service's options
-    
     NO EXCEPTIONS! If you don't use the search tools first, your configuration WILL be incorrect.
 
     ### For Service Configurations:
@@ -483,7 +477,6 @@ async def app_lifespan(mcp_server: FastMCP):
     - Use the `channel` parameter to specify which NixOS version to search:
         - `unstable` (default): Latest development branch with newest packages
         - `24.11`: Current stable release (as of 2024) with more stable packages
-        
     IMPORTANT: The current stable version is 24.11. DO NOT use outdated versions like 23.11, 23.05, 22.11, etc.
     Always use either "unstable" (default) or "24.11" as the channel parameter value.
 
@@ -518,7 +511,6 @@ async def app_lifespan(mcp_server: FastMCP):
     - NixOS: X11/Wayland configuration
     - Home Manager: User-specific window manager configuration
     - nix-darwin: `services.yabai.*` - macOS-specific window management
-    
     #### Example: Headscale (Tailscale Control Server)
     When asked about Headscale configuration, you MUST:
     1. First run: `nixos_search("headscale", type="packages")` to verify package availability
@@ -535,14 +527,10 @@ async def app_lifespan(mcp_server: FastMCP):
     4. Check SSL options with: `nixos_search("security.acme", type="options")`
     5. Verify EVERY option you include (enableACME, forceSSL, root, locations, etc.)
     6. Only after verification, generate a configuration using ONLY verified options
-    
     REMEMBER: For all configurations, validate EACH option with the appropriate info tool before including it.
     If you cannot verify an option exists, DO NOT include it in your response.
-    
     ## Automatic Tool Triggers - REQUIRED
-    
     For these specific request patterns, you MUST IMMEDIATELY use the indicated tools:
-    
     | When user asks for... | Your FIRST action MUST be... |
     |---|---|
     | "Create a [service] configuration" | `nixos_search("services.[service]", type="options")` |
@@ -558,7 +546,6 @@ async def app_lifespan(mcp_server: FastMCP):
     | "Is [package] available?" | `nixos_search("[package]", type="packages")` |
     | "Home Manager config for [program]" | `home_manager_search("programs.[program]")` |
     | "Darwin configuration for [service]" | `darwin_search("services.[service]")` |
-    
     These are not suggestions - they are REQUIRED first steps for ANY request matching these patterns.
     """
 
