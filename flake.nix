@@ -138,21 +138,14 @@
                   source .venv/bin/activate
                 fi
                 COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
-                PYTEST_ARGS=""
-                for arg in "$@"; do
-                  case $arg in
-                    --no-coverage)
-                      COVERAGE_ARGS=""
-                      echo "Running without coverage reporting..."
-                      shift ;;
-                    *)
-                      PYTEST_ARGS="$PYTEST_ARGS $arg"
-                      shift ;;
-                  esac
-                done
+                if [ $# -gt 0 ] && [ "$1" = "--no-coverage" ]; then
+                  COVERAGE_ARGS=""
+                  echo "Running without coverage reporting..."
+                  shift
+                fi
                 SOURCE_DIR="mcp_nixos"
                 echo "Running tests..."
-                pytest tests/ -v $COVERAGE_ARGS $PYTEST_ARGS
+                pytest tests/ -v $COVERAGE_ARGS "$@"
                 if [ -n "$COVERAGE_ARGS" ] && echo "$COVERAGE_ARGS" | grep -q 'html'; then
                   echo "✅ Coverage report generated. HTML report available in htmlcov/"
                 elif [ -n "$COVERAGE_ARGS" ]; then
