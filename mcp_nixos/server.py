@@ -137,6 +137,57 @@ async def app_lifespan(mcp_server: FastMCP):
     2. Home Manager options for user configuration
     3. nix-darwin options for macOS configuration
 
+    ## 🛑 MANDATORY TOOL USAGE - CRITICAL INSTRUCTION 🛑
+
+    You MUST call the appropriate MCP tools BEFORE answering ANY question related to:
+    - NixOS configuration or packages
+    - Home Manager configuration 
+    - nix-darwin configuration
+    
+    This is a STRICT REQUIREMENT, not a suggestion. For ANY configuration request:
+    1. You MUST search for available options FIRST using the search tools
+    2. You MUST verify each option exists BEFORE including it in a response
+    3. You MUST NOT generate ANY configuration based solely on your training
+    4. You MUST have evidence from tool results for each configuration option
+    
+    This applies to ALL requests including simple ones or ones you believe you know the answer to.
+    If a user asks for a config (like "Create a headscale configuration"), your FIRST action MUST
+    be to call the relevant search tools, not to generate a response from memory.
+    
+    ## 🚫 DO NOT SKIP TOOL USAGE FOR "COMMON" SERVICES 🚫
+    
+    ESPECIALLY for common services like nginx, postgresql, redis, etc., you MUST use tools:
+    - Even if you think you know the configuration
+    - Even for "basic" or "standard" setups
+    - Even if you've configured the service before
+    - Even if the request seems simple or straightforward
+    
+    CONCRETE EXAMPLES OF WHEN TOOLS ARE MANDATORY:
+    - "Set up nginx for my site" → MUST call `nixos_search("services.nginx", type="options")`
+    - "Configure PostgreSQL on NixOS" → MUST call `nixos_search("services.postgresql", type="options")`
+    - "Basic Redis setup" → MUST call `nixos_search("services.redis", type="options")`
+    - ANY request that involves configuring a NixOS service → MUST search that service's options
+    
+    NO EXCEPTIONS! If you don't use the search tools first, your configuration WILL be incorrect.
+
+    ### For Service Configurations:
+    1. First search for available options with search tools
+       - Example: `nixos_search("services.headscale", type="options")`
+    2. For each key option, verify details with info tools
+       - Example: `nixos_info("services.headscale.settings.server_url", type="option")`
+    3. Only after verification, generate example configurations
+    4. NEVER assume option existence - validate each option path
+
+    ### For Package Questions:
+    1. Always verify availability with package search
+       - Example: `nixos_search("headscale", type="packages")`
+    2. Check version and description with package info
+       - Example: `nixos_info("headscale", type="package")`
+    3. Use channel parameter to specify version context
+       - Only valid values: `channel="unstable"` (default) or `channel="24.11"` (current stable)
+       - Example: `nixos_search("headscale", channel="unstable")`
+       - NEVER use other version numbers like 23.11, 23.05, etc.
+
     ## Choosing the Right Tools
 
     ### When to use NixOS, Home Manager, or nix-darwin tools
@@ -238,7 +289,7 @@ async def app_lifespan(mcp_server: FastMCP):
         query: str,              # Required: Search term like "firefox" or "services.postgresql"
         type: str = "packages",  # Optional: "packages", "options", or "programs"
         limit: int = 20,         # Optional: Max number of results
-        channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
+        channel: str = "unstable" # Optional: NixOS channel - ONLY "unstable" (default) or "24.11" (current stable)
     ) -> str
     ```
 
@@ -254,7 +305,7 @@ async def app_lifespan(mcp_server: FastMCP):
     nixos_info(
         name: str,               # Required: Name of package or option
         type: str = "package",   # Optional: "package" or "option"
-        channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
+        channel: str = "unstable" # Optional: NixOS channel - ONLY "unstable" (default) or "24.11" (current stable)
     ) -> str
     ```
 
@@ -267,13 +318,13 @@ async def app_lifespan(mcp_server: FastMCP):
 
     ```python
     nixos_stats(
-        channel: str = "unstable" # Optional: NixOS channel - "unstable" or "24.11"
+        channel: str = "unstable" # Optional: NixOS channel - ONLY "unstable" (default) or "24.11" (current stable)
     ) -> str
     ```
 
     Examples:
     - `nixos_stats()` - Get statistics about NixOS packages and options in the unstable channel
-    - `nixos_stats(channel="stable")` - Get statistics for the stable channel
+    - `nixos_stats(channel="24.11")` - Get statistics for the current stable channel
 
     ### Home Manager Tools
 
@@ -378,6 +429,12 @@ async def app_lifespan(mcp_server: FastMCP):
     For configuring a system service like PostgreSQL in NixOS:
     1. `nixos_search(query="services.postgresql", type="options")` - Find available system service options
     2. `nixos_info(name="services.postgresql.enable", type="option")` - Get details about enabling the service
+    3. CRITICAL: For each option you plan to include in a configuration:
+       - Verify the option exists with search tools
+       - Check the option type and description with info tools
+       - Only use options that actually exist in the documentation
+       - Use exact option names as shown in the documentation
+       - Provide appropriate default values based on documented examples
 
     #### Configuring a user application
     For configuring a user application like Git in Home Manager:
@@ -425,33 +482,84 @@ async def app_lifespan(mcp_server: FastMCP):
 
     - Use the `channel` parameter to specify which NixOS version to search:
         - `unstable` (default): Latest development branch with newest packages
-        - `24.11`: Latest stable release with more stable packages
+        - `24.11`: Current stable release (as of 2024) with more stable packages
+        
+    IMPORTANT: The current stable version is 24.11. DO NOT use outdated versions like 23.11, 23.05, 22.11, etc.
+    Always use either "unstable" (default) or "24.11" as the channel parameter value.
 
     ### Comparing NixOS vs Home Manager vs nix-darwin Configuration
+
+    IMPORTANT: Always verify option existence with appropriate search tools before using these paths!
 
     - **NixOS** (`/etc/nixos/configuration.nix`): Configures Linux system-wide settings, services, and packages
     - **Home Manager** (`~/.config/nixpkgs/home.nix`): Configures user-specific settings, applications, and dotfiles
     - **nix-darwin** (`~/.nixpkgs/darwin-configuration.nix`): Configures macOS system-wide settings and services
 
     #### Example: PostgreSQL
+    Always verify with: `nixos_search("services.postgresql", type="options")` and `darwin_search("services.postgresql")`
     - NixOS: `services.postgresql.*` - System-wide database service on Linux
     - Home Manager: Client configuration and tools related to PostgreSQL
     - nix-darwin: `services.postgresql.*` - System-wide database service on macOS
 
     #### Example: Git
+    Always verify with: `nixos_search("git", type="packages")` and `home_manager_search("programs.git")`
     - NixOS: System-wide Git package installation
     - Home Manager: `programs.git.*` - User config including gitconfig, identity, ignores
     - nix-darwin: System-wide Git package installation on macOS
 
     #### Example: Firefox
+    Always verify with: `nixos_search("firefox", type="packages")` and `home_manager_search("programs.firefox")`
     - NixOS: System-wide Firefox installation
     - Home Manager: `programs.firefox.*` - User profiles, extensions, settings
     - nix-darwin: System-wide Firefox installation on macOS
 
     #### Example: Window Management
+    Always verify with appropriate tools: `darwin_search("services.yabai")` for macOS
     - NixOS: X11/Wayland configuration
     - Home Manager: User-specific window manager configuration
     - nix-darwin: `services.yabai.*` - macOS-specific window management
+    
+    #### Example: Headscale (Tailscale Control Server)
+    When asked about Headscale configuration, you MUST:
+    1. First run: `nixos_search("headscale", type="packages")` to verify package availability
+    2. Then run: `nixos_search("services.headscale", type="options")` to find ALL available options
+    3. For key options, run: `nixos_info("services.headscale.enable", type="option")`
+    4. Verify EVERY option you plan to include in configuration
+    5. Only after verification, generate a configuration using ONLY verified options
+
+    #### Example: Nginx Web Server
+    When asked about Nginx configuration, you MUST:
+    1. First run: `nixos_search("services.nginx", type="options")` to find ALL available options
+    2. For SSL/TLS, run: `nixos_search("services.nginx.virtualHosts", type="options")`
+    3. For specific settings, run: `nixos_info("services.nginx.virtualHosts", type="option")`
+    4. Check SSL options with: `nixos_search("security.acme", type="options")`
+    5. Verify EVERY option you include (enableACME, forceSSL, root, locations, etc.)
+    6. Only after verification, generate a configuration using ONLY verified options
+    
+    REMEMBER: For all configurations, validate EACH option with the appropriate info tool before including it.
+    If you cannot verify an option exists, DO NOT include it in your response.
+    
+    ## Automatic Tool Triggers - REQUIRED
+    
+    For these specific request patterns, you MUST IMMEDIATELY use the indicated tools:
+    
+    | When user asks for... | Your FIRST action MUST be... |
+    |---|---|
+    | "Create a [service] configuration" | `nixos_search("services.[service]", type="options")` |
+    | "Create a [service] server" | `nixos_search("services.[service]", type="options")` |
+    | "Configure [service] in NixOS" | `nixos_search("services.[service]", type="options")` |
+    | "NixOS configuration for [service]" | `nixos_search("services.[service]", type="options")` |
+    | "Set up [service] in NixOS" | `nixos_search("services.[service]", type="options")` |
+    | "How to configure [service]" | `nixos_search("services.[service]", type="options")` |
+    | "How to set up [service]" | `nixos_search("services.[service]", type="options")` |
+    | "NixOS module for [service]" | `nixos_search("services.[service]", type="options")` |
+    | "Basic [service] setup" | `nixos_search("services.[service]", type="options")` |
+    | "Create a [service] for [domain/purpose]" | `nixos_search("services.[service]", type="options")` |
+    | "Is [package] available?" | `nixos_search("[package]", type="packages")` |
+    | "Home Manager config for [program]" | `home_manager_search("programs.[program]")` |
+    | "Darwin configuration for [service]" | `darwin_search("services.[service]")` |
+    
+    These are not suggestions - they are REQUIRED first steps for ANY request matching these patterns.
     """
 
     try:
