@@ -88,11 +88,23 @@ class TestCacheHelpers:
 
     def test_ensure_cache_dir_default(self):
         """Test ensuring cache directory using default location."""
-        with mock.patch("mcp_nixos.utils.cache_helpers.get_default_cache_dir") as mock_default:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                mock_default.return_value = temp_dir
-                result = ensure_cache_dir()
-                assert result == temp_dir
+        # Save original env var value
+        original_cache_dir = os.environ.get("MCP_NIXOS_CACHE_DIR")
+        
+        try:
+            # Temporarily clear the env var to test default path behavior
+            if "MCP_NIXOS_CACHE_DIR" in os.environ:
+                del os.environ["MCP_NIXOS_CACHE_DIR"]
+                
+            with mock.patch("mcp_nixos.utils.cache_helpers.get_default_cache_dir") as mock_default:
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    mock_default.return_value = temp_dir
+                    result = ensure_cache_dir()
+                    assert result == temp_dir
+        finally:
+            # Restore original env var if it existed
+            if original_cache_dir is not None:
+                os.environ["MCP_NIXOS_CACHE_DIR"] = original_cache_dir
 
     def test_ensure_cache_dir_error(self):
         """Test error handling when directory creation fails."""

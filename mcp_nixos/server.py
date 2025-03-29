@@ -95,6 +95,17 @@ from mcp_nixos import __version__
 logger = setup_logging()
 logger.info(f"Starting MCP-NixOS v{__version__}")
 
+# Ensure cache directory is properly initialized before any clients
+from mcp_nixos.utils.cache_helpers import init_cache_storage
+
+# Initialize the cache directory explicitly before creating clients
+cache_config = init_cache_storage()
+logger.info(
+    f"Cache initialized with directory: {cache_config['cache_dir']} (initialized: {cache_config['initialized']})"
+)
+if not cache_config["initialized"]:
+    logger.warning(f"Using fallback cache directory due to error: {cache_config.get('error', 'Unknown error')}")
+
 # Initialize the model contexts
 nixos_context = NixOSContext()
 home_manager_context = HomeManagerContext()

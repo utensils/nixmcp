@@ -1,7 +1,11 @@
 import unittest
 import logging
+import pytest
 
 from typing import Dict, Any, Optional
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 
 # Import the context and client
 from mcp_nixos.contexts.home_manager_context import HomeManagerContext

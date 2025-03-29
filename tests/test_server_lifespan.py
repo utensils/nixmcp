@@ -157,6 +157,43 @@ class TestServerLifespan:
         assert "unstable" in prompt_text
         assert "24.11" in prompt_text
 
+    @pytest.mark.asyncio
+    @patch("mcp_nixos.utils.cache_helpers.init_cache_storage")
+    async def test_cache_initialization_on_startup(self, mock_init_cache, tmp_path):
+        """Test that the cache directory is properly initialized on server startup."""
+        # Configure the mock to return a temp path config
+        mock_init_cache.return_value = {"cache_dir": str(tmp_path), "ttl": 86400, "initialized": True}
+
+        # Import here to avoid circular imports during test collection
+        # Need to reload the server module to apply our mocks to module-level code
+        import sys
+
+        # Remove the module if it's already loaded
+        if "mcp_nixos.server" in sys.modules:
+            del sys.modules["mcp_nixos.server"]
+
+        # Now import the module, which will use our mocked init_cache_storage
+        from mcp_nixos.server import app_lifespan, darwin_context, home_manager_context
+
+        # Setup mock server
+        mock_server = MagicMock()
+
+        # Execute the lifespan context manager
+        async with app_lifespan(mock_server) as context:
+            # Verify the context is properly set up
+            assert "nixos_context" in context
+            assert "home_manager_context" in context
+            assert "darwin_context" in context
+
+            # Verify the cache initialization was called during module loading
+            mock_init_cache.assert_called_once()
+
+            # Verify the darwin client exists
+            assert darwin_context is not None
+
+            # Ensure home manager client exists
+            assert home_manager_context is not None
+
 
 class TestErrorHandling(MCPNixOSTestBase):
     """Test error handling in the server."""

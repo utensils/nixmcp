@@ -18,6 +18,9 @@ from mcp_nixos.tools.darwin.darwin_tools import (
 
 # Darwin resources are only used through the context in tests
 
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def mock_darwin_client():

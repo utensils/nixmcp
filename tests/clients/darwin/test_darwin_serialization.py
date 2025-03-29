@@ -29,6 +29,7 @@ def temp_cache_dir():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_darwin_cache_serialization_integration(temp_cache_dir):
     """Test Darwin client's cache serialization with real filesystem integration."""
     # Create a Darwin client with a real filesystem cache

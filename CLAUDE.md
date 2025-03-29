@@ -84,6 +84,14 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
 - Linting with Black and Flake8
 - Test organization mirrors module structure
 - Use dependency injection for testable components
+- Tests categorized with markers:
+  - Integration tests: `@pytest.mark.integration`
+  - Slow tests: `@pytest.mark.slow`
+  - Async tests: `@pytest.mark.asyncio`
+- Run specific test categories:
+  - Unit tests only: `nix run .#run-tests -- --unit`
+  - Integration tests only: `nix run .#run-tests -- --integration`
+  - All tests: `nix run .#run-tests`
 
 ### Dependency Management
 - Project uses `pyproject.toml` for dependency specification (PEP 621)
@@ -98,7 +106,13 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
 ### Installation & Usage
 - Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
 - Claude Code configuration: Add to `~/.config/claude/config.json`
-- Development: `nix develop`, `run`, `run-tests`, `lint`, `format`
+- Development:
+  - Environment: `nix develop`
+  - Run server: `run`
+  - Tests: `run-tests`, `run-tests --unit`, `run-tests --integration`
+  - Code quality: `lint`, `typecheck`, `format`
+  - Stats: `loc`
+  - Package: `build`, `publish`
 
 ### Code Style
 - Python 3.11+ with strict type hints

@@ -16,6 +16,7 @@ from mcp_nixos.clients.html_client import HTMLClient
 from mcp_nixos.utils.cache_helpers import ensure_cache_dir, get_default_cache_dir
 
 
+@pytest.mark.integration
 class TestCrossplatformIntegration:
     """Integration tests for cross-platform HTML caching."""
 

@@ -7,6 +7,7 @@ import json
 # Disable logging during tests
 import logging
 import unittest
+import pytest
 from unittest.mock import MagicMock, patch
 
 from mcp_nixos.clients.elasticsearch_client import FIELD_OPT_NAME, FIELD_TYPE  # Import constants used in tests
@@ -361,6 +362,7 @@ class TestServiceOptionTools(unittest.TestCase):
         self.assertIn("# Enable postgresql service", result)
 
 
+@pytest.mark.integration
 class TestIntegrationScenarios(unittest.TestCase):
     """Test full integration scenarios with several edge cases."""
 

@@ -137,14 +137,14 @@
             {
               name = "run-tests";
               category = "testing";
-              help = "Run tests with pytest [--no-coverage]";
+              help = "Run tests with pytest [--unit|--integration]";
               command = ''
                 if [ -z "$VIRTUAL_ENV" ]; then
                   echo "Activating venv..."
                   source .venv/bin/activate
                 fi
                 
-                # Verify key dependencies are installed before running tests
+                # Verify key dependencies
                 echo "Verifying dependencies before running tests..."
                 if ! python -c "import requests" &>/dev/null; then
                   echo "ERROR: 'requests' package not found. Installing explicitly..."
@@ -155,42 +155,42 @@
                   fi
                 fi
                 
-                echo "Installed Python packages:"
-                pip list | grep -E 'requests|mcp|beautifulsoup4|python-dotenv'
+                # Set up parameters based on arguments
+                TEST_ARGS=""
                 
-                # Check if running in CI environment
-                # Use command substitution to avoid unbound variable errors
-                if [ "$(printenv CI 2>/dev/null)" != "" ] || [ "$(printenv GITHUB_ACTIONS 2>/dev/null)" != "" ]; then
-                  # In CI, use consistent coverage args
-                  COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
-                  echo "Running in CI environment with coverage reporting..."
+                # Handle the unit/integration flags
+                if [[ $# -gt 0 && "$1" == "--unit" ]]; then
+                  echo "Running unit tests only..."
+                  TEST_ARGS="-k \"not integration\""
+                  shift
+                elif [[ $# -gt 0 && "$1" == "--integration" ]]; then
+                  echo "Running integration tests only..."
+                  TEST_ARGS="-m integration"
+                  shift
                 else
-                  # Check if --no-coverage flag is passed
-                  if [ $# -gt 0 ] && [ "$1" = "--no-coverage" ]; then
-                    COVERAGE_ARGS=""
-                    echo "Running without coverage reporting..."
-                    shift
-                  else
-                    # For local development, add coverage args if not already in config
-                    if grep -q "addopts.*--cov" pytest.ini 2>/dev/null || \
-                       grep -q "addopts.*--cov" conftest.py 2>/dev/null || \
-                       [ -f ".coveragerc" ]; then
-                      echo "Coverage configuration detected. Not adding coverage args."
-                      COVERAGE_ARGS=""
-                    else
-                      COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
-                    fi
-                  fi
+                  echo "Running all tests..."
                 fi
                 
-                SOURCE_DIR="mcp_nixos"
-                echo "Running tests..."
-                pytest tests/ -v $COVERAGE_ARGS "$@"
+                # Check if running in CI environment
+                COVERAGE_ARGS=""
+                if [ "$(printenv CI 2>/dev/null)" != "" ] || [ "$(printenv GITHUB_ACTIONS 2>/dev/null)" != "" ]; then
+                  # In CI, use coverage
+                  COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
+                  echo "Using coverage (CI environment)"
+                fi
                 
-                if [ -n "$COVERAGE_ARGS" ] && echo "$COVERAGE_ARGS" | grep -q 'html'; then
+                # Simple and direct test execution
+                if [ -n "$TEST_ARGS" ]; then
+                  echo "Running: pytest tests/ -v $TEST_ARGS $COVERAGE_ARGS $@"
+                  eval "pytest tests/ -v $TEST_ARGS $COVERAGE_ARGS $@"
+                else
+                  echo "Running: pytest tests/ -v $COVERAGE_ARGS $@"
+                  pytest tests/ -v $COVERAGE_ARGS "$@"
+                fi
+                
+                # Show coverage report message if applicable
+                if [ -n "$COVERAGE_ARGS" ]; then
                   echo "✅ Coverage report generated. HTML report available in htmlcov/"
-                elif [ -n "$COVERAGE_ARGS" ]; then
-                   echo "✅ Coverage report generated."
                 fi
               '';
             }

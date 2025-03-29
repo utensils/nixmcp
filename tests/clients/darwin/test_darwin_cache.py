@@ -374,12 +374,12 @@ async def test_expired_cache_ttl_reload(real_cache_dir):
     """
     Test that content is properly reloaded and cache files recreated when TTL expires.
 
-    This test uses a real cache and real filesystem to verify TTL expiration behavior.
+    This test patches the time functions to avoid actual waiting.
     """
-    # Create a cache with a very short TTL (1 second)
-    short_ttl = 1
+    # Create a cache with a very short TTL, but we'll mock the time check
+    short_ttl = 60  # 60 seconds, won't actually wait
 
-    # Create a real HTMLCache with short TTL
+    # Create a real HTMLCache with TTL
     html_cache = HTMLCache(cache_dir=real_cache_dir, ttl=short_ttl)
 
     # Create a real HTMLClient with our cache
@@ -405,59 +405,67 @@ async def test_expired_cache_ttl_reload(real_cache_dir):
         </html>
     """
 
-    # Mock the requests.get function
-    with patch("requests.get") as mock_get:
-        # Setup mock for first request
-        mock_response1 = MagicMock()
-        mock_response1.text = test_content
-        mock_response1.status_code = 200
-        mock_response1.raise_for_status = MagicMock()
+    # Track the current "mocked" time
+    current_time = time.time()
 
-        # Setup mock for second request with slightly different content
-        mock_response2 = MagicMock()
-        mock_response2.text = test_content.replace("false", "true")  # Change default value
-        mock_response2.status_code = 200
-        mock_response2.raise_for_status = MagicMock()
+    # Patch time.time() to return controlled timestamps
+    with patch("time.time") as mock_time:
+        # Start at current time
+        mock_time.return_value = current_time
+        
+        # Mock the requests.get function
+        with patch("requests.get") as mock_get:
+            # Setup mock for first request
+            mock_response1 = MagicMock()
+            mock_response1.text = test_content
+            mock_response1.status_code = 200
+            mock_response1.raise_for_status = MagicMock()
 
-        # Set up the mock to return different responses on successive calls
-        mock_get.side_effect = [mock_response1, mock_response2]
+            # Setup mock for second request with slightly different content
+            mock_response2 = MagicMock()
+            mock_response2.text = test_content.replace("false", "true")  # Change default value
+            mock_response2.status_code = 200
+            mock_response2.raise_for_status = MagicMock()
 
-        # First request - should fetch from web and cache
-        content1, metadata1 = html_client.fetch(test_url)
+            # Set up the mock to return different responses on successive calls
+            mock_get.side_effect = [mock_response1, mock_response2]
 
-        # Verify content was fetched from web
-        assert metadata1["from_cache"] is False
-        assert content1 is not None
-        assert "false" in content1
+            # First request - should fetch from web and cache
+            content1, metadata1 = html_client.fetch(test_url)
 
-        # Verify cache file was created
-        cache_path = html_cache._get_cache_path(test_url)
-        assert cache_path.exists()
+            # Verify content was fetched from web
+            assert metadata1["from_cache"] is False
+            assert content1 is not None
+            assert "false" in content1
 
-        # Second request immediately after - should use cache
-        content2, metadata2 = html_client.fetch(test_url)
-        assert metadata2["from_cache"] is True
-        assert content2 == content1
+            # Verify cache file was created
+            cache_path = html_cache._get_cache_path(test_url)
+            assert cache_path.exists()
 
-        # Wait for cache to expire
-        time.sleep(short_ttl + 0.5)
+            # Second request immediately after - should use cache
+            content2, metadata2 = html_client.fetch(test_url)
+            assert metadata2["from_cache"] is True
+            assert content2 == content1
 
-        # Third request after expiration - should fetch new content
-        content3, metadata3 = html_client.fetch(test_url)
+            # Simulate passage of time to expire the cache (more than TTL)
+            mock_time.return_value = current_time + short_ttl + 10
 
-        # Verify content was fetched from web again
-        assert metadata3["from_cache"] is False
-        assert content3 is not None
-        assert "true" in content3  # Content has changed
-        assert content3 != content1
+            # Third request after "expiration" - should fetch new content
+            content3, metadata3 = html_client.fetch(test_url)
 
-        # Verify cache file was updated
-        cached_content = cache_path.read_text()
-        assert "true" in cached_content
-        assert cached_content == content3
+            # Verify content was fetched from web again
+            assert metadata3["from_cache"] is False
+            assert content3 is not None
+            assert "true" in content3  # Content has changed
+            assert content3 != content1
 
-        # Verify mock_get was called twice (ignoring cache for expired TTL)
-        assert mock_get.call_count == 2
+            # Verify cache file was updated
+            cached_content = cache_path.read_text()
+            assert "true" in cached_content
+            assert cached_content == content3
+
+            # Verify mock_get was called twice (ignoring cache for expired TTL)
+            assert mock_get.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -564,117 +572,122 @@ async def test_reject_invalid_cached_data(real_cache_dir):
 async def test_darwin_client_expired_cache(real_cache_dir):
     """
     Test that DarwinClient properly reloads HTML and recreates cache files when TTL expires.
+    Uses time mocking instead of real delays.
     """
-    # Create a cache with a very short TTL (1 second)
-    short_ttl = 1
+    # Create a cache with a TTL - we'll mock the time check
+    ttl = 60  # 60 seconds, won't actually wait
 
-    # Use a real HTMLClient with short TTL for testing
-    html_client = HTMLClient(cache_dir=real_cache_dir, ttl=short_ttl)
+    # Track the current "mocked" time
+    current_time = time.time()
+    
+    # Patch time.time() to return controlled timestamps
+    with patch("time.time") as mock_time:
+        # Start at current time
+        mock_time.return_value = current_time
+        
+        # Use a real HTMLClient with TTL for testing
+        html_client = HTMLClient(cache_dir=real_cache_dir, ttl=ttl)
 
-    # Create the DarwinClient with our real cache
-    darwin_client = DarwinClient(html_client=html_client, cache_ttl=short_ttl)
+        # Create the DarwinClient with our real cache
+        darwin_client = DarwinClient(html_client=html_client, cache_ttl=ttl)
 
-    # Create HTML content with 15 options to pass the validation
-    html_content = """
-    <html>
-    <body>
-        <dl>
-    """
-
-    # Add a main test option
-    html_content += """
-            <dt>
-                <a id="opt-system.defaults.dock.autohide"></a>
-                <code>system.defaults.dock.autohide</code>
-            </dt>
-            <dd>
-                Whether to automatically hide and show the dock. The default is false.
-                *Type:* boolean
-                *Default:* false
-            </dd>
-    """
-
-    # Add 15 more options to pass validation
-    for i in range(1, 16):
-        html_content += f"""
-            <dt>
-                <a id="opt-system.defaults.option{i}"></a>
-                <code>system.defaults.option{i}</code>
-            </dt>
-            <dd>
-                Test option {i} description.
-                *Type:* boolean
-                *Default:* false
-            </dd>
+        # Create HTML content with 15 options to pass the validation
+        html_content = """
+        <html>
+        <body>
+            <dl>
         """
 
-    html_content += """
-        </dl>
-    </body>
-    </html>
-    """
+        # Add a main test option
+        html_content += """
+                <dt>
+                    <a id="opt-system.defaults.dock.autohide"></a>
+                    <code>system.defaults.dock.autohide</code>
+                </dt>
+                <dd>
+                    Whether to automatically hide and show the dock. The default is false.
+                    *Type:* boolean
+                    *Default:* false
+                </dd>
+        """
 
-    # Mock the fetch_url method to return our HTML content
-    with patch.object(darwin_client, "fetch_url") as mock_fetch:
-        # First fetch - original content
-        mock_fetch.return_value = html_content
+        # Add 15 more options to pass validation
+        for i in range(1, 16):
+            html_content += f"""
+                <dt>
+                    <a id="opt-system.defaults.option{i}"></a>
+                    <code>system.defaults.option{i}</code>
+                </dt>
+                <dd>
+                    Test option {i} description.
+                    *Type:* boolean
+                    *Default:* false
+                </dd>
+            """
 
-        # Load options for the first time
-        options1 = await darwin_client.load_options()
+        html_content += """
+            </dl>
+        </body>
+        </html>
+        """
 
-        # Verify correct option was loaded
-        assert "system.defaults.dock.autohide" in options1
-        assert options1["system.defaults.dock.autohide"].default == "false"
+        # Mock the fetch_url method to return our HTML content
+        with patch.object(darwin_client, "fetch_url") as mock_fetch:
+            # First fetch - original content
+            mock_fetch.return_value = html_content
 
-        # Check if JSON and pickle files were created
-        cache_key = darwin_client.cache_key
-        assert html_client.cache is not None, "HTMLClient cache should not be None"
-        json_path = html_client.cache._get_data_cache_path(cache_key)
-        pickle_path = html_client.cache._get_binary_data_cache_path(cache_key)
+            # Load options for the first time
+            options1 = await darwin_client.load_options()
 
-        assert json_path.exists(), "JSON cache file was not created"
-        assert pickle_path.exists(), "Pickle cache file was not created"
+            # Verify correct option was loaded
+            assert "system.defaults.dock.autohide" in options1
+            assert options1["system.defaults.dock.autohide"].default == "false"
 
-        # Record file modification times
-        json_mtime1 = json_path.stat().st_mtime
-        pickle_mtime1 = pickle_path.stat().st_mtime
+            # Check if JSON and pickle files were created
+            cache_key = darwin_client.cache_key
+            assert html_client.cache is not None, "HTMLClient cache should not be None"
+            json_path = html_client.cache._get_data_cache_path(cache_key)
+            pickle_path = html_client.cache._get_binary_data_cache_path(cache_key)
 
-        # Wait for the cache to expire
-        time.sleep(short_ttl + 0.5)
+            assert json_path.exists(), "JSON cache file was not created"
+            assert pickle_path.exists(), "Pickle cache file was not created"
 
-        # Create updated HTML content with the same structure but updated default value
-        updated_html_content = html_content.replace(
-            "*Default:* false",
-            "*Default:* true",
-        )
+            # Record file modification times
+            json_mtime1 = json_path.stat().st_mtime
+            pickle_mtime1 = pickle_path.stat().st_mtime
 
-        # For the updated test approach, we'll add all option HTML elements to the updated content
-        # to ensure we have enough options for validation and correct structure
+            # Simulate passage of time to expire the cache (more than TTL)
+            mock_time.return_value = current_time + ttl + 10
 
-        # Update the mock to return the new content
-        mock_fetch.return_value = updated_html_content
+            # Create updated HTML content with the same structure but updated default value
+            updated_html_content = html_content.replace(
+                "*Default:* false",
+                "*Default:* true",
+            )
 
-        # We need to explicitly invalidate the cache to ensure the HTML gets reloaded
-        darwin_client.invalidate_cache()
-        # Ensure cache is not None before accessing invalidate
-        assert html_client.cache is not None, "HTMLClient cache should not be None"
-        html_client.cache.invalidate(darwin_client.OPTION_REFERENCE_URL)
+            # Update the mock to return the new content
+            mock_fetch.return_value = updated_html_content
 
-        # Use the same client to avoid caching issues
-        # Load options again with force_refresh=True to ensure it doesn't use the cache
-        options2 = await darwin_client.load_options(force_refresh=True)
+            # We need to explicitly invalidate the cache to ensure the HTML gets reloaded
+            darwin_client.invalidate_cache()
+            # Ensure cache is not None before accessing invalidate
+            assert html_client.cache is not None, "HTMLClient cache should not be None"
+            html_client.cache.invalidate(darwin_client.OPTION_REFERENCE_URL)
 
-        # Verify the content was updated with new default value
-        assert "system.defaults.dock.autohide" in options2
-        assert options2["system.defaults.dock.autohide"].default == "true", "Default value should be updated to 'true'"
+            # Load options again with force_refresh=True to ensure it doesn't use the cache
+            options2 = await darwin_client.load_options(force_refresh=True)
 
-        # Verify the cache files were recreated
-        assert json_path.exists(), "JSON cache file does not exist after refresh"
-        assert pickle_path.exists(), "Pickle cache file does not exist after refresh"
+            # Verify the content was updated with new default value
+            assert "system.defaults.dock.autohide" in options2
+            assert options2["system.defaults.dock.autohide"].default == "true", "Default value should be updated to 'true'"
 
-        # Check that files were actually updated (modification times should be different)
-        json_mtime2 = json_path.stat().st_mtime
-        pickle_mtime2 = pickle_path.stat().st_mtime
+            # Verify the cache files were recreated
+            assert json_path.exists(), "JSON cache file does not exist after refresh"
+            assert pickle_path.exists(), "Pickle cache file does not exist after refresh"
 
-        assert json_mtime2 > json_mtime1, "JSON cache file was not updated"
-        assert pickle_mtime2 > pickle_mtime1, "Pickle cache file was not updated"
+            # Check that files were actually updated (modification times should be different)
+            json_mtime2 = json_path.stat().st_mtime
+            pickle_mtime2 = pickle_path.stat().st_mtime
+
+            assert json_mtime2 > json_mtime1, "JSON cache file was not updated"
+            assert pickle_mtime2 > pickle_mtime1, "Pickle cache file was not updated"

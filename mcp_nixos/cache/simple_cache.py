@@ -20,6 +20,14 @@ class SimpleCache:
         self.hits = 0
         self.misses = 0
         logger.info(f"Initialized cache with max_size={max_size}, ttl={ttl}s")
+        
+    def __del__(self):
+        """Destructor to ensure proper cleanup when the cache is garbage collected."""
+        try:
+            self.clear()
+        except Exception:
+            # Ignore exceptions during garbage collection
+            pass
 
     def get(self, key):
         """Retrieve a value from the cache if it exists and is not expired."""

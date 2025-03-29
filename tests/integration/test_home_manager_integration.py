@@ -3,6 +3,7 @@
 import unittest
 import logging
 import requests
+import pytest
 from bs4 import BeautifulSoup, Tag
 
 # Configure logging for tests with more verbose output
@@ -12,6 +13,9 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger("home_manager_test")
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 
 
 class TestHomeManagerDocStructure(unittest.TestCase):

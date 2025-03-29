@@ -11,6 +11,7 @@ import logging
 import pathlib
 import json
 import pickle
+import os
 from typing import Optional, Dict, Any, Tuple
 
 from ..utils.cache_helpers import init_cache_storage
@@ -49,6 +50,19 @@ class HTMLCache:
             "data_writes": 0,
         }
         logger.info(f"HTMLCache initialized with directory: {self.cache_dir}")
+        
+    def __del__(self):
+        """Destructor with cleanup logic for non-session scoped test caches."""
+        try:
+            # Only perform cleanup if path includes specific marker for non-session test dirs
+            # Skip cleanup for session-scoped fixtures managed by pytest
+            if (self.cache_dir and 
+                "mcp_nixos_test_cache_" in str(self.cache_dir) and 
+                not os.environ.get("MCP_NIXOS_CACHE_DIR") == str(self.cache_dir)):
+                self.clear()
+                logger.debug(f"HTMLCache cleaned up temporary directory: {self.cache_dir}")
+        except Exception:
+            pass
 
     def _get_cache_path(self, url: str) -> pathlib.Path:
         """
@@ -456,13 +470,26 @@ class HTMLCache:
                 return metadata
 
             count = 0
-            # Remove both HTML and data files
-            for file_path in self.cache_dir.glob("*.*"):
-                try:
-                    file_path.unlink()
-                    count += 1
-                except Exception as e:
-                    logger.warning(f"Failed to remove cache file {file_path}: {e}")
+            # Remove all files recursively, including hidden files and those without extensions
+            # Using a more thorough approach to ensure all cache files are removed
+            for file_path in self.cache_dir.glob("**/*"):
+                if file_path.is_file():
+                    try:
+                        file_path.unlink()
+                        count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to remove cache file {file_path}: {e}")
+            
+            # Reset stats since we've cleared everything
+            self.stats = {
+                "hits": 0,
+                "misses": 0,
+                "errors": 0,
+                "writes": 0,
+                "data_hits": 0,
+                "data_misses": 0,
+                "data_writes": 0,
+            }
 
             metadata["cleared"] = True
             metadata["files_removed"] = count

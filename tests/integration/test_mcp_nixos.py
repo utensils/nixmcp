@@ -1,6 +1,7 @@
 import logging
 import time
 import unittest
+import pytest
 from unittest.mock import Mock, patch
 
 from mcp_nixos.cache.simple_cache import SimpleCache
@@ -11,6 +12,9 @@ from mcp_nixos.contexts.nixos_context import NixOSContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 
 """
 Test approach:
