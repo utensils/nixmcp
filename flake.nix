@@ -137,7 +137,7 @@
                   echo "Activating venv..."
                   source .venv/bin/activate
                 fi
-                COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term-missing --cov-report=html --cov-report=xml"
+                COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
                 PYTEST_ARGS=""
                 for arg in "$@"; do
                   case $arg in
