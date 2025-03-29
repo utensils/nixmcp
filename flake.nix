@@ -139,25 +139,36 @@
                   echo "Activating venv..."
                   source .venv/bin/activate
                 fi
-                # Check if --no-coverage flag is passed
-                if [ $# -gt 0 ] && [ "$1" = "--no-coverage" ]; then
+                
+                # Check if running in CI environment
+                # Use command substitution to avoid unbound variable errors
+                if [ "$(printenv CI 2>/dev/null)" != "" ] || [ "$(printenv GITHUB_ACTIONS 2>/dev/null)" != "" ]; then
+                  # In CI, don't add any coverage args to avoid conflicts
                   COVERAGE_ARGS=""
-                  echo "Running without coverage reporting..."
-                  shift
+                  echo "Running in CI environment without additional coverage arguments..."
                 else
-                  # Check if pytest-cov is already configured in pytest.ini or conftest.py
-                  # to avoid duplicate coverage arguments
-                  if grep -q "addopts.*--cov" pytest.ini 2>/dev/null || \
-                     grep -q "addopts.*--cov" conftest.py 2>/dev/null; then
-                    echo "Coverage configuration detected in pytest config files. Not adding coverage args."
+                  # Check if --no-coverage flag is passed
+                  if [ $# -gt 0 ] && [ "$1" = "--no-coverage" ]; then
                     COVERAGE_ARGS=""
+                    echo "Running without coverage reporting..."
+                    shift
                   else
-                    COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
+                    # For local development, add coverage args if not already in config
+                    if grep -q "addopts.*--cov" pytest.ini 2>/dev/null || \
+                       grep -q "addopts.*--cov" conftest.py 2>/dev/null || \
+                       [ -f ".coveragerc" ]; then
+                      echo "Coverage configuration detected. Not adding coverage args."
+                      COVERAGE_ARGS=""
+                    else
+                      COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
+                    fi
                   fi
                 fi
+                
                 SOURCE_DIR="mcp_nixos"
                 echo "Running tests..."
                 pytest tests/ -v $COVERAGE_ARGS "$@"
+                
                 if [ -n "$COVERAGE_ARGS" ] && echo "$COVERAGE_ARGS" | grep -q 'html'; then
                   echo "✅ Coverage report generated. HTML report available in htmlcov/"
                 elif [ -n "$COVERAGE_ARGS" ]; then
