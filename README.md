@@ -321,7 +321,9 @@ For Home Manager and nix-darwin options, we've committed crimes against HTML par
    - Implements TTL-based expiration to refresh content when needed
    - Falls back gracefully when things inevitably go wrong (unlike my relationships)
 
-## What is Model Context Protocol? (For Those Who Skipped Straight to the End)
+## What is Model Context Protocol?
+
+### For Those Who Skipped Straight to the End
 
 The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that connects LLMs to external data and tools using JSON messages over stdin/stdout. This project implements MCP to give AI assistants access to NixOS, Home Manager, and nix-darwin resources, so they can finally stop making things up about your operating system.
 
