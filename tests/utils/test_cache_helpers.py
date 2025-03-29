@@ -90,12 +90,12 @@ class TestCacheHelpers:
         """Test ensuring cache directory using default location."""
         # Save original env var value
         original_cache_dir = os.environ.get("MCP_NIXOS_CACHE_DIR")
-        
+
         try:
             # Temporarily clear the env var to test default path behavior
             if "MCP_NIXOS_CACHE_DIR" in os.environ:
                 del os.environ["MCP_NIXOS_CACHE_DIR"]
-                
+
             with mock.patch("mcp_nixos.utils.cache_helpers.get_default_cache_dir") as mock_default:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     mock_default.return_value = temp_dir

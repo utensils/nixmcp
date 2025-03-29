@@ -3,7 +3,6 @@
 import logging
 import asyncio
 import sys
-import importlib
 import pytest
 from unittest.mock import patch, MagicMock
 from mcp.server.fastmcp import FastMCP
@@ -27,21 +26,21 @@ class TestEagerLoading:
         # Reload the server module to ensure clean state
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
-        
+
         # Import and patch in the correct order
         with patch("mcp_nixos.server.home_manager_context") as mock_hm_context:
             # Setup the mock client
             mock_client = MagicMock()
             mock_hm_context.hm_client = mock_client
-            
+
             # Import after patching
             from mcp_nixos.server import app_lifespan
-            
+
             # Call the app_lifespan context manager
             async with app_lifespan(mock_server):
                 # The load_in_background call should happen during context entry
                 pass
-                
+
             # Verify load_in_background was called on the client
             mock_client.load_in_background.assert_called_once()
 
@@ -55,25 +54,25 @@ class TestEagerLoading:
             mock_client.loading_in_progress = False
             mock_client.loading_thread = None
             mock_client.loading_lock = MagicMock()
-    
+
             # Configure the mock class to return our mock client
             mock_client_class.return_value = mock_client
-    
+
             # Create a context that will use our mock client
             context = HMContext()
-    
+
             # Call ensure_loaded normally
             context.ensure_loaded()
-    
+
             # Verify the client's ensure_loaded was called with correct params
             mock_client.ensure_loaded.assert_called_with(force_refresh=False)
-    
+
             # Reset the mock for the next test
             mock_client.ensure_loaded.reset_mock()
-    
+
             # Call ensure_loaded with force_refresh=True
             context.ensure_loaded(force_refresh=True)
-    
+
             # Verify the client's ensure_loaded was called with force_refresh=True
             mock_client.ensure_loaded.assert_called_with(force_refresh=True)
 
@@ -83,16 +82,16 @@ class TestEagerLoading:
         with patch("mcp_nixos.contexts.home_manager_context.HomeManagerClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.is_loaded = True
-    
+
             # Configure the mock class to return our mock client
             mock_client_class.return_value = mock_client
-    
+
             # Create a context that will use our mock client
             context = HMContext()
-    
+
             # Call invalidate_cache
             context.invalidate_cache()
-    
+
             # Verify the client's invalidate_cache was called
             mock_client.invalidate_cache.assert_called_once()
 
@@ -146,30 +145,30 @@ class TestEagerLoading:
         # Reload the server module to ensure clean state
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
-            
+
         # Create patches for all relevant parts
         with patch("mcp_nixos.server.home_manager_context") as mock_hm_context:
             with patch("mcp_nixos.server.darwin_context") as mock_darwin_context:
                 # Setup the mock client
                 mock_client = MagicMock()
                 mock_hm_context.hm_client = mock_client
-                
+
                 # Setup darwin context
                 mock_darwin_context.startup = MagicMock()
                 mock_darwin_context.shutdown = MagicMock()
                 mock_darwin_context.status = "loaded"
-                
+
                 # Import after patching
                 from mcp_nixos.server import app_lifespan
-                
+
                 # Run the app_lifespan directly
                 async with app_lifespan(server):
                     # Just yield to let the lifespan complete
                     await asyncio.sleep(0.1)
-                
+
                 # Verify load_in_background was called
                 mock_client.load_in_background.assert_called_once()
-                
+
                 # Verify darwin context was managed properly
                 mock_darwin_context.startup.assert_called_once()
                 mock_darwin_context.shutdown.assert_called_once()

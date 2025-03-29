@@ -2,7 +2,6 @@
 
 import sys
 import pytest
-import importlib
 from unittest.mock import patch, MagicMock
 
 
@@ -19,7 +18,7 @@ class TestAppLifespan:
         # Reload the module to ensure clean state
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
-        
+
         # Import the modules after setting up environment
         with patch("mcp_nixos.server.logger") as mock_logger:
             # Import after patching logger
@@ -44,7 +43,7 @@ class TestAppLifespan:
 
             # Exit the context manager to clean up
             await context_manager.__aexit__(None, None, None)
-            
+
             # Verify shutdown was logged
             mock_logger.info.assert_any_call("Shutting down MCP-NixOS server")
 
@@ -53,18 +52,18 @@ class TestAppLifespan:
         """Test exiting the app_lifespan context manager (cleanup)."""
         # Setup mock server
         mock_server = MagicMock()
-        
+
         # Reload the module to ensure clean state
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
-        
+
         # Setup the patches
         with patch("mcp_nixos.server.logger") as mock_logger:
             # Import after patching
             from mcp_nixos.server import app_lifespan, darwin_context
-            
+
             # Patch the darwin_context.shutdown
-            with patch.object(darwin_context, 'shutdown', autospec=True) as mock_shutdown:
+            with patch.object(darwin_context, "shutdown", autospec=True) as mock_shutdown:
                 # Create and enter the context manager
                 context_manager = app_lifespan(mock_server)
                 await context_manager.__aenter__()
@@ -91,18 +90,18 @@ class TestAppLifespan:
         # Setup mocks
         mock_server = MagicMock()
         mock_exception = Exception("Test exception")
-        
+
         # Reload the module to ensure clean state
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
-        
+
         # Setup the patches
         with patch("mcp_nixos.server.logger") as mock_logger:
             # Import after patching
             from mcp_nixos.server import app_lifespan, darwin_context
-            
+
             # Patch the darwin_context.shutdown
-            with patch.object(darwin_context, 'shutdown', autospec=True) as mock_shutdown:
+            with patch.object(darwin_context, "shutdown", autospec=True) as mock_shutdown:
                 # Create and enter the context manager
                 context_manager = app_lifespan(mock_server)
                 await context_manager.__aenter__()

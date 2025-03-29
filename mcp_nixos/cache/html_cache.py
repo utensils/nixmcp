@@ -50,15 +50,17 @@ class HTMLCache:
             "data_writes": 0,
         }
         logger.info(f"HTMLCache initialized with directory: {self.cache_dir}")
-        
+
     def __del__(self):
         """Destructor with cleanup logic for non-session scoped test caches."""
         try:
             # Only perform cleanup if path includes specific marker for non-session test dirs
             # Skip cleanup for session-scoped fixtures managed by pytest
-            if (self.cache_dir and 
-                "mcp_nixos_test_cache_" in str(self.cache_dir) and 
-                not os.environ.get("MCP_NIXOS_CACHE_DIR") == str(self.cache_dir)):
+            if (
+                self.cache_dir
+                and "mcp_nixos_test_cache_" in str(self.cache_dir)
+                and not os.environ.get("MCP_NIXOS_CACHE_DIR") == str(self.cache_dir)
+            ):
                 self.clear()
                 logger.debug(f"HTMLCache cleaned up temporary directory: {self.cache_dir}")
         except Exception:
@@ -479,7 +481,7 @@ class HTMLCache:
                         count += 1
                     except Exception as e:
                         logger.warning(f"Failed to remove cache file {file_path}: {e}")
-            
+
             # Reset stats since we've cleared everything
             self.stats = {
                 "hits": 0,

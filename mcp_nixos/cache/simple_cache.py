@@ -20,7 +20,7 @@ class SimpleCache:
         self.hits = 0
         self.misses = 0
         logger.info(f"Initialized cache with max_size={max_size}, ttl={ttl}s")
-        
+
     def __del__(self):
         """Destructor to ensure proper cleanup when the cache is garbage collected."""
         try:

@@ -412,7 +412,7 @@ async def test_expired_cache_ttl_reload(real_cache_dir):
     with patch("time.time") as mock_time:
         # Start at current time
         mock_time.return_value = current_time
-        
+
         # Mock the requests.get function
         with patch("requests.get") as mock_get:
             # Setup mock for first request
@@ -579,12 +579,12 @@ async def test_darwin_client_expired_cache(real_cache_dir):
 
     # Track the current "mocked" time
     current_time = time.time()
-    
+
     # Patch time.time() to return controlled timestamps
     with patch("time.time") as mock_time:
         # Start at current time
         mock_time.return_value = current_time
-        
+
         # Use a real HTMLClient with TTL for testing
         html_client = HTMLClient(cache_dir=real_cache_dir, ttl=ttl)
 
@@ -679,7 +679,9 @@ async def test_darwin_client_expired_cache(real_cache_dir):
 
             # Verify the content was updated with new default value
             assert "system.defaults.dock.autohide" in options2
-            assert options2["system.defaults.dock.autohide"].default == "true", "Default value should be updated to 'true'"
+            assert (
+                options2["system.defaults.dock.autohide"].default == "true"
+            ), "Default value should be updated to 'true'"
 
             # Verify the cache files were recreated
             assert json_path.exists(), "JSON cache file does not exist after refresh"
