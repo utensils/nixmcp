@@ -5,8 +5,8 @@ import pytest
 import tempfile
 from unittest.mock import MagicMock, patch
 
-from nixmcp.cache.html_cache import HTMLCache
-from nixmcp.clients.html_client import HTMLClient
+from mcp_nixos.cache.html_cache import HTMLCache
+from mcp_nixos.clients.html_client import HTMLClient
 
 
 @pytest.fixture

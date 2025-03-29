@@ -8,7 +8,7 @@ from unittest import mock
 
 import pytest
 
-from nixmcp.utils.cache_helpers import (
+from mcp_nixos.utils.cache_helpers import (
     get_default_cache_dir,
     ensure_cache_dir,
     init_cache_storage,
@@ -24,20 +24,20 @@ class TestCacheHelpers:
             # Test with XDG_CACHE_HOME set
             with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": "/xdg/cache"}):
                 cache_dir = get_default_cache_dir()
-                assert cache_dir == "/xdg/cache/nixmcp"
+                assert cache_dir == "/xdg/cache/mcp_nixos"
 
             # Test without XDG_CACHE_HOME (fallback to ~/.cache)
             with mock.patch.dict(os.environ, {}, clear=True):
                 with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/home/user")):
                     cache_dir = get_default_cache_dir()
-                    assert cache_dir == "/home/user/.cache/nixmcp"
+                    assert cache_dir == "/home/user/.cache/mcp_nixos"
 
     def test_get_default_cache_dir_macos(self):
         """Test default cache directory paths on macOS."""
         with mock.patch("sys.platform", "darwin"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/Users/user")):
                 cache_dir = get_default_cache_dir()
-                assert cache_dir == "/Users/user/Library/Caches/nixmcp"
+                assert cache_dir == "/Users/user/Library/Caches/mcp_nixos"
 
     def test_get_default_cache_dir_windows(self):
         """Test default cache directory paths on Windows."""
@@ -45,14 +45,14 @@ class TestCacheHelpers:
             # Test with LOCALAPPDATA set
             with mock.patch.dict(os.environ, {"LOCALAPPDATA": "C:\\Users\\user\\AppData\\Local"}):
                 cache_dir = get_default_cache_dir()
-                expected = os.path.join("C:\\Users\\user\\AppData\\Local", "nixmcp", "Cache")
+                expected = os.path.join("C:\\Users\\user\\AppData\\Local", "mcp_nixos", "Cache")
                 assert cache_dir == expected
 
             # Test without LOCALAPPDATA (fallback)
             with mock.patch.dict(os.environ, {}, clear=True):
                 with mock.patch("pathlib.Path.home", return_value=pathlib.Path("C:\\Users\\user")):
                     cache_dir = get_default_cache_dir()
-                    expected = os.path.join("C:\\Users\\user", "AppData", "Local", "nixmcp", "Cache")
+                    expected = os.path.join("C:\\Users\\user", "AppData", "Local", "mcp_nixos", "Cache")
                     assert cache_dir == expected
 
     def test_get_default_cache_dir_unsupported(self):
@@ -60,7 +60,7 @@ class TestCacheHelpers:
         with mock.patch("sys.platform", "unknown"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/home/user")):
                 cache_dir = get_default_cache_dir()
-                assert cache_dir == "/home/user/.cache/nixmcp"
+                assert cache_dir == "/home/user/.cache/mcp_nixos"
 
     def test_get_default_cache_dir_custom_app_name(self):
         """Test custom app name for cache directory."""
@@ -81,14 +81,14 @@ class TestCacheHelpers:
         """Test ensuring cache directory using environment variable."""
         with tempfile.TemporaryDirectory() as temp_dir:
             env_dir = os.path.join(temp_dir, "env_cache")
-            with mock.patch.dict(os.environ, {"NIXMCP_CACHE_DIR": env_dir}):
+            with mock.patch.dict(os.environ, {"MCP_NIXOS_CACHE_DIR": env_dir}):
                 result = ensure_cache_dir()
                 assert result == env_dir
                 assert os.path.exists(env_dir)
 
     def test_ensure_cache_dir_default(self):
         """Test ensuring cache directory using default location."""
-        with mock.patch("nixmcp.utils.cache_helpers.get_default_cache_dir") as mock_default:
+        with mock.patch("mcp_nixos.utils.cache_helpers.get_default_cache_dir") as mock_default:
             with tempfile.TemporaryDirectory() as temp_dir:
                 mock_default.return_value = temp_dir
                 result = ensure_cache_dir()
@@ -116,7 +116,7 @@ class TestCacheHelpers:
     def test_init_cache_storage_fallback(self):
         """Test fallback when cache initialization fails."""
         with mock.patch(
-            "nixmcp.utils.cache_helpers.ensure_cache_dir", side_effect=OSError("Failed to create directory")
+            "mcp_nixos.utils.cache_helpers.ensure_cache_dir", side_effect=OSError("Failed to create directory")
         ):
             result = init_cache_storage()
             assert "initialized" in result

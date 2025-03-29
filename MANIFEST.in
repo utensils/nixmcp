@@ -3,4 +3,4 @@ include LICENSE
 include requirements.txt
 include pyproject.toml
 include pytest.ini
-recursive-include nixmcp *
+recursive-include mcp_nixos *

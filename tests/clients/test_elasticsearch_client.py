@@ -1,10 +1,10 @@
-"""Tests for the ElasticsearchClient in the NixMCP server."""
+"""Tests for the ElasticsearchClient in the MCP-NixOS server."""
 
 import unittest
 from unittest.mock import patch
 
 # Import the ElasticsearchClient class
-from nixmcp.clients.elasticsearch_client import ElasticsearchClient
+from mcp_nixos.clients.elasticsearch_client import ElasticsearchClient
 
 
 class TestElasticsearchClient(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestElasticsearchClient(unittest.TestCase):
         """Set up test fixtures."""
         # Create a fresh client with disabled caching for each test
         # We'll patch the make_http_request function at a lower level
-        from nixmcp.cache.simple_cache import SimpleCache
+        from mcp_nixos.cache.simple_cache import SimpleCache
 
         # Create mock cache that always returns None (cache miss)
         mock_cache = SimpleCache(max_size=0, ttl=0)
@@ -191,7 +191,7 @@ class TestElasticsearchClient(unittest.TestCase):
             # Restore the original method
             self.client.safe_elasticsearch_query = original_method
 
-    @patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
+    @patch("mcp_nixos.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
     def test_bad_query_handling(self, mock_safe_query):
         """Test handling of bad query syntax."""
         # Simulate a bad query response directly from safe_elasticsearch_query
@@ -204,7 +204,7 @@ class TestElasticsearchClient(unittest.TestCase):
         self.assertIn("error", result)
         self.assertEqual("Invalid query syntax", result["error"])
 
-    @patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
+    @patch("mcp_nixos.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
     def test_count_options(self, mock_safe_query):
         """Test the count_options method."""
         # Set up the mock to return a count response
@@ -222,7 +222,7 @@ class TestElasticsearchClient(unittest.TestCase):
         # The query is in the first argument (request_data) to safe_elasticsearch_query
         self.assertTrue("query" in mock_safe_query.call_args[0][1], "Query should be in request data")
 
-    @patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
+    @patch("mcp_nixos.clients.elasticsearch_client.ElasticsearchClient.safe_elasticsearch_query")
     def test_count_options_error(self, mock_safe_query):
         """Test handling errors in count_options method."""
         # Set up the mock to return an error

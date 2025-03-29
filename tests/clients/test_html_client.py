@@ -5,8 +5,8 @@ from unittest import mock
 
 import requests
 
-from nixmcp.clients.html_client import HTMLClient
-from nixmcp.cache.html_cache import HTMLCache
+from mcp_nixos.clients.html_client import HTMLClient
+from mcp_nixos.cache.html_cache import HTMLCache
 
 
 class TestHTMLClient:

@@ -8,7 +8,7 @@ and tool arguments.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from nixmcp.completions.home_manager import (
+from mcp_nixos.completions.home_manager import (
     complete_home_manager_option_name,
     complete_home_manager_search_arguments,
     complete_home_manager_info_arguments,
@@ -107,7 +107,7 @@ async def test_complete_home_manager_search_arguments_query():
 
     # Mock option name completion
     with patch(
-        "nixmcp.completions.home_manager.complete_home_manager_option_name", new_callable=AsyncMock
+        "mcp_nixos.completions.home_manager.complete_home_manager_option_name", new_callable=AsyncMock
     ) as mock_option:
         mock_option.return_value = {"items": [{"label": "programs.git", "value": "programs.git"}]}
 
@@ -149,7 +149,7 @@ async def test_complete_home_manager_info_arguments_name():
 
     # Mock option name completion
     with patch(
-        "nixmcp.completions.home_manager.complete_home_manager_option_name", new_callable=AsyncMock
+        "mcp_nixos.completions.home_manager.complete_home_manager_option_name", new_callable=AsyncMock
     ) as mock_option:
         mock_option.return_value = {"items": [{"label": "programs.git.enable", "value": "programs.git.enable"}]}
 
@@ -188,7 +188,7 @@ async def test_complete_home_manager_prefix_arguments():
 
     # Mock option name completion
     with patch(
-        "nixmcp.completions.home_manager.complete_home_manager_option_name", new_callable=AsyncMock
+        "mcp_nixos.completions.home_manager.complete_home_manager_option_name", new_callable=AsyncMock
     ) as mock_option:
         mock_option.return_value = {"items": [{"label": "programs.git", "value": "programs.git"}]}
 

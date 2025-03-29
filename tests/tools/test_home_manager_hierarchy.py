@@ -4,10 +4,10 @@ import logging
 from unittest.mock import Mock
 
 # Import base test class
-from tests import NixMCPTestBase
+from tests import MCPNixOSTestBase
 
 # Import the tool functions directly from the tools module
-from nixmcp.tools.home_manager_tools import (
+from mcp_nixos.tools.home_manager_tools import (
     home_manager_list_options,
     home_manager_options_by_prefix,
 )
@@ -16,7 +16,7 @@ from nixmcp.tools.home_manager_tools import (
 logging.disable(logging.CRITICAL)
 
 
-class TestHomeManagerHierarchy(NixMCPTestBase):
+class TestHomeManagerHierarchy(MCPNixOSTestBase):
     """Test the Home Manager hierarchical navigation tools."""
 
     def setUp(self):

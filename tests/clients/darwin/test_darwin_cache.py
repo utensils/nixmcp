@@ -7,9 +7,9 @@ from datetime import datetime
 from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
-from nixmcp.clients.darwin.darwin_client import DarwinClient, DarwinOption
-from nixmcp.clients.html_client import HTMLClient
-from nixmcp.cache.html_cache import HTMLCache
+from mcp_nixos.clients.darwin.darwin_client import DarwinClient, DarwinOption
+from mcp_nixos.clients.html_client import HTMLClient
+from mcp_nixos.cache.html_cache import HTMLCache
 
 
 @pytest.fixture
@@ -274,7 +274,7 @@ async def test_load_options_from_cache(mock_html_client):
     }
 
     # Mock memory cache to return data
-    with patch("nixmcp.cache.simple_cache.SimpleCache.get", return_value=test_cache_data):
+    with patch("mcp_nixos.cache.simple_cache.SimpleCache.get", return_value=test_cache_data):
         result = await client.load_options()
 
         # Verify we got our cached data
@@ -289,7 +289,7 @@ async def test_load_options_from_cache(mock_html_client):
 async def test_invalidate_cache(mock_html_client):
     """Test cache invalidation."""
     # Create client with our mock
-    with patch("nixmcp.cache.simple_cache.SimpleCache") as mock_simple_cache:
+    with patch("mcp_nixos.cache.simple_cache.SimpleCache") as mock_simple_cache:
         # Set up the mock SimpleCache
         mock_cache_instance = MagicMock()
         mock_cache_instance.cache = {"darwin_data_v1.0.0": (time.time(), {"some": "data"})}

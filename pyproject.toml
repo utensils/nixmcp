@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "nixmcp"
-version = "0.1.4"
+name = "mcp-nixos"
+version = "0.2.0"
 description = "Model Context Protocol server for NixOS, Home Manager, and nix-darwin resources"
 readme = "README.md"
 authors = [
@@ -36,7 +36,7 @@ dev = [
 ]
 
 [project.scripts]
-nixmcp = "nixmcp.__main__:mcp.run"
+mcp-nixos = "mcp_nixos.__main__:mcp.run"
 
 [tool.black]
 line-length = 120

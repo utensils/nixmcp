@@ -1,11 +1,11 @@
 """
-Tests for NixOS package documentation integration.
+Tests for MCP-NixOS package documentation integration.
 """
 
 import unittest
 from unittest.mock import MagicMock, patch
-from nixmcp.tools.nixos_tools import nixos_info
-from nixmcp.contexts.nixos_context import NixOSContext
+from mcp_nixos.tools.nixos_tools import nixos_info
+from mcp_nixos.contexts.nixos_context import NixOSContext
 
 
 class TestNixOSPackageDocumentation(unittest.TestCase):
@@ -72,7 +72,7 @@ class TestNixOSPackageDocumentation(unittest.TestCase):
 class TestRealNixOSPackageQueries(unittest.TestCase):
     """Integration tests for real NixOS package queries."""
 
-    @patch("nixmcp.contexts.nixos_context.NixOSContext.get_package")
+    @patch("mcp_nixos.contexts.nixos_context.NixOSContext.get_package")
     def test_real_package_structure(self, mock_get_package):
         """Test that a real package query returns and formats all expected fields."""
         # Create a mock package return value

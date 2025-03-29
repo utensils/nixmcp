@@ -6,14 +6,14 @@ import logging
 from unittest.mock import patch, MagicMock, call
 
 # Import the classes to be tested
-from nixmcp.clients.home_manager_client import HomeManagerClient
-from nixmcp.contexts.home_manager_context import HomeManagerContext
+from mcp_nixos.clients.home_manager_client import HomeManagerClient
+from mcp_nixos.contexts.home_manager_context import HomeManagerContext
 
 # Import specifically for patching instances/methods
-from nixmcp.clients.html_client import HTMLClient
+from mcp_nixos.clients.html_client import HTMLClient
 
 # Import the tool functions
-from nixmcp.tools.home_manager_tools import home_manager_search, home_manager_info, home_manager_stats
+from mcp_nixos.tools.home_manager_tools import home_manager_search, home_manager_info, home_manager_stats
 
 # Disable logging during tests for cleaner output
 logging.disable(logging.CRITICAL)
@@ -195,7 +195,7 @@ class TestHomeManagerClient(unittest.TestCase):
         mock_save.assert_not_called()
         self.assertTrue(client.is_loaded)  # Assume load_from_cache sets this
 
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._load_data_internal")
     def test_ensure_loaded_waits_for_background(self, mock_load_internal):
         """Test ensure_loaded waits if background load is in progress."""
         load_started_event = threading.Event()
@@ -220,8 +220,8 @@ class TestHomeManagerClient(unittest.TestCase):
         mock_load_internal.assert_called_once()  # Only background thread should load
         self.assertTrue(client.is_loaded)
 
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient.invalidate_cache")
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient.invalidate_cache")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._load_data_internal")
     def test_ensure_loaded_force_refresh(self, mock_load, mock_invalidate):
         """Test ensure_loaded with force_refresh=True invalidates and reloads."""
         client = HomeManagerClient()
@@ -232,7 +232,7 @@ class TestHomeManagerClient(unittest.TestCase):
         mock_invalidate.assert_called_once()
         mock_load.assert_called_once()  # Should reload
 
-    @patch("nixmcp.clients.html_client.HTMLCache")
+    @patch("mcp_nixos.clients.html_client.HTMLCache")
     def test_invalidate_cache_calls(self, MockHTMLCache):
         """Test invalidate_cache calls underlying cache methods."""
         client = HomeManagerClient()
@@ -248,7 +248,7 @@ class TestHomeManagerClient(unittest.TestCase):
 
 
 # Patch target is where HomeManagerClient is *looked up* within home_manager_context
-@patch("nixmcp.contexts.home_manager_context.HomeManagerClient")
+@patch("mcp_nixos.contexts.home_manager_context.HomeManagerClient")
 class TestHomeManagerContext(unittest.TestCase):
     """Test the HomeManagerContext class using a mocked client."""
 
@@ -422,7 +422,7 @@ class TestHomeManagerContext(unittest.TestCase):
 
 
 # Patch the helper function used by the tools to get the context
-@patch("nixmcp.tools.home_manager_tools.get_context_or_fallback")
+@patch("mcp_nixos.tools.home_manager_tools.get_context_or_fallback")
 class TestHomeManagerTools(unittest.TestCase):
     """Test the Home Manager MCP tool functions."""
 

@@ -4,8 +4,8 @@ import pytest
 import asyncio
 from unittest.mock import MagicMock, AsyncMock
 
-from nixmcp.clients.darwin.darwin_client import DarwinClient
-from nixmcp.contexts.darwin.darwin_context import DarwinContext
+from mcp_nixos.clients.darwin.darwin_client import DarwinClient
+from mcp_nixos.contexts.darwin.darwin_context import DarwinContext
 
 
 @pytest.fixture

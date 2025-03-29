@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import patch
-from nixmcp.contexts.nixos_context import NixOSContext
-from nixmcp import __version__
+
+from mcp_nixos import __version__
+from mcp_nixos.contexts.nixos_context import NixOSContext
 
 
 class TestNixOSContext(unittest.TestCase):
@@ -10,7 +11,7 @@ class TestNixOSContext(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Mock the ElasticsearchClient to avoid real API calls
-        with patch("nixmcp.clients.elasticsearch_client.ElasticsearchClient") as mock_client:
+        with patch("mcp_nixos.clients.elasticsearch_client.ElasticsearchClient") as mock_client:
             self.es_client_mock = mock_client.return_value
             self.context = NixOSContext()
             # Replace the real client with our mock
@@ -26,7 +27,7 @@ class TestNixOSContext(unittest.TestCase):
 
         # Verify the result
         self.assertEqual(status["status"], "ok")
-        self.assertEqual(status["name"], "NixMCP")
+        self.assertEqual(status["name"], "MCP-NixOS")
         self.assertTrue("cache_stats" in status)
         self.assertEqual(status["cache_stats"], {"size": 10, "hits": 5, "misses": 2})
 

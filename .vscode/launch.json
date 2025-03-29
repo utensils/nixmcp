@@ -13,7 +13,7 @@
             "name": "Python: Module",
             "type": "debugpy",
             "request": "launch",
-            "module": "nixmcp",
+            "module": "mcp-nixos",
             "console": "integratedTerminal",
             "justMyCode": false
         },

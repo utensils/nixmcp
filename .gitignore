@@ -61,9 +61,11 @@ venv.bak/
 # Misc
 temp
 tmp
-nixmcp-server.log
 uv-*.lock
 .aider*
 .pypirc
 mcp-completion-docs.md
 TODO.md
+
+# Logs
+*.log

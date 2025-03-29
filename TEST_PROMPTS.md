@@ -1,6 +1,6 @@
-# NixMCP Test Prompts
+# MCP-NixOS Test Prompts
 
-This document contains test prompts for manually testing the NixMCP tools with an LLM. These prompts can be used to verify that the tools are working correctly and providing the expected output.
+This document contains test prompts for manually testing the MCP-NixOS tools with an LLM. These prompts can be used to verify that the tools are working correctly and providing the expected output.
 
 ## Instruction
 
@@ -24,12 +24,16 @@ cat >> REPORT.md << 'EOL'
 
 **Original Prompt:**
 ```
+
 [exact prompt]
+
 ```
 
 **Raw Response:**
 ```
+
 [tool output]
+
 ```
 
 **Observations:**

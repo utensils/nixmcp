@@ -6,13 +6,13 @@ from unittest import mock
 from unittest.mock import patch, call
 
 # Import the HomeManagerClient class
-from nixmcp.clients.home_manager_client import HomeManagerClient
+from mcp_nixos.clients.home_manager_client import HomeManagerClient
 
 # Import HTMLClient for patching object instances
-from nixmcp.clients.html_client import HTMLClient
+from mcp_nixos.clients.html_client import HTMLClient
 
 # Import base request function if needed for specific tests
-# from nixmcp.utils.helpers import make_http_request
+# from mcp_nixos.utils.helpers import make_http_request
 
 
 # --- Test Constants ---
@@ -243,7 +243,7 @@ class TestHomeManagerClient(unittest.TestCase):
         # Verify the exception message contains our error
         self.assertIn("Network Error", str(context.exception))
 
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._load_data_internal")
     def test_load_in_background_avoids_duplicate_loading(self, mock_load_internal):
         """Test background loading avoids duplicate starts."""
         # Use side_effect to simulate work and allow thread checks
@@ -265,7 +265,7 @@ class TestHomeManagerClient(unittest.TestCase):
 
         mock_load_internal.assert_called_once()  # Should only be called by the first thread
 
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._load_data_internal")
     def test_ensure_loaded_waits_for_background_thread(self, mock_load_internal):
         """Test ensure_loaded waits for background load."""
         load_started_event = threading.Event()
@@ -299,7 +299,7 @@ class TestHomeManagerClient(unittest.TestCase):
         mock_load_internal.assert_called_once()
         self.assertTrue(client.is_loaded)
 
-    @patch("nixmcp.utils.helpers.make_http_request")
+    @patch("mcp_nixos.utils.helpers.make_http_request")
     def test_no_duplicate_http_requests_on_concurrent_load(self, mock_make_request):
         """Test concurrent loads don't cause duplicate HTTP requests."""
         # Use side_effect to simulate slow request and allow concurrency
@@ -325,9 +325,9 @@ class TestHomeManagerClient(unittest.TestCase):
         # A better check might be on `client.html_client.fetch` if that's simpler to mock.
         self.assertLessEqual(mock_make_request.call_count, len(client.hm_urls))
 
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_from_cache")
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient.load_all_options")
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient.build_search_indices")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._load_from_cache")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient.load_all_options")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient.build_search_indices")
     def test_loading_from_cache_logic(self, mock_build, mock_load_all, mock_load_cache):
         """Test internal logic for cache hit/miss."""
         client = HomeManagerClient()
@@ -354,10 +354,10 @@ class TestHomeManagerClient(unittest.TestCase):
         mock_build.assert_called_once_with(SAMPLE_OPTIONS_LIST)
         self.assertTrue(client.is_loaded)
 
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._save_in_memory_data")
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient.load_all_options", return_value=SAMPLE_OPTIONS_LIST)
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient.build_search_indices")
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_from_cache", return_value=False)
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._save_in_memory_data")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient.load_all_options", return_value=SAMPLE_OPTIONS_LIST)
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient.build_search_indices")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._load_from_cache", return_value=False)
     def test_saving_to_cache_logic(self, mock_load_cache, mock_build, mock_load_all, mock_save):
         """Test internal logic triggers cache saving."""
         client = HomeManagerClient()
@@ -369,8 +369,8 @@ class TestHomeManagerClient(unittest.TestCase):
         mock_save.assert_called_once()  # Verify save was called
         self.assertTrue(client.is_loaded)
 
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient.invalidate_cache")
-    @patch("nixmcp.clients.home_manager_client.HomeManagerClient._load_data_internal")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient.invalidate_cache")
+    @patch("mcp_nixos.clients.home_manager_client.HomeManagerClient._load_data_internal")
     def test_ensure_loaded_force_refresh(self, mock_load, mock_invalidate):
         """Test force_refresh parameter calls invalidate_cache."""
         client = HomeManagerClient()

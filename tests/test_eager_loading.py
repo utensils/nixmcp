@@ -7,8 +7,8 @@ from unittest.mock import patch, MagicMock
 from mcp.server.fastmcp import FastMCP
 
 # Import the server module
-from nixmcp.server import app_lifespan
-from nixmcp.contexts.home_manager_context import HomeManagerContext as HMContext
+from mcp_nixos.server import app_lifespan
+from mcp_nixos.contexts.home_manager_context import HomeManagerContext as HMContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -17,7 +17,7 @@ logging.disable(logging.CRITICAL)
 class TestEagerLoading(unittest.TestCase):
     """Test the eager loading functionality in the server."""
 
-    @patch("nixmcp.server.home_manager_context")
+    @patch("mcp_nixos.server.home_manager_context")
     def test_app_lifespan_calls_load_in_background(self, mock_hm_context):
         """Test that app_lifespan calls load_in_background on the HomeManagerContext's client."""
         # Create a mock server
@@ -47,7 +47,7 @@ class TestEagerLoading(unittest.TestCase):
         # Verify load_in_background was called on the client
         self.assertTrue(mock_client.load_in_background.called, "load_in_background was not called during app_lifespan")
 
-    @patch("nixmcp.contexts.home_manager_context.HomeManagerClient")
+    @patch("mcp_nixos.contexts.home_manager_context.HomeManagerClient")
     def test_home_manager_context_ensures_loaded(self, mock_client_class):
         """Test that the HomeManagerContext.ensure_loaded calls the client's ensure_loaded."""
         # Create a mock client
@@ -79,7 +79,7 @@ class TestEagerLoading(unittest.TestCase):
         # Verify the client's ensure_loaded was called with force_refresh=True
         mock_client.ensure_loaded.assert_called_with(force_refresh=True)
 
-    @patch("nixmcp.contexts.home_manager_context.HomeManagerClient")
+    @patch("mcp_nixos.contexts.home_manager_context.HomeManagerClient")
     def test_cache_invalidation(self, mock_client_class):
         """Test the cache invalidation functionality."""
         # Create a mock client
@@ -141,7 +141,7 @@ class TestEagerLoading(unittest.TestCase):
     def test_run_server_lifespan(self):
         """Run an integrated server lifespan with eager loading test."""
         # Create a mock and patch it in place
-        with patch("nixmcp.server.home_manager_context") as mock_hm_context:
+        with patch("mcp_nixos.server.home_manager_context") as mock_hm_context:
             # Create a mock client with load_in_background that we can track
             mock_client = MagicMock()
             mock_hm_context.hm_client = mock_client

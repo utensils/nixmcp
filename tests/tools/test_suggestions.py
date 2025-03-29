@@ -1,13 +1,12 @@
-"""Tests for suggestion and error handling in NixMCP."""
+"""Tests for suggestion and error handling in MCP-NixOS."""
 
+# Disable logging during tests
+import logging
 import unittest
 from unittest.mock import patch
 
 # Import the server module functions and classes
-from nixmcp.server import nixos_search, nixos_info, ElasticsearchClient, NixOSContext
-
-# Disable logging during tests
-import logging
+from mcp_nixos.server import ElasticsearchClient, NixOSContext, nixos_info, nixos_search
 
 logging.disable(logging.CRITICAL)
 

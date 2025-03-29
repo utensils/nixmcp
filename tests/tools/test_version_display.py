@@ -4,8 +4,8 @@ Test to verify version information is properly displayed for real packages.
 
 import unittest
 from unittest.mock import patch
-from nixmcp.contexts.nixos_context import NixOSContext
-from nixmcp.tools.nixos_tools import nixos_info
+from mcp_nixos.contexts.nixos_context import NixOSContext
+from mcp_nixos.tools.nixos_tools import nixos_info
 
 
 class TestVersionDisplay(unittest.TestCase):

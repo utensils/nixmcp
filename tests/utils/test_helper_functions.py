@@ -1,7 +1,8 @@
-"""Tests for helper functions in the NixMCP server."""
+"""Tests for helper functions in the MCP-NixOS server."""
 
 import unittest
-from nixmcp.server import create_wildcard_query
+
+from mcp_nixos.server import create_wildcard_query
 
 
 class TestHelperFunctions(unittest.TestCase):

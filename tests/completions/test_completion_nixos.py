@@ -8,7 +8,7 @@ options, programs, and tool arguments.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from nixmcp.completions.nixos import (
+from mcp_nixos.completions.nixos import (
     complete_nixos_package_name,
     complete_nixos_option_name,
     complete_nixos_program_name,
@@ -151,7 +151,7 @@ async def test_complete_nixos_search_arguments_query():
     nixos_context.get_es_client.return_value = es_client
 
     # Mock package name completion for query parameter
-    with patch("nixmcp.completions.nixos.complete_nixos_package_name", new_callable=AsyncMock) as mock_package:
+    with patch("mcp_nixos.completions.nixos.complete_nixos_package_name", new_callable=AsyncMock) as mock_package:
         mock_package.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         # Test with query argument
@@ -205,7 +205,7 @@ async def test_complete_nixos_info_arguments_name():
     nixos_context.get_es_client.return_value = es_client
 
     # Mock package name completion for name parameter
-    with patch("nixmcp.completions.nixos.complete_nixos_package_name", new_callable=AsyncMock) as mock_package:
+    with patch("mcp_nixos.completions.nixos.complete_nixos_package_name", new_callable=AsyncMock) as mock_package:
         mock_package.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         # Test with name argument

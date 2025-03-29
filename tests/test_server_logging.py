@@ -5,8 +5,8 @@ import logging
 import unittest
 from unittest.mock import patch, MagicMock
 
-# Import the setup_logging function from nixmcp.server.py
-from nixmcp.server import setup_logging
+# Import the setup_logging function from mcp_nixos.server.py
+from mcp_nixos.server import setup_logging
 
 
 class TestLogging(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestLogging(unittest.TestCase):
     def setUp(self):
         """Set up for tests by removing existing handlers."""
         # Reset logger to avoid interference between tests
-        logger = logging.getLogger("nixmcp")
+        logger = logging.getLogger("mcp_nixos")
         for handler in logger.handlers[:]:
             logger.removeHandler(handler)
 

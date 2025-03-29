@@ -12,11 +12,11 @@ from collections import defaultdict
 from unittest.mock import MagicMock, AsyncMock, patch
 from bs4 import BeautifulSoup
 
-from nixmcp.clients.darwin.darwin_client import DarwinClient, DarwinOption
-from nixmcp.clients.html_client import HTMLClient
-from nixmcp.cache.html_cache import HTMLCache
-from nixmcp.cache.simple_cache import SimpleCache
-from nixmcp.utils.cache_helpers import get_default_cache_dir
+from mcp_nixos.clients.darwin.darwin_client import DarwinClient, DarwinOption
+from mcp_nixos.clients.html_client import HTMLClient
+from mcp_nixos.cache.html_cache import HTMLCache
+from mcp_nixos.cache.simple_cache import SimpleCache
+from mcp_nixos.utils.cache_helpers import get_default_cache_dir
 
 
 @pytest.fixture
@@ -86,7 +86,7 @@ def mock_memory_cache():
 @pytest.fixture
 def darwin_client(mock_html_client, mock_memory_cache):
     """Create a Darwin client for testing."""
-    with patch("nixmcp.clients.darwin.darwin_client.SimpleCache", return_value=mock_memory_cache):
+    with patch("mcp_nixos.clients.darwin.darwin_client.SimpleCache", return_value=mock_memory_cache):
         # We no longer need to patch HTMLCache since we're reusing html_client.cache
         client = DarwinClient(html_client=mock_html_client)
         return client
@@ -320,7 +320,7 @@ def test_cache_initialization():
     assert str(darwin_client.html_cache.cache_dir).startswith(str(default_cache_dir))
 
     # Create a darwin client without passing a client to test the default case
-    with patch("nixmcp.clients.darwin.darwin_client.HTMLClient") as mock_html_client_class:
+    with patch("mcp_nixos.clients.darwin.darwin_client.HTMLClient") as mock_html_client_class:
         # Setup the mock to return a client with a proper cache
         mock_client = MagicMock()
         mock_cache = MagicMock()

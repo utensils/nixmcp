@@ -4,11 +4,11 @@ import logging
 from typing import Dict, Any, Optional
 
 # Import the context and client
-from nixmcp.contexts.home_manager_context import HomeManagerContext
-from nixmcp.clients.home_manager_client import HomeManagerClient
+from mcp_nixos.contexts.home_manager_context import HomeManagerContext
+from mcp_nixos.clients.home_manager_client import HomeManagerClient
 
 # Import the resource functions directly
-from nixmcp.resources.home_manager_resources import (
+from mcp_nixos.resources.home_manager_resources import (
     home_manager_status_resource,
     home_manager_search_options_resource,
     home_manager_option_resource,

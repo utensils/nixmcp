@@ -1,6 +1,6 @@
 {
     "include": [
-        "nixmcp",
+        "mcp_nixos",
         "tests"
     ],
     "exclude": [

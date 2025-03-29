@@ -1,12 +1,12 @@
 """
-Test multi-word query handling in NixMCP.
+Test multi-word query handling in MCP-NixOS.
 """
 
 import unittest
 from unittest.mock import patch, MagicMock
 
-from nixmcp.utils.helpers import create_wildcard_query, extract_hierarchical_paths, parse_multi_word_query
-from nixmcp.tools.nixos_tools import nixos_search
+from mcp_nixos.utils.helpers import create_wildcard_query, extract_hierarchical_paths, parse_multi_word_query
+from mcp_nixos.tools.nixos_tools import nixos_search
 
 
 class TestMultiWordQueryParsing(unittest.TestCase):
@@ -55,7 +55,7 @@ class TestMultiWordQueryParsing(unittest.TestCase):
         self.assertEqual(result["terms"], ["enable", "ssl"])
 
 
-@patch("nixmcp.tools.nixos_tools.get_context_or_fallback")
+@patch("mcp_nixos.tools.nixos_tools.get_context_or_fallback")
 class TestNixOSSearchWithMultiWord(unittest.TestCase):
     """Test the nixos_search function with multi-word queries."""
 

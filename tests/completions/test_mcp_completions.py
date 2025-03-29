@@ -1,11 +1,12 @@
 """
 Tests for MCP completion integration.
 
-This module tests the integration of completion capabilities in the NixMCP server.
+This module tests the integration of completion capabilities in the MCP-NixOS server.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 # Mock the FastMCP class since we don't want to actually use the real one in tests
@@ -32,7 +33,7 @@ async def test_mcp_completion_method():
     """Test the MCP completion/complete method."""
     # Create a MockFastMCP instance
     mcp = MockFastMCP(
-        "NixMCP",
+        "MCP-NixOS",
         version="0.1.0",
         description="NixOS Model Context Protocol Server",
         capabilities=["resources", "tools", "completions"],
@@ -43,7 +44,7 @@ async def test_mcp_completion_method():
     mock_home_manager_context = MagicMock()
 
     # Mock handle_completion
-    with patch("nixmcp.completions.handle_completion", new_callable=AsyncMock) as mock_handle:
+    with patch("mcp_nixos.completions.handle_completion", new_callable=AsyncMock) as mock_handle:
         mock_handle.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         # Register the completion method handler
@@ -73,7 +74,7 @@ async def test_mcp_completion_capability():
     """Test that the MCP server has the completions capability."""
     # Create a MockFastMCP with completions capability
     mcp = MockFastMCP(
-        "NixMCP",
+        "MCP-NixOS",
         version="0.1.0",
         description="NixOS Model Context Protocol Server",
         capabilities=["resources", "tools", "completions"],

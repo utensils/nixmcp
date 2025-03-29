@@ -1,12 +1,12 @@
-"""Tests for hierarchical path handling in NixMCP."""
+"""Tests for hierarchical path handling in MCP-NixOS."""
 
-import unittest
-import logging
 import json
+import logging
+import unittest
 from unittest.mock import patch
 
 # Import the server module
-from nixmcp.server import ElasticsearchClient, create_wildcard_query
+from mcp_nixos.server import ElasticsearchClient, create_wildcard_query
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)

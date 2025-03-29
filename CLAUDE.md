@@ -1,8 +1,10 @@
-# CLAUDE.md - NixMCP Project Guidelines
+# CLAUDE.md - MCP-NixOS Project Guidelines
 
 ## IMPORTANT: Source of Truth Rule
+
 CLAUDE.md is the primary source of truth for coding rules and guidelines.
 When updating rules:
+
 1. Modify CLAUDE.md first
 2. Run these commands to sync to other rule files:
    ```
@@ -12,7 +14,9 @@ When updating rules:
    ```
 
 ## IMPORTANT: Match Existing Code Patterns
+
 When modifying or adding to this codebase, always:
+
 1. Follow the existing code style and patterns in each module
 2. Study nearby code before making changes to understand the established approach
 3. Maintain consistency with the surrounding code (naming, structure, error handling)
@@ -23,52 +27,56 @@ When modifying or adding to this codebase, always:
 This ensures the codebase remains cohesive and maintainable.
 
 ## Project Overview
-NixMCP is a Model Context Protocol (MCP) server for NixOS resources, Home Manager configuration options, and nix-darwin macOS configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, Home Manager user configuration options, and nix-darwin macOS system configuration options. Communication happens over standard input/output streams using a JSON-based message format.
+
+MCP-NixOS is a Model Context Protocol (MCP) server for NixOS resources, Home Manager configuration options, and nix-darwin macOS configuration options. It provides MCP resources and tools that allow AI assistants to search and retrieve information about NixOS packages, system options, Home Manager user configuration options, and nix-darwin macOS system configuration options. Communication happens over standard input/output streams using a JSON-based message format.
 
 **NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
 
 ## Project Structure
+
 The codebase follows a modular architecture:
 
-- `nixmcp/__init__.py` - Package version and metadata
-- `nixmcp/__main__.py` - Entry point for direct execution
-- `nixmcp/cache/` - Caching components:
+- `mcp_nixos/__init__.py` - Package version and metadata
+- `mcp_nixos/__main__.py` - Entry point for direct execution
+- `mcp_nixos/cache/` - Caching components:
   - `simple_cache.py` - In-memory caching with TTL and size limits
   - `html_cache.py` - Multi-format filesystem caching (HTML, JSON, binary data)
-- `nixmcp/clients/` - API clients:
+- `mcp_nixos/clients/` - API clients:
   - `elasticsearch_client.py` - Client for NixOS Elasticsearch API
   - `home_manager_client.py` - Client for parsing and caching Home Manager docs
   - `darwin/darwin_client.py` - Client for parsing and caching nix-darwin docs
   - `html_client.py` - HTTP client with filesystem caching
-- `nixmcp/contexts/` - Application contexts:
+- `mcp_nixos/contexts/` - Application contexts:
   - `nixos_context.py` - NixOS context
   - `home_manager_context.py` - Home Manager context
   - `darwin/darwin_context.py` - nix-darwin context
-- `nixmcp/resources/` - MCP resource definitions:
+- `mcp_nixos/resources/` - MCP resource definitions:
   - `nixos_resources.py` - NixOS resources
   - `home_manager_resources.py` - Home Manager resources
   - `darwin/darwin_resources.py` - nix-darwin resources
-- `nixmcp/tools/` - MCP tool implementations:
+- `mcp_nixos/tools/` - MCP tool implementations:
   - `nixos_tools.py` - NixOS tools
   - `home_manager_tools.py` - Home Manager tools
   - `darwin/darwin_tools.py` - nix-darwin tools
-- `nixmcp/utils/` - Utility functions and helpers:
+- `mcp_nixos/utils/` - Utility functions and helpers:
   - `cache_helpers.py` - Cross-platform cache directory management
   - `helpers.py` - General utility functions
-- `nixmcp/logging.py` - Centralized logging configuration
-- `nixmcp/server.py` - FastMCP server implementation
+- `mcp_nixos/logging.py` - Centralized logging configuration
+- `mcp_nixos/server.py` - FastMCP server implementation
 
 ## MCP Implementation Guidelines
 
 ### Resource Definitions
+
 - Use `nixos://` scheme for NixOS resources, `home-manager://` for Home Manager, `darwin://` for nix-darwin
 - Follow consistent path hierarchy: `scheme://category/action/parameter`
 - Place parameters in curly braces: `nixos://package/{package_name}`
-- Use type hints and clear docstrings 
+- Use type hints and clear docstrings
 - Return structured data as a dictionary
 - For errors, use `{"error": message, "found": false}` pattern
 
 ### Tool Definitions
+
 - Use clear function names with type hints (return type `str` for human-readable output)
 - Include optional `context` parameter for dependency injection in tests
 - Use detailed Google-style docstrings with Args/Returns sections
@@ -76,6 +84,7 @@ The codebase follows a modular architecture:
 - Use provided context or fall back to global contexts
 
 ### Context Management
+
 - Use lifespan context manager for resource initialization
 - Initialize shared resources at startup and clean up on shutdown:
   - Home Manager and nix-darwin data are eagerly loaded during server startup
@@ -85,6 +94,7 @@ The codebase follows a modular architecture:
 - Prefer dependency injection over global state access
 
 ### Best Practices
+
 - Use resources for retrieving data, tools for actions/processing with formatted output
 - Always use proper type annotations (Optional, Union, List, Dict, etc.)
 - Follow strict null safety guidelines:
@@ -100,6 +110,7 @@ The codebase follows a modular architecture:
 ## MCP Resources
 
 ### NixOS Resources
+
 - `nixos://status`: NixOS server status information
 - `nixos://package/{package_name}`: NixOS package information
 - `nixos://search/packages/{query}`: NixOS package search
@@ -109,6 +120,7 @@ The codebase follows a modular architecture:
 - `nixos://packages/stats`: NixOS package statistics
 
 ### Home Manager Resources
+
 - `home-manager://status`: Home Manager context status information
 - `home-manager://search/options/{query}`: Home Manager options search
 - `home-manager://option/{option_name}`: Home Manager option information
@@ -122,6 +134,7 @@ The codebase follows a modular architecture:
   - And many more (accounts, fonts, gtk, xdg, etc.)
 
 ### nix-darwin Resources
+
 - `darwin://status`: nix-darwin context status information
 - `darwin://search/options/{query}`: nix-darwin options search
 - `darwin://option/{option_name}`: nix-darwin option information
@@ -148,50 +161,55 @@ The codebase follows a modular architecture:
 ## MCP Tools
 
 ### NixOS Tools
-- `nixos_search(query, type="packages", limit=20, channel="unstable", context=None)`: 
+
+- `nixos_search(query, type="packages", limit=20, channel="unstable", context=None)`:
   Search for packages, options, or programs with automatic wildcard handling
-- `nixos_info(name, type="package", channel="unstable", context=None)`: 
+- `nixos_info(name, type="package", channel="unstable", context=None)`:
   Get detailed information about a specific package or option
-  
+
 Both tools above support the `channel` parameter with values:
-  - `"unstable"`: Latest NixOS unstable channel (default)
-  - `"stable"`: Current stable NixOS release (currently 24.11)
-  - `"24.11"`: Specific version reference (same as "stable" currently)
-- `nixos_stats(channel="unstable", context=None)`: 
+
+- `"unstable"`: Latest NixOS unstable channel (default)
+- `"stable"`: Current stable NixOS release (currently 24.11)
+- `"24.11"`: Specific version reference (same as "stable" currently)
+- `nixos_stats(channel="unstable", context=None)`:
   Get statistical information about NixOS packages and options, with accurate option counts using Elasticsearch's Count API
 
 ### Home Manager Tools
-- `home_manager_search(query, limit=20, context=None)`: 
+
+- `home_manager_search(query, limit=20, context=None)`:
   Search for Home Manager options with automatic wildcard handling
-- `home_manager_info(name, context=None)`: 
+- `home_manager_info(name, context=None)`:
   Get detailed information about a specific Home Manager option
-- `home_manager_stats(context=None)`: 
+- `home_manager_stats(context=None)`:
   Get statistical information about Home Manager options
-- `home_manager_list_options(context=None)`: 
+- `home_manager_list_options(context=None)`:
   List all top-level Home Manager option categories
-- `home_manager_options_by_prefix(option_prefix, context=None)`: 
+- `home_manager_options_by_prefix(option_prefix, context=None)`:
   Get all Home Manager options under a specific prefix
-  
+
 ### nix-darwin Tools
-- `darwin_search(query, limit=20, context=None)`: 
+
+- `darwin_search(query, limit=20, context=None)`:
   Search for nix-darwin options with automatic wildcard handling and enhanced fuzzy search using Levenshtein distance
-- `darwin_info(name, context=None)`: 
+- `darwin_info(name, context=None)`:
   Get detailed information about a specific nix-darwin option
-- `darwin_stats(context=None)`: 
+- `darwin_stats(context=None)`:
   Get statistical information about nix-darwin options
-- `darwin_list_options(context=None)`: 
+- `darwin_list_options(context=None)`:
   List all top-level nix-darwin option categories
-- `darwin_options_by_prefix(option_prefix, context=None)`: 
+- `darwin_options_by_prefix(option_prefix, context=None)`:
   Get all nix-darwin options under a specific prefix
 
 ## Searching for Options
 
 ### Best Practices
+
 - Use full hierarchical paths for precise option searching:
   - NixOS: `services.postgresql` for all PostgreSQL options
   - Home Manager: `programs.git` for all Git options
   - nix-darwin: `system.defaults.dock` for all dock options
-  - Wildcards are automatically added where appropriate (services.postgresql*)
+  - Wildcards are automatically added where appropriate (services.postgresql\*)
 - Service paths get special handling with automatic suggestions
 - Multiple query strategies are used: exact match, prefix match, wildcard match
 - For NixOS specifically, multiple channels are supported: unstable (default), stable (current release), or specific version (e.g., 24.11)
@@ -199,6 +217,7 @@ Both tools above support the `channel` parameter with values:
 ## System Requirements
 
 ### Elasticsearch API (NixOS features)
+
 - Uses NixOS search Elasticsearch API
 - Configure with environment variables (defaults provided):
   ```
@@ -211,6 +230,7 @@ Both tools above support the `channel` parameter with values:
 - Provides enhanced search capabilities with field-specific boosts and query optimization
 
 ### HTML Documentation Parsing (Home Manager and nix-darwin features)
+
 - Fetches and parses HTML docs from:
   - Home Manager: nix-community.github.io/home-manager/
   - nix-darwin: nix-darwin.github.io/nix-darwin/manual/
@@ -234,23 +254,27 @@ Both tools above support the `channel` parameter with values:
 - Related options are automatically suggested based on hierarchical paths
 
 ## Configuration
+
 - `LOG_LEVEL`: Set logging level (default: INFO)
 - `LOG_FILE`: Optional log file path (default: logs to stdout/stderr)
-- `NIXMCP_CACHE_DIR`: Custom directory for filesystem cache (default: OS-specific standard location)
-- `NIXMCP_CACHE_TTL`: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
+- `MCP_NIXOS_CACHE_DIR`: Custom directory for filesystem cache (default: OS-specific standard location)
+- `MCP_NIXOS_CACHE_TTL`: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
 - Environment variables for Elasticsearch API credentials (see above)
 
 ### Cache Directory Locations
-- Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
-- macOS: `~/Library/Caches/nixmcp/`
-- Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
+
+- Linux: `$XDG_CACHE_HOME/mcp-nixos/` (typically `~/.cache/mcp-nixos/`)
+- macOS: `~/Library/Caches/mcp-nixos/`
+- Windows: `%LOCALAPPDATA%\mcp-nixos\Cache\`
 
 ### Cache File Types
+
 - `*.html` - Raw HTML content from Home Manager documentation
 - `*.data.json` - Serialized structured data (options metadata, statistics)
 - `*.data.pickle` - Binary serialized complex data structures (search indices, default dictionaries, sets)
 
 ## Testing
+
 - Use pytest with code coverage reporting (target: 80%)
 - Run static type checking with `typecheck` command:
   - Zero-tolerance policy for type errors
@@ -273,16 +297,17 @@ Both tools above support the `channel` parameter with values:
 - Use dependency injection for testable components:
   - Pass mock contexts directly to resource/tool functions
   - Avoid patching global state
-- Mock external dependencies (Elasticsearch, Home Manager docs) 
+- Mock external dependencies (Elasticsearch, Home Manager docs)
 - Test both success paths and error handling
 - Always check for None values before accessing attributes in tests
 - **IMPORTANT**: Mock test functions, not production code:
+
   ```python
   # GOOD: Clean production code with mocking in tests
   def production_function():
       result = make_api_request()
       return process_result(result)
-  
+
   # In tests:
   @patch("module.make_api_request")
   def test_production_function(mock_api):
@@ -294,21 +319,24 @@ Both tools above support the `channel` parameter with values:
 ## Installation and Usage
 
 ### Installation Methods
-- pip: `pip install nixmcp`
-- uv: `uv pip install nixmcp`
-- uvx (for Claude Code): `uvx nixmcp`
+
+- pip: `pip install mcp-nixos`
+- uv: `uv pip install mcp-nixos`
+- uvx (for Claude Code): `uvx mcp-nixos`
 
 ### MCP Configuration
-To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
+
+To configure Claude Code to use mcp-nixos, add to `~/.config/claude/config.json`:
+
 ```json
 {
   "mcpServers": {
     "nixos": {
       "command": "uvx",
-      "args": ["nixmcp"],
+      "args": ["mcp-nixos"],
       "env": {
         "LOG_LEVEL": "INFO",
-        "LOG_FILE": "/path/to/nixmcp.log"
+        "LOG_FILE": "/path/to/mcp-nixos.log"
       }
     }
   }
@@ -316,6 +344,7 @@ To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
 ```
 
 ### Development Commands
+
 - Development environment: `nix develop`
 - Run server: `run [--port=PORT]`
 - Run tests: `run-tests [--no-coverage]`
@@ -327,6 +356,7 @@ To configure Claude Code to use nixmcp, add to `~/.config/claude/config.json`:
 - Publish to PyPI: `publish`
 
 ## Code Style
+
 - Python 3.11+ with type hints
 - 4-space indentation, 120 characters max line length
 - PEP 8 naming: snake_case for functions/variables, CamelCase for classes

@@ -5,25 +5,25 @@ import shutil
 import tempfile
 import pytest
 
-from nixmcp.clients.darwin.darwin_client import DarwinClient
+from mcp_nixos.clients.darwin.darwin_client import DarwinClient
 
 
 @pytest.fixture
 def temp_cache_dir():
     """Create a temporary directory for cache testing."""
-    temp_dir = tempfile.mkdtemp(prefix="nixmcp_test_cache_")
-    old_cache_dir = os.environ.get("NIXMCP_CACHE_DIR")
+    temp_dir = tempfile.mkdtemp(prefix="mcp_nixos_test_cache_")
+    old_cache_dir = os.environ.get("MCP_NIXOS_CACHE_DIR")
 
     # Set environment variable to use our temp dir
-    os.environ["NIXMCP_CACHE_DIR"] = temp_dir
+    os.environ["MCP_NIXOS_CACHE_DIR"] = temp_dir
 
     yield temp_dir
 
     # Cleanup
     if old_cache_dir:
-        os.environ["NIXMCP_CACHE_DIR"] = old_cache_dir
+        os.environ["MCP_NIXOS_CACHE_DIR"] = old_cache_dir
     else:
-        del os.environ["NIXMCP_CACHE_DIR"]
+        del os.environ["MCP_NIXOS_CACHE_DIR"]
 
     shutil.rmtree(temp_dir)
 

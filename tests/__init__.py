@@ -1,4 +1,4 @@
-"""Test utilities and base classes for NixMCP tests."""
+"""Test utilities and base classes for MCP-NixOS tests."""
 
 import unittest
 import sys
@@ -7,14 +7,14 @@ from unittest.mock import patch
 
 # Configure import path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from nixmcp.contexts.nixos_context import NixOSContext
-from nixmcp.clients.elasticsearch_client import ElasticsearchClient
-from nixmcp.cache.simple_cache import SimpleCache
+from mcp_nixos.contexts.nixos_context import NixOSContext
+from mcp_nixos.clients.elasticsearch_client import ElasticsearchClient
+from mcp_nixos.cache.simple_cache import SimpleCache
 
 
 # Base test class with common setup for mocked tests
-class NixMCPTestBase(unittest.TestCase):
-    """Base test class for NixMCP tests that use mocked Elasticsearch responses."""
+class MCPNixOSTestBase(unittest.TestCase):
+    """Base test class for MCP-NixOS tests that use mocked Elasticsearch responses."""
 
     def setUp(self):
         """Set up the test environment with mocked Elasticsearch client."""
@@ -31,8 +31,8 @@ class NixMCPTestBase(unittest.TestCase):
 
 
 # Base test class for real API tests
-class NixMCPRealAPITestBase(unittest.TestCase):
-    """Base test class for NixMCP tests that use real Elasticsearch API calls."""
+class MCPNixOSRealAPITestBase(unittest.TestCase):
+    """Base test class for MCP-NixOS tests that use real Elasticsearch API calls."""
 
     def setUp(self):
         """Set up the test environment for real API tests."""

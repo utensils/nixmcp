@@ -8,7 +8,7 @@ import json
 from collections import defaultdict
 from unittest import mock
 
-from nixmcp.cache.html_cache import HTMLCache
+from mcp_nixos.cache.html_cache import HTMLCache
 
 
 class TestHTMLCache:

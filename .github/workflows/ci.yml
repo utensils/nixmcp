@@ -157,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/nixmcp
+      url: https://pypi.org/p/mcp-nixos
     permissions:
       id-token: write
     steps:
@@ -192,7 +192,7 @@ jobs:
           echo "Verifying wheel: $WHEEL_FILE"
           python -m pip install "$WHEEL_FILE"
           echo "Checking installation..."
-          python -c "import nixmcp; print(f'Successfully installed nixmcp version: {nixmcp.__version__}')"
+          python -c "import mcp_nixos; print(f'Successfully installed mcp_nixos version: {mcp_nixos.__version__}')"
           deactivate
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

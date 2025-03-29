@@ -8,13 +8,13 @@ for NixOS and Home Manager resources and tools.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from nixmcp.completions import (
+from mcp_nixos.completions import (
     handle_completion,
     complete_resource_uri,
     complete_tool_argument,
 )
 
-from nixmcp.completions.utils import create_completion_item
+from mcp_nixos.completions.utils import create_completion_item
 
 
 # Test basic completion item creation
@@ -40,7 +40,7 @@ async def test_handle_completion_resource():
     home_manager_context = MagicMock()
 
     # Mock resource URI completion
-    with patch("nixmcp.completions.complete_resource_uri", new_callable=AsyncMock) as mock_resource:
+    with patch("mcp_nixos.completions.complete_resource_uri", new_callable=AsyncMock) as mock_resource:
         mock_resource.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         # Test resource reference
@@ -65,7 +65,7 @@ async def test_handle_completion_tool():
     home_manager_context = MagicMock()
 
     # Mock tool argument completion
-    with patch("nixmcp.completions.complete_tool_argument", new_callable=AsyncMock) as mock_tool:
+    with patch("mcp_nixos.completions.complete_tool_argument", new_callable=AsyncMock) as mock_tool:
         mock_tool.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         # Test tool reference
@@ -87,7 +87,7 @@ async def test_handle_completion_prompt():
     home_manager_context = MagicMock()
 
     # Mock prompt argument completion
-    with patch("nixmcp.completions.complete_prompt_argument", new_callable=AsyncMock) as mock_prompt:
+    with patch("mcp_nixos.completions.complete_prompt_argument", new_callable=AsyncMock) as mock_prompt:
         mock_prompt.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         # Test prompt reference
@@ -126,7 +126,7 @@ async def test_handle_completion_error():
     home_manager_context = MagicMock()
 
     # Mock resource URI completion to raise an exception
-    with patch("nixmcp.completions.complete_resource_uri", new_callable=AsyncMock) as mock_resource:
+    with patch("mcp_nixos.completions.complete_resource_uri", new_callable=AsyncMock) as mock_resource:
         mock_resource.side_effect = Exception("Test error")
 
         # Test resource reference that will raise an error
@@ -156,7 +156,7 @@ async def test_complete_resource_uri_nixos_package():
     uri = "nixos://package/test"
 
     # Mock the actual implementation function that gets called
-    with patch("nixmcp.completions.complete_nixos_package_name", new_callable=AsyncMock) as mock_package:
+    with patch("mcp_nixos.completions.complete_nixos_package_name", new_callable=AsyncMock) as mock_package:
         mock_package.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         result = await complete_resource_uri(uri, nixos_context, home_manager_context)
@@ -180,7 +180,7 @@ async def test_complete_resource_uri_home_manager_option():
     uri = "home-manager://option/test"
 
     # Mock the actual implementation function that gets called
-    with patch("nixmcp.completions.complete_home_manager_option_name", new_callable=AsyncMock) as mock_option:
+    with patch("mcp_nixos.completions.complete_home_manager_option_name", new_callable=AsyncMock) as mock_option:
         mock_option.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         result = await complete_resource_uri(uri, nixos_context, home_manager_context)
@@ -226,7 +226,7 @@ async def test_complete_tool_argument_nixos_search():
     arg_value = "test"
 
     # Mock the actual implementation function that gets called
-    with patch("nixmcp.completions.complete_nixos_search_arguments", new_callable=AsyncMock) as mock_search:
+    with patch("mcp_nixos.completions.complete_nixos_search_arguments", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         result = await complete_tool_argument(tool_name, arg_name, arg_value, nixos_context, home_manager_context)
@@ -250,7 +250,7 @@ async def test_complete_tool_argument_home_manager_search():
     arg_value = "test"
 
     # Mock the actual implementation function that gets called
-    with patch("nixmcp.completions.complete_home_manager_search_arguments", new_callable=AsyncMock) as mock_search:
+    with patch("mcp_nixos.completions.complete_home_manager_search_arguments", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = {"items": [{"label": "test", "value": "test"}]}
 
         result = await complete_tool_argument(tool_name, arg_name, arg_value, nixos_context, home_manager_context)

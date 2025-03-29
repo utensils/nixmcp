@@ -1,6 +1,6 @@
 # tests/tools/test_service_options.py
 
-"""Tests for service path option handling and discovery in NixMCP."""
+"""Tests for service path option handling and discovery in MCP-NixOS."""
 
 import json
 
@@ -9,10 +9,10 @@ import logging
 import unittest
 from unittest.mock import MagicMock, patch
 
-from nixmcp.clients.elasticsearch_client import FIELD_OPT_NAME, FIELD_TYPE  # Import constants used in tests
+from mcp_nixos.clients.elasticsearch_client import FIELD_OPT_NAME, FIELD_TYPE  # Import constants used in tests
 
 # Import the server module functions and classes
-from nixmcp.server import ElasticsearchClient, NixOSContext, nixos_info, nixos_search
+from mcp_nixos.server import ElasticsearchClient, NixOSContext, nixos_info, nixos_search
 
 logging.disable(logging.CRITICAL)
 
@@ -23,7 +23,7 @@ class TestServicePathDetection(unittest.TestCase):
     def test_is_service_path_detection(self):
         """Test the detection of service paths."""
 
-        # Setup - extract the service path detection logic from nixmcp.server.py's nixos_search function
+        # Setup - extract the service path detection logic from mcp_nixos.server.py's nixos_search function
         def is_service_path(query):
             return query.startswith("services.") if not query.startswith("*") else False
 
@@ -41,7 +41,7 @@ class TestServicePathDetection(unittest.TestCase):
     def test_service_name_extraction(self):
         """Test extraction of service name from path."""
 
-        # Setup - extract the service name extraction logic from nixmcp.server.py's nixos_search function
+        # Setup - extract the service name extraction logic from mcp_nixos.server.py's nixos_search function
         def extract_service_name(query):
             if not query.startswith("services."):
                 return ""
@@ -367,7 +367,7 @@ class TestIntegrationScenarios(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         # Patch NixOSContext to control its behavior without real API calls
-        patcher_context = patch("nixmcp.tools.nixos_tools.get_context_or_fallback")
+        patcher_context = patch("mcp_nixos.tools.nixos_tools.get_context_or_fallback")
         self.mock_get_context = patcher_context.start()
         self.addCleanup(patcher_context.stop)
 

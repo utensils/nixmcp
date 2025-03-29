@@ -1,19 +1,19 @@
 """Tests for cross-platform cache directory management."""
 
 import os
+import pathlib
 import sys
 import tempfile
-import pathlib
-from unittest import mock
 import threading
 import time
+from unittest import mock
 
 import pytest
 
-from nixmcp.utils.cache_helpers import get_default_cache_dir, ensure_cache_dir
-from nixmcp.cache.html_cache import HTMLCache
-from nixmcp.clients.html_client import HTMLClient
-from nixmcp.clients.home_manager_client import HomeManagerClient
+from mcp_nixos.cache.html_cache import HTMLCache
+from mcp_nixos.clients.home_manager_client import HomeManagerClient
+from mcp_nixos.clients.html_client import HTMLClient
+from mcp_nixos.utils.cache_helpers import ensure_cache_dir, get_default_cache_dir
 
 
 class TestCrossplatformIntegration:
@@ -24,23 +24,23 @@ class TestCrossplatformIntegration:
         # Linux
         with mock.patch("sys.platform", "linux"):
             with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": "/xdg/cache"}):
-                assert get_default_cache_dir() == "/xdg/cache/nixmcp"
+                assert get_default_cache_dir() == "/xdg/cache/mcp_nixos"
 
         # macOS
         with mock.patch("sys.platform", "darwin"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/Users/test")):
-                assert get_default_cache_dir() == "/Users/test/Library/Caches/nixmcp"
+                assert get_default_cache_dir() == "/Users/test/Library/Caches/mcp_nixos"
 
         # Windows
         with mock.patch("sys.platform", "win32"):
             with mock.patch.dict(os.environ, {"LOCALAPPDATA": r"C:\Users\test\AppData\Local"}):
                 cache_dir = get_default_cache_dir()
-                assert "AppData\\Local\\nixmcp\\Cache" in cache_dir.replace("/", "\\")
+                assert "AppData\\Local\\mcp_nixos\\Cache" in cache_dir.replace("/", "\\")
 
     def test_html_client_environment_ttl(self):
         """Test that HTMLClient respects environment TTL setting."""
         # Set environment variable for TTL
-        with mock.patch.dict(os.environ, {"NIXMCP_CACHE_TTL": "7200"}):  # 2 hours
+        with mock.patch.dict(os.environ, {"MCP_NIXOS_CACHE_TTL": "7200"}):  # 2 hours
             client = HomeManagerClient()
             assert client.cache_ttl == 7200
             # Check if cache is not None before accessing ttl
@@ -52,7 +52,7 @@ class TestCrossplatformIntegration:
         # Setup
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create a client with the temp directory as cache dir
-            with mock.patch.dict(os.environ, {"NIXMCP_CACHE_DIR": temp_dir}):
+            with mock.patch.dict(os.environ, {"MCP_NIXOS_CACHE_DIR": temp_dir}):
                 client = HomeManagerClient()
 
                 # Mock HTML client's fetch method directly
@@ -118,7 +118,7 @@ class TestCrossplatformIntegration:
     def test_integration_with_default_cache_dir(self):
         """Test that default cache directory is correctly created."""
         # Create a client that would use the default dir
-        with mock.patch("nixmcp.cache.html_cache.init_cache_storage") as mock_init:
+        with mock.patch("mcp_nixos.cache.html_cache.init_cache_storage") as mock_init:
             mock_init.return_value = {"cache_dir": "/fake/path", "ttl": 86400, "initialized": True}
 
             HTMLClient()

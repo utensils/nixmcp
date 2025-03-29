@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""setup.py for nixmcp."""
+"""setup.py for mcp-nixos."""
 
 from setuptools import setup
 

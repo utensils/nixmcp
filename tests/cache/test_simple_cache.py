@@ -1,9 +1,10 @@
-"""Tests for the SimpleCache class in the NixMCP server."""
+"""Tests for the SimpleCache class in the MCP-NixOS server."""
 
-import unittest
-import time
 import threading
-from nixmcp.server import SimpleCache
+import time
+import unittest
+
+from mcp_nixos.server import SimpleCache
 
 
 class TestSimpleCache(unittest.TestCase):

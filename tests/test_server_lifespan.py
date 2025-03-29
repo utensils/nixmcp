@@ -3,10 +3,10 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 # Import base test class from __init__.py
-from tests import NixMCPTestBase
+from tests import MCPNixOSTestBase
 
 # Import the server module
-from nixmcp.server import ElasticsearchClient, NixOSContext
+from mcp_nixos.server import ElasticsearchClient, NixOSContext
 
 # Disable logging during tests
 logging.disable(logging.CRITICAL)
@@ -16,7 +16,7 @@ logging.disable(logging.CRITICAL)
 class TestServerLifespan:
     """Test the server lifespan context manager."""
 
-    @patch("nixmcp.server.app_lifespan")
+    @patch("mcp_nixos.server.app_lifespan")
     def test_lifespan_initialization(self, mock_lifespan):
         """Test that the lifespan context manager initializes correctly."""
         # Create a mock context
@@ -39,8 +39,8 @@ class TestServerLifespan:
         assert isinstance(mock_context["nixos_context"].es_client, ElasticsearchClient)
 
     @pytest.mark.asyncio
-    @patch("nixmcp.server.app_lifespan")
-    @patch("nixmcp.server.HomeManagerContext")
+    @patch("mcp_nixos.server.app_lifespan")
+    @patch("mcp_nixos.server.HomeManagerContext")
     async def test_eager_loading_on_startup(self, mock_hm_context_class, mock_lifespan):
         """Test that the server eagerly loads Home Manager data on startup."""
         # Create mock instances
@@ -64,7 +64,7 @@ class TestServerLifespan:
         # Verify that ensure_loaded was called
         mock_hm_context.ensure_loaded.assert_called_once()
 
-    @patch("nixmcp.server.app_lifespan")
+    @patch("mcp_nixos.server.app_lifespan")
     def test_system_prompt_configuration(self, mock_lifespan):
         """Test that the server configures the system prompt correctly for LLMs."""
         # Create a mock FastMCP server
@@ -158,7 +158,7 @@ class TestServerLifespan:
         assert "24.11" in prompt_text
 
 
-class TestErrorHandling(NixMCPTestBase):
+class TestErrorHandling(MCPNixOSTestBase):
     """Test error handling in the server."""
 
     def test_connection_error_handling(self):
@@ -215,7 +215,7 @@ class TestErrorHandling(NixMCPTestBase):
     def test_search_with_invalid_parameters(self):
         """Test search with invalid parameters."""
         # Import the nixos_search function directly
-        from nixmcp.server import nixos_search
+        from mcp_nixos.server import nixos_search
 
         # Test with an invalid type
         result = nixos_search("python", "invalid_type", 5)

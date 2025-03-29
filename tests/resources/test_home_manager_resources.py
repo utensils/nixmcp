@@ -3,10 +3,10 @@ import unittest  # Import explicitly for the main block
 from unittest.mock import Mock
 
 # Import base test class
-from tests import NixMCPTestBase
+from tests import MCPNixOSTestBase
 
 # Import the resource functions directly from the resources module
-from nixmcp.resources.home_manager_resources import (
+from mcp_nixos.resources.home_manager_resources import (
     home_manager_status_resource,
     home_manager_search_options_resource,
     home_manager_option_resource,
@@ -19,7 +19,7 @@ from nixmcp.resources.home_manager_resources import (
 logging.disable(logging.CRITICAL)
 
 
-class TestHomeManagerResourceEndpoints(NixMCPTestBase):
+class TestHomeManagerResourceEndpoints(MCPNixOSTestBase):
     """Test the Home Manager MCP resource endpoints."""
 
     def setUp(self):

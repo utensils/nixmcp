@@ -5,10 +5,10 @@ import pathlib
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from nixmcp.clients.darwin.darwin_client import DarwinClient
-from nixmcp.contexts.darwin.darwin_context import DarwinContext
-from nixmcp.utils.cache_helpers import get_default_cache_dir
-from nixmcp.tools.darwin.darwin_tools import (
+from mcp_nixos.clients.darwin.darwin_client import DarwinClient
+from mcp_nixos.contexts.darwin.darwin_context import DarwinContext
+from mcp_nixos.utils.cache_helpers import get_default_cache_dir
+from mcp_nixos.tools.darwin.darwin_tools import (
     darwin_search,
     darwin_info,
     darwin_stats,

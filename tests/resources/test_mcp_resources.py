@@ -2,14 +2,14 @@ import logging
 from unittest.mock import patch
 
 # Import base test class
-from tests import NixMCPTestBase
+from tests import MCPNixOSTestBase
 
 # Import for consistent test version
-from nixmcp import __version__
+from mcp_nixos import __version__
 
 # Import from the new modular structure
-from nixmcp.contexts.nixos_context import NixOSContext
-from nixmcp.resources.nixos_resources import (
+from mcp_nixos.contexts.nixos_context import NixOSContext
+from mcp_nixos.resources.nixos_resources import (
     nixos_status_resource,
     package_resource,
     search_packages_resource,
@@ -23,7 +23,7 @@ from nixmcp.resources.nixos_resources import (
 logging.disable(logging.CRITICAL)
 
 
-class TestMCPResourceEndpoints(NixMCPTestBase):
+class TestMCPResourceEndpoints(MCPNixOSTestBase):
     """Test the MCP resource endpoints."""
 
     def test_status_resource_structure(self):
@@ -33,7 +33,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             mock_status.return_value = {
                 "status": "ok",
                 "version": __version__,
-                "name": "NixMCP",
+                "name": "MCP-NixOS",
                 "description": "NixOS Model Context Protocol Server",
                 "server_type": "http",
                 "cache_stats": {
@@ -52,7 +52,7 @@ class TestMCPResourceEndpoints(NixMCPTestBase):
             # Verify the structure of the response
             self.assertEqual(result["status"], "ok")
             self.assertEqual(result["version"], __version__)
-            self.assertEqual(result["name"], "NixMCP")
+            self.assertEqual(result["name"], "MCP-NixOS")
             self.assertIn("description", result)
             self.assertIn("cache_stats", result)
 

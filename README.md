@@ -1,13 +1,15 @@
-# NixMCP - Model Context Protocol for NixOS Resources
+# MCP-NixOS - Model Context Protocol for NixOS Resources
 
-[![CI](https://github.com/utensils/nixmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/nixmcp/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/utensils/nixmcp/graph/badge.svg?token=kdcbgvq4Bh)](https://codecov.io/gh/utensils/nixmcp)
-[![PyPI](https://img.shields.io/pypi/v/nixmcp.svg)](https://pypi.org/project/nixmcp/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/nixmcp.svg)](https://pypi.org/project/nixmcp/)
+[![CI](https://github.com/utensils/mcp-nixos/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/mcp-nixos/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/utensils/mcp-nixos/graph/badge.svg?token=kdcbgvq4Bh)](https://codecov.io/gh/utensils/mcp-nixos)
+[![PyPI](https://img.shields.io/pypi/v/mcp-nixos.svg)](https://pypi.org/project/mcp-nixos/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/mcp-nixos.svg)](https://pypi.org/project/mcp-nixos/)
 
-> **⚠️ UNDER ACTIVE DEVELOPMENT**: NixMCP is being actively maintained and improved.
+> **⚠️ UNDER ACTIVE DEVELOPMENT**: MCP-NixOS is being actively maintained and improved.
+>
+> **📢 PACKAGE RENAMED**: This package was renamed from `nixmcp` to `mcp-nixos` in version 0.2.0. If you were using the previous version, please update your references and imports accordingly.
 
-NixMCP is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, Home Manager configuration options, and nix-darwin macOS configuration options to AI models. It provides up-to-date information about NixOS, Home Manager, and nix-darwin resources, reducing hallucinations and outdated information.
+MCP-NixOS is a Model Context Protocol (MCP) server that exposes NixOS packages, system options, Home Manager configuration options, and nix-darwin macOS configuration options to AI models. It provides up-to-date information about NixOS, Home Manager, and nix-darwin resources, reducing hallucinations and outdated information.
 
 > **NOTE:** MCP completions support is temporarily disabled as it's specified in the MCP protocol but not yet fully implemented in the MCP SDK. Completion support will be added once the upstream SDK implementation is available.
 
@@ -20,7 +22,7 @@ Look, we both know you're just going to skim this README and then complain when 
   "mcpServers": {
     "nixos": {
       "command": "uvx",
-      "args": ["nixmcp"],
+      "args": ["mcp-nixos"],
       "env": {
         "LOG_LEVEL": "INFO"
       }
@@ -54,7 +56,7 @@ There. Was that so hard? Now your AI assistant can actually give you correct inf
 - JSON-based responses for easy integration with MCP clients
 - Modular architecture with dedicated components for caching, API clients, contexts, resources, and tools
 - In-memory search engine for fast option lookups
-- Support for hierarchical paths like programs.git.* and services.postgresql.*
+- Support for hierarchical paths like programs.git._ and services.postgresql._
 - Related options and contextual suggestions for better discoverability
 - Background fetching and caching of documentation
 - Cross-platform filesystem caching of HTML content in OS-appropriate locations:
@@ -71,6 +73,7 @@ The server implements both MCP resources and tools for accessing NixOS, Home Man
 ### MCP Resources
 
 #### NixOS Resources
+
 - `nixos://status` - Get NixOS server status information
 - `nixos://package/{package_name}` - Get information about a specific package
 - `nixos://search/packages/{query}` - Search for packages matching the query
@@ -80,6 +83,7 @@ The server implements both MCP resources and tools for accessing NixOS, Home Man
 - `nixos://packages/stats` - Get statistics about NixOS packages
 
 #### Home Manager Resources
+
 - `home-manager://status` - "Is this thing on?" Check if the Home Manager context is alive and kicking
 - `home-manager://search/options/{query}` - For when you can't remember that one option you saw that one time
 - `home-manager://option/{option_name}` - Deep dive into a specific option (yes, it goes deeper than you think)
@@ -113,13 +117,14 @@ The server implements both MCP resources and tools for accessing NixOS, Home Man
 - `home-manager://options/prefix/{option_prefix}` - Choose your own adventure with any option prefix
 
 #### nix-darwin Resources
+
 - `darwin://status` - Check if the nix-darwin context is loaded and ready
 - `darwin://search/options/{query}` - Search for macOS configuration options
 - `darwin://option/{option_name}` - Get details about a specific nix-darwin option
 - `darwin://options/stats` - Get statistics about nix-darwin options
 - `darwin://options/list` - List all top-level nix-darwin option categories
 - `darwin://options/documentation` - Documentation and manual options
-- `darwin://options/environment` - Environment and shell configuration 
+- `darwin://options/environment` - Environment and shell configuration
 - `darwin://options/fonts` - Font management on macOS
 - `darwin://options/homebrew` - Integration with Homebrew package manager
 - `darwin://options/launchd` - macOS service management with launchd
@@ -138,16 +143,19 @@ The server implements both MCP resources and tools for accessing NixOS, Home Man
 ### MCP Tools
 
 #### NixOS Tools
+
 - `nixos_search` - Search for packages, options, or programs with automatic wildcard handling (supports `channel` parameter)
 - `nixos_info` - Get detailed information about a specific package or option (supports `channel` parameter)
 - `nixos_stats` - Get statistical information about NixOS packages and options with accurate counts (supports `channel` parameter)
 
 The NixOS tools support the following channels:
+
 - `unstable` - Latest NixOS unstable channel (default)
 - `stable` - Current stable NixOS release (currently 24.11)
 - `24.11` - Specific version reference
 
 #### Home Manager Tools
+
 - `home_manager_search` - Search for Home Manager configuration options
 - `home_manager_info` - Get detailed information about a specific Home Manager option
 - `home_manager_stats` - Get statistics about Home Manager options
@@ -155,6 +163,7 @@ The NixOS tools support the following channels:
 - `home_manager_options_by_prefix` - Get all options under a specific prefix
 
 #### nix-darwin Tools
+
 - `darwin_search` - Search for nix-darwin configuration options
 - `darwin_info` - Get detailed information about a specific nix-darwin option
 - `darwin_stats` - Get statistics about nix-darwin options
@@ -222,10 +231,10 @@ darwin_options_by_prefix(option_prefix="system.defaults")
 
 ```bash
 # Install with pip
-pip install nixmcp
+pip install mcp-nixos
 
 # Or install with uv
-uv pip install nixmcp
+uv pip install mcp-nixos
 ```
 
 ### Using uvx (Recommended)
@@ -234,10 +243,10 @@ To use the package with uvx (uv execute), which runs Python packages directly wi
 
 ```bash
 # Make sure to install dependencies explicitly with --install-deps
-uvx --install-deps nixmcp
+uvx --install-deps mcp-nixos
 
 # Or with a specific Python version
-uvx --python=3.11 --install-deps nixmcp
+uvx --python=3.11 --install-deps mcp-nixos
 ```
 
 ## MCP Configuration
@@ -249,7 +258,7 @@ Add the following to your MCP configuration file:
   "mcpServers": {
     "nixos": {
       "command": "uvx",
-      "args": ["nixmcp"],
+      "args": ["mcp-nixos"],
       "env": {
         "LOG_LEVEL": "INFO"
       }
@@ -259,9 +268,10 @@ Add the following to your MCP configuration file:
 ```
 
 With this configuration:
+
 - Logs are written to stdout/stderr only (captured by the Claude Code interface)
 - No log files are created by default
-- To enable file logging, add `"NIX_MCP_LOG": "/path/to/log/file.log"` to the env object
+- To enable file logging, add `"LOG_FILE": "/path/to/log/file.log"` to the env object
 
 ### Environment Variables
 
@@ -269,25 +279,27 @@ You can customize the server behavior with these environment variables:
 
 ```
 LOG_LEVEL=INFO                # Log level (DEBUG, INFO, WARNING, ERROR)
-NIX_MCP_LOG=/path/log         # Optional: If set to a non-empty value, logs to this file; otherwise logs only to console
-NIXMCP_CACHE_DIR=/path/to/dir # Optional: Custom directory for filesystem cache (default: OS-specific standard location)
-NIXMCP_CACHE_TTL=86400        # Optional: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
+LOG_FILE=/path/log            # Optional: If set to a non-empty value, logs to this file; otherwise logs only to console
+MCP_NIXOS_CACHE_DIR=/path/to/dir # Optional: Custom directory for filesystem cache (default: OS-specific standard location)
+MCP_NIXOS_CACHE_TTL=86400        # Optional: Time-to-live for cached content in seconds (default: 86400 - 24 hours)
 ```
 
 ### Cache System
 
-By default, NixMCP uses OS-specific standard locations for caching:
+By default, MCP-NixOS uses OS-specific standard locations for caching:
 
-- Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
-- macOS: `~/Library/Caches/nixmcp/`
-- Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
+- Linux: `$XDG_CACHE_HOME/mcp-nixos/` (typically `~/.cache/mcp-nixos/`)
+- macOS: `~/Library/Caches/mcp-nixos/`
+- Windows: `%LOCALAPPDATA%\mcp-nixos\Cache\`
 
 The cache system stores multiple types of data:
+
 - Raw HTML content from Home Manager and nix-darwin documentation
 - Serialized structured data (options metadata, statistics)
 - Binary serialized complex data structures (search indices, dictionaries)
 
 The enhanced caching system provides:
+
 - Faster startup times through serialized in-memory data
 - Reduced network dependencies for offline operation
 - Multiple fallback mechanisms for improved resilience
@@ -361,12 +373,12 @@ For local development and testing with Claude Desktop, add this configuration to
         "--with-requirements",
         "<path-to-cloned-repo>/requirements.txt",
         "-m",
-        "nixmcp.__main__"
+        "mcp_nixos.__main__"
       ],
       "cwd": "<path-to-cloned-repo>",
       "env": {
         "LOG_LEVEL": "DEBUG",
-        "LOG_FILE": "<path-to-cloned-repo>/nixmcp-server.log",
+        "LOG_FILE": "<path-to-cloned-repo>/mcp-nixos-server.log",
         "PYTHONPATH": "<path-to-cloned-repo>"
       }
     }
@@ -375,9 +387,10 @@ For local development and testing with Claude Desktop, add this configuration to
 ```
 
 This configuration:
+
 - Uses `uv run` with the `--isolated` flag to create a clean environment
 - Explicitly specifies requirements with `--with-requirements`
-- Uses the `-m nixmcp.__main__` module entry point
+- Uses the `-m mcp_nixos.__main__` module entry point
 - Sets the working directory to your repo location
 - Adds the project directory to PYTHONPATH for module resolution
 - Enables debug logging for development purposes
@@ -392,6 +405,7 @@ The tests use real Elasticsearch API calls instead of mocks to ensure actual API
 - Remains resilient to API changes by testing response structure
 
 The project provides Nix-based development commands:
+
 ```bash
 # Enter the development environment
 nix develop
@@ -412,11 +426,11 @@ format
 menu
 ```
 
-Current code coverage is tracked on [Codecov](https://codecov.io/gh/utensils/nixmcp).
+Current code coverage is tracked on [Codecov](https://codecov.io/gh/utensils/mcp-nixos).
 
 ## Using with LLMs
 
-Once configured, you can use NixMCP in your prompts with MCP-compatible models:
+Once configured, you can use MCP-NixOS in your prompts with MCP-compatible models:
 
 ```
 # Direct resource references for NixOS
@@ -470,37 +484,37 @@ The LLM will automatically fetch the requested information through the MCP serve
 
 ### Code Architecture
 
-NixMCP is organized into a modular structure for better maintainability and testing:
+MCP-NixOS is organized into a modular structure for better maintainability and testing:
 
-- `nixmcp/cache/` - Caching components for better performance:
+- `mcp_nixos/cache/` - Caching components for better performance:
   - `simple_cache.py` - In-memory caching with TTL and size limits
   - `html_cache.py` - Multi-format filesystem caching (HTML, JSON, binary data)
-- `nixmcp/clients/` - API clients for Elasticsearch, Home Manager, and nix-darwin documentation:
+- `mcp_nixos/clients/` - API clients for Elasticsearch, Home Manager, and nix-darwin documentation:
   - `elasticsearch_client.py` - Client for the NixOS Elasticsearch API
   - `home_manager_client.py` - Client for parsing and caching Home Manager data
   - `darwin/darwin_client.py` - Client for parsing and caching nix-darwin data
   - `html_client.py` - HTTP client with filesystem caching for web content
-- `nixmcp/contexts/` - Context objects that manage application state:
+- `mcp_nixos/contexts/` - Context objects that manage application state:
   - `nixos_context.py` - Context for NixOS Elasticsearch API
   - `home_manager_context.py` - Context for Home Manager documentation
   - `darwin/darwin_context.py` - Context for nix-darwin documentation
-- `nixmcp/resources/` - MCP resource definitions for all platforms:
+- `mcp_nixos/resources/` - MCP resource definitions for all platforms:
   - `nixos_resources.py` - Resources for NixOS
   - `home_manager_resources.py` - Resources for Home Manager
   - `darwin/darwin_resources.py` - Resources for nix-darwin
-- `nixmcp/tools/` - MCP tool implementations for searching and retrieving data:
+- `mcp_nixos/tools/` - MCP tool implementations for searching and retrieving data:
   - `nixos_tools.py` - Tools for NixOS
   - `home_manager_tools.py` - Tools for Home Manager
   - `darwin/darwin_tools.py` - Tools for nix-darwin
-- `nixmcp/utils/` - Utility functions and helpers:
+- `mcp_nixos/utils/` - Utility functions and helpers:
   - `cache_helpers.py` - Cross-platform cache directory management
   - `helpers.py` - Common utility functions
-- `nixmcp/logging.py` - Centralized logging configuration
-- `nixmcp/server.py` - Main entry point and server initialization
+- `mcp_nixos/logging.py` - Centralized logging configuration
+- `mcp_nixos/server.py` - Main entry point and server initialization
 
 ### NixOS API Integration
 
-For NixOS packages and system options, NixMCP connects directly to the NixOS Elasticsearch API to provide real-time access to the latest package and system configuration data. It utilizes:
+For NixOS packages and system options, MCP-NixOS connects directly to the NixOS Elasticsearch API to provide real-time access to the latest package and system configuration data. It utilizes:
 
 - Elasticsearch's dedicated Count API for accurate option counts beyond the default 10,000 result limit
 - Enhanced search queries with field-specific boosts for better relevance
@@ -509,13 +523,15 @@ For NixOS packages and system options, NixMCP connects directly to the NixOS Ela
 
 ### HTML Documentation Parsers
 
-For Home Manager and nix-darwin options, NixMCP implements what can only be described as a crime against HTML parsing:
+For Home Manager and nix-darwin options, MCP-NixOS implements what can only be described as a crime against HTML parsing:
 
 1. HTML documentation parsers that somehow manage to extract structured data from both Home Manager and nix-darwin documentation pages through a combination of BeautifulSoup incantations, regex black magic, and the kind of determination that only comes from staring at malformed HTML for 72 hours straight:
+
    - Home Manager: https://nix-community.github.io/home-manager/options.xhtml
-   - nix-darwin: https://daiderd.com/nix-darwin/manual/index.html
+   - nix-darwin: https://nix-darwin.github.io/nix-darwin/manual/index.html
 
 2. In-memory search engines cobbled together with duct tape and wishful thinking:
+
    - Inverted index for fast text search (when it doesn't fall over)
    - Prefix tree for hierarchical path lookups (a data structure that seemed like a good idea at 3 AM)
    - Option categorization by source and type (more accurate than a coin flip, usually)
@@ -528,9 +544,9 @@ For Home Manager and nix-darwin options, NixMCP implements what can only be desc
    - Processed in-memory data structures persisted to disk cache
    - Option data serialized to both JSON and binary formats for complex structures
    - Uses platform-specific standard cache locations:
-     - Linux: `$XDG_CACHE_HOME/nixmcp/` (typically `~/.cache/nixmcp/`)
-     - macOS: `~/Library/Caches/nixmcp/`
-     - Windows: `%LOCALAPPDATA%\nixmcp\Cache\`
+     - Linux: `$XDG_CACHE_HOME/mcp-nixos/` (typically `~/.cache/mcp-nixos/`)
+     - macOS: `~/Library/Caches/mcp-nixos/`
+     - Windows: `%LOCALAPPDATA%\mcp-nixos\Cache\`
    - Implements MD5 hashing of cache keys for filenames
    - Supports multiple cache file types:
      - `*.html` - Raw HTML content
