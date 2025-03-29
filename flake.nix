@@ -68,8 +68,22 @@
              echo "No setup.py or pyproject.toml found, skipping editable install."
           fi
 
-           echo "✓ Python environment setup complete in ./.venv"
-           echo "---------------------------------------------"
+          # Verify key dependencies are installed
+          echo "Verifying dependencies..."
+          if ! python -c "import requests" &>/dev/null; then
+            echo "Warning: 'requests' package not found. Installing explicitly..."
+            if command -v uv >/dev/null 2>&1; then
+              uv pip install requests>=2.32.3
+            else
+              python -m pip install requests>=2.32.3
+            fi
+          fi
+          
+          echo "Installed packages:"
+          pip list | grep -E 'requests|mcp|beautifulsoup4|python-dotenv'
+          
+          echo "✓ Python environment setup complete in ./.venv"
+          echo "---------------------------------------------"
         '';
 
       in
@@ -139,6 +153,20 @@
                   echo "Activating venv..."
                   source .venv/bin/activate
                 fi
+                
+                # Verify key dependencies are installed before running tests
+                echo "Verifying dependencies before running tests..."
+                if ! python -c "import requests" &>/dev/null; then
+                  echo "ERROR: 'requests' package not found. Installing explicitly..."
+                  if command -v uv >/dev/null 2>&1; then
+                    uv pip install requests>=2.32.3
+                  else
+                    python -m pip install requests>=2.32.3
+                  fi
+                fi
+                
+                echo "Installed Python packages:"
+                pip list | grep -E 'requests|mcp|beautifulsoup4|python-dotenv'
                 
                 # Check if running in CI environment
                 # Use command substitution to avoid unbound variable errors

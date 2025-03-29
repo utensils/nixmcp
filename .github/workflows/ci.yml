@@ -130,7 +130,13 @@ jobs:
             ${{ runner.os }}-venv-
       - name: Setup Python environment and run tests
         run: |
+          # First, explicitly set up venv and install dependencies
           nix develop --command setup
+          
+          # Then, verify that dependencies were installed correctly
+          nix develop --command bash -c 'source .venv/bin/activate && pip list | grep requests'
+          
+          # Now run tests
           nix develop --command run-tests
 
       - name: Upload coverage reports to Codecov
