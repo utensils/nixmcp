@@ -3,6 +3,8 @@
 import os
 import pathlib
 import pytest
+import tempfile
+import json
 from unittest.mock import MagicMock, AsyncMock
 
 from mcp_nixos.clients.darwin.darwin_client import DarwinClient
@@ -15,6 +17,14 @@ from mcp_nixos.tools.darwin.darwin_tools import (
     darwin_list_options,
     darwin_options_by_prefix,
 )
+
+
+@pytest.fixture
+def temp_cache_dir_env(monkeypatch):
+    """Create a temporary cache directory and set it in the environment."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        monkeypatch.setenv("MCP_NIXOS_CACHE_DIR", temp_dir)
+        yield temp_dir
 
 # Darwin resources are only used through the context in tests
 
@@ -195,13 +205,14 @@ async def test_darwin_info_not_found(mock_darwin_context):
     assert "not found" in result
 
 
-def test_darwin_integration_cache_directory():
+@pytest.mark.usefixtures("temp_cache_dir_env")
+def test_darwin_integration_cache_directory(temp_cache_dir_env):
     """
-    Test that a real DarwinContext and DarwinClient use the proper cache directory.
+    Test that a real DarwinContext and DarwinClient use the proper cache directory from MCP_NIXOS_CACHE_DIR.
 
     This is an integration test that verifies the fix for the issue where the client
     was trying to create a 'darwin' directory in the current working directory
-    instead of using the proper OS-specific cache path.
+    instead of using the specified MCP_NIXOS_CACHE_DIR path.
 
     This test also verifies that the client doesn't create cache files with empty data.
     """
@@ -222,9 +233,10 @@ def test_darwin_integration_cache_directory():
     # Check it's not using the incorrect 'darwin' relative path
     assert cache_dir != pathlib.Path("darwin")
 
-    # Check it's using a subdirectory of the default cache location
-    default_cache_dir = pathlib.Path(get_default_cache_dir())
-    assert str(cache_dir).startswith(str(default_cache_dir))
+    # Check it's using the specified MCP_NIXOS_CACHE_DIR environment variable
+    env_cache_dir = os.environ.get("MCP_NIXOS_CACHE_DIR")
+    assert env_cache_dir is not None, "MCP_NIXOS_CACHE_DIR environment variable should be set"
+    assert str(cache_dir).startswith(env_cache_dir)
 
     # The directory should exist and be writeable
     assert cache_dir.exists()
@@ -243,15 +255,11 @@ def test_darwin_integration_cache_directory():
     # Check that no empty data files were created
     assert context.client.html_client.cache is not None, "HTML client cache should not be None"
     json_path = context.client.html_client.cache._get_data_cache_path(cache_key)
-    # pickle_path not used but kept for reference
-    # pickle_path = context.client.html_client.cache._get_binary_data_cache_path(cache_key)
 
     # If these exist, they should contain valid data (not empty)
     if json_path.exists():
         with open(json_path, "r") as f:
-            import json as json_module
-
-            data = json_module.load(f)
+            data = json.load(f)
             # Verify we don't have zero options cached
             if "total_options" in data:
                 assert data["total_options"] > 0, "Cache has zero options - invalid data was cached"

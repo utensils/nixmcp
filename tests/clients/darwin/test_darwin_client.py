@@ -1,8 +1,7 @@
 """Tests for the Darwin client."""
 
 import pytest
-
-# Remove unused import
+import os
 import pathlib
 import time
 import tempfile
@@ -17,6 +16,14 @@ from mcp_nixos.clients.html_client import HTMLClient
 from mcp_nixos.cache.html_cache import HTMLCache
 from mcp_nixos.cache.simple_cache import SimpleCache
 from mcp_nixos.utils.cache_helpers import get_default_cache_dir
+
+
+@pytest.fixture
+def temp_cache_dir_env(monkeypatch):
+    """Create a temporary cache directory and set it in the environment."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        monkeypatch.setenv("MCP_NIXOS_CACHE_DIR", temp_dir)
+        yield temp_dir
 
 
 @pytest.fixture
@@ -299,8 +306,9 @@ async def test_fetch_url(darwin_client, sample_html):
     assert "Connection error" in str(excinfo.value)
 
 
-def test_cache_initialization():
-    """Test that the DarwinClient correctly uses the HTMLClient's cache."""
+@pytest.mark.usefixtures("temp_cache_dir_env")
+def test_cache_initialization(temp_cache_dir_env):
+    """Test that the DarwinClient correctly uses the HTMLClient's cache in the MCP_NIXOS_CACHE_DIR."""
     # Create a real HTMLClient with a proper cache
     html_client = HTMLClient()
 
@@ -314,10 +322,11 @@ def test_cache_initialization():
     assert darwin_client.html_cache is not None, "HTML cache should not be None"
     assert darwin_client.html_cache.cache_dir != pathlib.Path("darwin")
 
-    # Check that the cache directory is a subpath of the default cache dir
-    default_cache_dir = pathlib.Path(get_default_cache_dir())
+    # Check that the cache directory is a subpath of the environment variable path
+    env_cache_dir = os.environ.get("MCP_NIXOS_CACHE_DIR")
+    assert env_cache_dir is not None, "MCP_NIXOS_CACHE_DIR environment variable should be set"
     assert darwin_client.html_cache is not None, "HTML cache should not be None"
-    assert str(darwin_client.html_cache.cache_dir).startswith(str(default_cache_dir))
+    assert str(darwin_client.html_cache.cache_dir).startswith(env_cache_dir)
 
     # Create a darwin client without passing a client to test the default case
     with patch("mcp_nixos.clients.darwin.darwin_client.HTMLClient") as mock_html_client_class:
@@ -337,8 +346,9 @@ def test_cache_initialization():
         assert client.html_cache is mock_cache
 
 
-def test_avoid_read_only_filesystem_error():
-    """Test that the DarwinClient doesn't try to create a 'darwin' directory in the current path."""
+@pytest.mark.usefixtures("temp_cache_dir_env")
+def test_avoid_read_only_filesystem_error(temp_cache_dir_env):
+    """Test that the DarwinClient uses MCP_NIXOS_CACHE_DIR and not a 'darwin' directory in the current path."""
     # Create an actual client
     darwin_client = DarwinClient()
 
@@ -365,9 +375,11 @@ def test_avoid_read_only_filesystem_error():
     # This should not happen with our fix
     assert not darwin_dir.exists(), "The 'darwin' directory should not be created in the current directory"
 
-    # Verify the cache directory is a properly structured path in the OS cache location
+    # Verify the cache directory is in our MCP_NIXOS_CACHE_DIR path
+    env_cache_dir = os.environ.get("MCP_NIXOS_CACHE_DIR")
+    assert env_cache_dir is not None, "MCP_NIXOS_CACHE_DIR environment variable should be set"
     assert darwin_client.html_cache is not None, "HTML cache should not be None"
-    assert str(darwin_client.html_cache.cache_dir).startswith(str(get_default_cache_dir()))
+    assert str(darwin_client.html_cache.cache_dir).startswith(env_cache_dir)
 
 
 @pytest.mark.asyncio
