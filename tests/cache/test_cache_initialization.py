@@ -6,6 +6,9 @@ import pathlib
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark as unit tests (not integration)
+pytestmark = [pytest.mark.unit, pytest.mark.not_integration]
+
 from mcp_nixos.cache.html_cache import HTMLCache
 from mcp_nixos.clients.html_client import HTMLClient
 from mcp_nixos.utils.cache_helpers import init_cache_storage

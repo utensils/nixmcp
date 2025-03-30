@@ -178,4 +178,11 @@ class TestMultithreadingCache:
             stats = cache.get_stats()
             assert stats["hits"] == 10
             assert stats["writes"] == 10
-            assert stats["file_count"] == 10
+
+            # With our enhanced implementation, we should have both content files and metadata files
+            # So we should have 20 files in total (10 content + 10 metadata)
+            assert stats["file_count"] == 20, f"Expected 20 files (10 content + 10 metadata), got {stats['file_count']}"
+            # Ensure we have 10 HTML files (the content files)
+            assert stats["html_count"] == 10, f"Expected 10 HTML files, got {stats['html_count']}"
+            # We should also have 10 metadata files
+            assert stats["meta_count"] == 10, f"Expected 10 metadata files, got {stats['meta_count']}"

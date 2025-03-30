@@ -130,7 +130,9 @@ class TestHTMLClient:
 
         # Verify cache was cleared
         assert result["cleared"] is True
-        assert result["files_removed"] == 2
+        # Our improved implementation creates both content files and metadata files
+        # So we should have 4 files (2 content + 2 metadata)
+        assert result["files_removed"] == 4
 
         # Verify cache is empty
         assert self.client.cache is not None
@@ -159,7 +161,13 @@ class TestHTMLClient:
         assert stats["writes"] == 1
         assert self.client.cache is not None
         assert str(stats["cache_dir"]) == str(self.client.cache.cache_dir)
-        assert stats["file_count"] == 1
+
+        # Our improved implementation creates both content files and metadata files
+        # So we should have 2 files (1 content + 1 metadata)
+        assert stats["file_count"] == 2
+        # Specifically check for the correct types of files
+        assert stats["html_count"] == 1, f"Expected 1 HTML file, got {stats.get('html_count', 0)}"
+        assert stats["meta_count"] == 1, f"Expected 1 metadata file, got {stats.get('meta_count', 0)}"
         # Note: depending on implementation, misses might be counted differently
 
     def test_disabled_cache(self):

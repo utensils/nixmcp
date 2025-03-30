@@ -3,6 +3,10 @@
 import threading
 import time
 import unittest
+import pytest
+
+# Mark as unit tests (not integration)
+pytestmark = [pytest.mark.unit, pytest.mark.not_integration]
 
 from mcp_nixos.server import SimpleCache
 
