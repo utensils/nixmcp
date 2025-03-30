@@ -125,7 +125,8 @@ jobs:
           # Set up the environment using the setup command from flake.nix
           nix develop --command setup
           
-          # Run unit tests only
+          # Run unit tests only with a test-specific cache directory
+          export MCP_NIXOS_CACHE_DIR="$PWD/mcp_nixos_unit_test_cache"
           nix develop --command run-tests --unit
 
       - name: Upload unit test coverage artifact
@@ -164,7 +165,8 @@ jobs:
           # Set up the environment using the setup command from flake.nix
           nix develop --command setup
           
-          # Run integration tests only
+          # Run integration tests only with a test-specific cache directory
+          export MCP_NIXOS_CACHE_DIR="$PWD/mcp_nixos_integration_test_cache"
           nix develop --command run-tests --integration
 
       - name: Upload integration test coverage artifact
