@@ -92,6 +92,11 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`
   - All tests: `nix run .#run-tests`
+- Test Cache Configuration:
+  - Tests use isolated cache directory (`./mcp_nixos_test_cache` by default)
+  - Cache is automatically cleaned up after tests unless `KEEP_TEST_CACHE=true`
+  - Override with `MCP_NIXOS_CACHE_DIR=/custom/path nix run .#run-tests`
+  - CI runs use separate caches for unit and integration tests to enable parallel runs
 
 ### Dependency Management
 - Project uses `pyproject.toml` for dependency specification (PEP 621)

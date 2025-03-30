@@ -159,6 +159,15 @@
                 # Set up parameters based on arguments
                 TEST_ARGS=""
                 
+                # Set test-specific cache directory to avoid conflicts with regular usage
+                # This ensures tests don't interfere with the regular application cache
+                if [ -z "$MCP_NIXOS_CACHE_DIR" ]; then
+                  export MCP_NIXOS_CACHE_DIR="$PWD/mcp_nixos_test_cache"
+                  echo "Using test-specific cache directory: $MCP_NIXOS_CACHE_DIR"
+                else
+                  echo "Using provided cache directory: $MCP_NIXOS_CACHE_DIR"
+                fi
+                
                 # Handle the unit/integration flags
                 if [[ $# -gt 0 && "$1" == "--unit" ]]; then
                   echo "Running unit tests only..."
@@ -192,6 +201,12 @@
                 # Show coverage report message if applicable
                 if [ -n "$COVERAGE_ARGS" ]; then
                   echo "✅ Coverage report generated. HTML report available in htmlcov/"
+                fi
+                
+                # Clean up test cache directory if we created it (unless explicitly requested to keep it)
+                if [ "$MCP_NIXOS_CACHE_DIR" = "$PWD/mcp_nixos_test_cache" ] && [ "$KEEP_TEST_CACHE" != "true" ]; then
+                  echo "Cleaning up test cache directory..."
+                  rm -rf "$MCP_NIXOS_CACHE_DIR"
                 fi
               '';
             }
