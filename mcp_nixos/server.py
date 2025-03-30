@@ -33,6 +33,10 @@ Based on the official NixOS search implementation with additional parsing for
 Home Manager and nix-darwin documentation.
 """
 
+import asyncio
+import signal
+import sys
+import time
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -112,6 +116,28 @@ home_manager_context = HomeManagerContext()
 darwin_context = DarwinContext()
 
 
+# Define a helper function for handling async timeouts
+async def async_with_timeout(coro, timeout_seconds=5.0, operation_name="operation"):
+    """Execute a coroutine with a timeout.
+
+    Args:
+        coro: The coroutine to execute
+        timeout_seconds: Maximum time to wait (seconds)
+        operation_name: Name of the operation for logging purposes
+
+    Returns:
+        The result of the coroutine, or None if it timed out
+    """
+    try:
+        return await asyncio.wait_for(coro, timeout=timeout_seconds)
+    except asyncio.TimeoutError:
+        logger.warning(f"{operation_name} timed out after {timeout_seconds}s")
+        return None
+    except Exception as e:
+        logger.error(f"Error during {operation_name}: {e}")
+        return None
+
+
 # Define the lifespan context manager for app initialization
 @asynccontextmanager
 async def app_lifespan(mcp_server: FastMCP):
@@ -127,9 +153,11 @@ async def app_lifespan(mcp_server: FastMCP):
     # Start loading Darwin data in the background
     logger.info("Starting background loading of Darwin data...")
 
-    # Start the Darwin context
+    # Start the Darwin context with a timeout
     try:
-        await darwin_context.startup()
+        await async_with_timeout(
+            darwin_context.startup(), timeout_seconds=10.0, operation_name="Darwin context startup"
+        )
         logger.info(f"Darwin context status: {darwin_context.status}")
     except Exception as e:
         logger.error(f"Error starting Darwin context: {e}")
@@ -573,18 +601,50 @@ async def app_lifespan(mcp_server: FastMCP):
     finally:
         # Cleanup on shutdown
         logger.info("Shutting down MCP-NixOS server")
-        # Close any open connections or resources
-        try:
-            # Shutdown Darwin context
-            try:
-                await darwin_context.shutdown()
-                logger.debug("Darwin context shutdown complete")  # Changed to debug level
-            except Exception as e:
-                logger.error(f"Error shutting down Darwin context: {e}")
 
-            # Add any other cleanup code here if needed
+        # Track start time for overall shutdown duration
+        shutdown_start = time.time()
+
+        # Create tasks for concurrent shutdown of all components
+        shutdown_tasks = []
+
+        # Shutdown Darwin context with timeout
+        shutdown_tasks.append(
+            async_with_timeout(darwin_context.shutdown(), timeout_seconds=3.0, operation_name="Darwin context shutdown")
+        )
+
+        # Add shutdown for home_manager_context if a shutdown method is available
+        if hasattr(home_manager_context, "shutdown") and callable(home_manager_context.shutdown):
+            shutdown_tasks.append(
+                async_with_timeout(
+                    home_manager_context.shutdown(), timeout_seconds=3.0, operation_name="Home Manager context shutdown"
+                )
+            )
+
+        # Add shutdown for nixos_context if a shutdown method is available
+        if hasattr(nixos_context, "shutdown") and callable(nixos_context.shutdown):
+            shutdown_tasks.append(
+                async_with_timeout(
+                    nixos_context.shutdown(), timeout_seconds=3.0, operation_name="NixOS context shutdown"
+                )
+            )
+
+        # Execute all shutdown tasks concurrently
+        try:
+            # Wait for all tasks to complete with an overall timeout
+            await asyncio.wait_for(
+                asyncio.gather(*shutdown_tasks, return_exceptions=True),
+                timeout=5.0,  # Overall timeout for all shutdown operations
+            )
+            logger.debug("All context shutdowns completed")
+        except asyncio.TimeoutError:
+            logger.warning("Some shutdown operations timed out and were terminated")
         except Exception as e:
-            logger.error(f"Error during server shutdown cleanup: {e}")
+            logger.error(f"Error during concurrent shutdown operations: {e}")
+
+        # Log shutdown duration
+        shutdown_duration = time.time() - shutdown_start
+        logger.info(f"Shutdown completed in {shutdown_duration:.2f}s")
 
 
 # Create the MCP server with the lifespan handler
@@ -622,12 +682,53 @@ register_darwin_tools(darwin_context, mcp)
 # No need to manually add tools here - will be handled by the register_darwin_tools function
 
 
+# Signal handling and shutdown management
+
+
+# Implement proper signal handling
+def setup_signal_handlers():
+    """Set up proper signal handlers for graceful shutdown."""
+    # Flag to track if shutdown is already in progress
+    shutdown_in_progress = False
+
+    def signal_handler(signum, frame):
+        """Handle termination signals with proper logging."""
+        nonlocal shutdown_in_progress
+        sig_name = signal.Signals(signum).name
+
+        # Prevent multiple simultaneous shutdowns
+        if shutdown_in_progress:
+            logger.warning(f"Received {sig_name} while shutdown already in progress")
+            return
+
+        shutdown_in_progress = True
+        logger.info(f"Received signal {sig_name}, initiating graceful shutdown")
+
+        # We don't need to do anything else here because FastMCP will handle
+        # the actual shutdown process, including calling our lifespan's cleanup
+
+    # Register handlers for common termination signals
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, signal_handler)
+
+    logger.debug("Signal handlers registered")
+
+
 if __name__ == "__main__":
     # This will start the server and keep it running
     try:
+        # Set up signal handlers first for better logging
+        setup_signal_handlers()
+
         logger.info("Starting MCP-NixOS server...")
         mcp.run()
     except KeyboardInterrupt:
-        logger.info("Server stopped by user")
+        # This is normal when Ctrl+C is pressed
+        logger.info("Server stopped by keyboard interrupt")
+        # Exit cleanly
+        sys.exit(0)
     except Exception as e:
+        # Log unexpected errors
         logger.error(f"Error running server: {e}", exc_info=True)
+        # Exit with error code
+        sys.exit(1)

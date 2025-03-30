@@ -40,13 +40,14 @@ There. Now your AI assistant can actually give you correct information about Nix
 
 ### Environment Variables (For Control Freaks)
 
-| Variable              | Description                                      | Default                          |
-| --------------------- | ------------------------------------------------ | -------------------------------- |
-| `LOG_LEVEL`           | How much you want to know about your failures    | INFO                             |
-| `LOG_FILE`            | Where to document said failures                  | (nowhere—your secret is safe)    |
-| `MCP_NIXOS_CACHE_DIR` | Where to store stuff you'll forget about         | OS-specific cache locations\*    |
-| `MCP_NIXOS_CACHE_TTL` | How long until cache invalidation ruins your day | 86400 (24h)                      |
-| `ELASTICSEARCH_URL`   | NixOS Elasticsearch API URL                      | https://search.nixos.org/backend |
+| Variable                   | Description                                      | Default                          |
+| -------------------------- | ------------------------------------------------ | -------------------------------- |
+| `LOG_LEVEL`                | How much you want to know about your failures    | INFO                             |
+| `LOG_FILE`                 | Where to document said failures                  | (nowhere—your secret is safe)    |
+| `MCP_NIXOS_CACHE_DIR`      | Where to store stuff you'll forget about         | OS-specific cache locations\*    |
+| `MCP_NIXOS_CACHE_TTL`      | How long until cache invalidation ruins your day | 86400 (24h)                      |
+| `MCP_NIXOS_CLEANUP_ORPHANS`| Whether to kill orphaned MCP processes on startup| false                            |
+| `ELASTICSEARCH_URL`        | NixOS Elasticsearch API URL                      | https://search.nixos.org/backend |
 
 \*Default cache locations (where your gigabytes will quietly disappear to):
 

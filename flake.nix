@@ -130,8 +130,9 @@
                    ${setupVenvScript}/bin/setup-venv
                    source .venv/bin/activate
                 fi
-                echo "Starting MCP-NixOS server (python -m mcp_nixos)..."
-                python -m mcp_nixos
+                echo "Starting MCP-NixOS server with enhanced termination handling..."
+                # Use the wrapper script for improved signal handling
+                python -m mcp_nixos.run
               '';
             }
             {

@@ -39,6 +39,7 @@ dev = [
 
 [project.scripts]
 mcp-nixos = "mcp_nixos.__main__:mcp.run"
+mcp-nixos-run = "mcp_nixos.run:main"
 
 [tool.black]
 line-length = 120

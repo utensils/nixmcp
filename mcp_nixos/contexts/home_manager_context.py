@@ -24,6 +24,14 @@ class HomeManagerContext:
         # This serves as a fallback in case eager loading fails
         self.hm_client.load_in_background()
 
+    async def shutdown(self) -> None:
+        """Shut down the Home Manager context cleanly.
+
+        This is called during server shutdown.
+        """
+        logger.info("Shutting down Home Manager context")
+        # Any cleanup needed for the Home Manager context
+
     def ensure_loaded(self, force_refresh: bool = False):
         """Ensure that data is loaded and available.
 

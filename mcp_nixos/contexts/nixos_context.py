@@ -19,6 +19,14 @@ class NixOSContext:
         self.es_client = ElasticsearchClient()
         logger.info("NixOSContext initialized")
 
+    async def shutdown(self) -> None:
+        """Shut down the NixOS context cleanly.
+
+        This is called during server shutdown.
+        """
+        logger.info("Shutting down NixOS context")
+        # Any cleanup needed for the NixOS context
+
     def get_status(self) -> Dict[str, Any]:
         """Get the status of the MCP-NixOS server."""
         return {
