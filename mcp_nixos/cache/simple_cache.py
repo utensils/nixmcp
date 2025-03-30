@@ -6,7 +6,7 @@ import logging
 import time
 import threading
 import uuid
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict
 
 # Get logger
 logger = logging.getLogger("mcp_nixos")

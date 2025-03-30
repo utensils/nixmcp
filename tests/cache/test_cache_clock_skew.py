@@ -7,7 +7,8 @@ from unittest.mock import patch
 import os
 import json
 import pathlib
-from datetime import datetime, timedelta
+
+# datetime not needed, removed import
 
 # Mark all tests in this module as integration tests
 pytestmark = pytest.mark.integration
@@ -102,8 +103,8 @@ def test_html_cache_time_shift():
         assert os.path.exists(cache_path)
         assert os.path.exists(meta_path), "Metadata file should exist"
 
-        # Get the current file modification time
-        current_mtime = os.path.getmtime(cache_path)
+        # Get the current file modification time for reference (not used in test)
+        _ = os.path.getmtime(cache_path)
 
         # Mock the file's modification time to be 5 seconds ago (within TTL)
         new_mtime = time.time() - 5
@@ -175,6 +176,7 @@ async def test_html_client_time_shift(real_cache_dir):
         assert metadata2["from_cache"] is True
 
         # Find the cache file and its metadata file
+        assert html_client.cache is not None, "HTML client cache should not be None"
         cache_path = html_client.cache._get_cache_path(test_url)
         meta_path = pathlib.Path(f"{cache_path}.meta")
         assert os.path.exists(cache_path)
@@ -277,6 +279,7 @@ async def test_mixed_time_sources():
 
         # Verify data can be retrieved
         cached_data, metadata = html_cache.get_data(test_key)
+        assert cached_data is not None, "Cached data should not be None"
         assert cached_data.get("value") == test_data["value"]
         assert cached_data.get("timestamp") == test_data["timestamp"]
         assert "creation_timestamp" in cached_data

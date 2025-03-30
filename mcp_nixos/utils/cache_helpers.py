@@ -10,7 +10,6 @@ import os
 import sys
 import logging
 import pathlib
-import tempfile
 import uuid
 import time
 import json
@@ -144,9 +143,9 @@ def init_cache_storage(cache_dir: Optional[str] = None, ttl: int = 86400) -> Dic
     except Exception as e:
         logger.error(f"Failed to initialize cache: {e}")
         # Provide fallback configuration using temporary directory
-        import tempfile
+        import tempfile as tmp_module
 
-        fallback_dir = tempfile.gettempdir()
+        fallback_dir = tmp_module.gettempdir()
         instance_id = str(uuid.uuid4())[:8]
         logger.warning(f"Using fallback cache directory: {fallback_dir}, instance: {instance_id}")
         return {
@@ -181,7 +180,7 @@ def lock_file(
         return False
 
     start_time = time.time()
-    last_error = None
+    # No need to track last error in this implementation
 
     # Use exponential backoff with jitter for retries
     current_interval = retry_interval
@@ -261,7 +260,8 @@ def lock_file(
                         logger.warning(f"Windows lock acquisition timed out after {time.time()-start_time:.2f}s")
                         return False
         except (IOError, OSError) as e:
-            last_error = e
+            # Log error but don't need to store it
+            logger.debug(f"Lock acquisition error: {e}")
             elapsed = time.time() - start_time
 
             if not blocking or elapsed >= timeout:
@@ -304,7 +304,7 @@ def unlock_file(file_handle: IO) -> bool:
 
 def atomic_write(
     file_path: Union[str, pathlib.Path],
-    write_func: Callable[[IO], None],
+    write_func: Callable[[IO], Any],  # Allow any return type, but we ignore it
     max_retries: int = 3,
     retry_delay: float = 0.1,
 ) -> bool:
@@ -452,10 +452,10 @@ def write_with_metadata(
         metadata["creation_timestamp"] = time.time()
 
     # Write main content file
-    content_written = atomic_write(path, lambda f: f.write(content))
+    content_written = atomic_write(path, lambda f: cast(None, f.write(content)))
 
     # Write metadata file
-    metadata_written = atomic_write(meta_path, lambda f: f.write(json.dumps(metadata, indent=2)))
+    metadata_written = atomic_write(meta_path, lambda f: cast(None, f.write(json.dumps(metadata, indent=2))))
 
     return content_written and metadata_written
 

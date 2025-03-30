@@ -7,7 +7,8 @@ import time
 import pathlib
 import json
 from collections import defaultdict
-from unittest import mock
+
+# Import needed modules for testing
 import pytest
 
 # Mark as unit tests (not integration)
@@ -118,6 +119,7 @@ class TestHTMLCache:
         data, metadata = self.cache.get_data(self.test_key)
 
         # Our implementation adds some fields, so check individual fields instead of exact equality
+        assert data is not None, "Cached data should not be None"
         for key, value in self.test_data.items():
             assert data[key] == value
 
@@ -218,6 +220,7 @@ class TestHTMLCache:
         # Verify data exists
         data, _ = self.cache.get_data(self.test_key)
         # Check key fields rather than exact equality since our implementation adds metadata
+        assert data is not None, "Data should not be None"
         for key, value in self.test_data.items():
             assert data[key] == value
 
@@ -401,6 +404,6 @@ class TestHTMLCache:
 
                 result = atomic_write(error_file, write_to_readonly)
                 assert result is False
-            except:
+            except Exception:
                 # If this fails for any reason, just skip - we're testing error handling
                 pass

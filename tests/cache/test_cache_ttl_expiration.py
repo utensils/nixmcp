@@ -48,6 +48,7 @@ async def test_html_cache_ttl_expiration(real_cache_dir):
 
     cached_data, data_metadata = html_cache.get_data(test_key)
     # Our implementation adds timestamps and instance ID, so check keys instead of exact equality
+    assert cached_data is not None, "Cached data should not be None"
     assert cached_data["key"] == test_data["key"]
     assert cached_data["timestamp"] == test_data["timestamp"]
     assert "creation_timestamp" in cached_data
@@ -91,7 +92,7 @@ async def test_html_cache_ttl_expiration(real_cache_dir):
                 meta_content["creation_timestamp"] = old_time
                 with open(path, "w") as f:
                     f.write(json.dumps(meta_content))
-            except:
+            except Exception:
                 pass
 
     update_meta_file(html_meta_path)

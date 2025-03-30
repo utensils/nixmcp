@@ -14,7 +14,7 @@ import json
 import pickle
 import os
 import threading
-from typing import Optional, Dict, Any, Tuple, Union, cast
+from typing import Optional, Dict, Any, Tuple, cast
 
 from ..utils.cache_helpers import (
     init_cache_storage,
@@ -185,7 +185,8 @@ class HTMLCache:
 
         if expired:
             logger.debug(
-                f"Cache entry {file_path} is expired: file_expired={file_expired}, timestamp_expired={timestamp_expired}"
+                f"Cache entry {file_path} is expired: file_expired={file_expired}, "
+                f"timestamp_expired={timestamp_expired}"
             )
 
         return expired
@@ -564,7 +565,8 @@ class HTMLCache:
             # Write metadata file separately too (belt and suspenders)
             meta_path = pathlib.Path(f"{cache_path}.meta")
             try:
-                atomic_write(meta_path, lambda f: f.write(json.dumps(cache_metadata, indent=2)))
+                # Cast is needed because write returns an int but atomic_write expects None return type
+                atomic_write(meta_path, lambda f: cast(None, f.write(json.dumps(cache_metadata, indent=2))))
             except Exception as e:
                 logger.warning(f"Failed to write metadata for binary data {key}: {e}")
 

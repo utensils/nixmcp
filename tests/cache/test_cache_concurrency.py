@@ -1,6 +1,6 @@
 """Tests for cache concurrency and file locking behavior."""
 
-import os
+# Import needed modules
 import time
 import pytest
 import tempfile
@@ -268,7 +268,9 @@ async def test_atomic_file_operations(concurrent_cache_dir):
     with ThreadPoolExecutor(max_workers=num_instances) as executor:
         # First do some concurrent updates
         update_futures = [executor.submit(update_file, i) for i in range(num_instances)]
-        update_results = [future.result() for future in update_futures]
+        # Wait for all futures to complete but don't need to collect results
+        for future in update_futures:
+            future.result()
 
         # Then do some concurrent reads
         read_futures = [executor.submit(read_file, i) for i in range(num_instances)]
