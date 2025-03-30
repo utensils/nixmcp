@@ -3,7 +3,8 @@
 ## Source of Truth & Code Patterns
 
 - CLAUDE.md is the primary source of truth for coding rules
-- Sync changes to other rule files: `.windsurfrules`, `.cursorrules`, `.goosehints`
+- Sync changes to other rule files using: `nix develop -c sync-rules` 
+  - This syncs CLAUDE.md to `.windsurfrules`, `.cursorrules`, `.goosehints`
 - Always follow existing code patterns and module structure
 - Maintain architectural boundaries and consistency
 
@@ -74,6 +75,7 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
 ### Configuration
 - `LOG_LEVEL`, `LOG_FILE`
 - `MCP_NIXOS_CACHE_DIR`, `MCP_NIXOS_CACHE_TTL`
+- `MCP_NIXOS_CLEANUP_ORPHANS`, `KEEP_TEST_CACHE` (development)
 - `ELASTICSEARCH_URL`, `ELASTICSEARCH_USER`, `ELASTICSEARCH_PASSWORD`
 
 ## Development
@@ -93,10 +95,14 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
   - Integration tests only: `nix run .#run-tests -- --integration`
   - All tests: `nix run .#run-tests`
 - Test Cache Configuration:
-  - Tests use isolated cache directory (`./mcp_nixos_test_cache` by default)
+  - Tests use structured cache directory with separate areas for unit and integration tests
+  - Automatic subdirectory: `./mcp_nixos_test_cache/{unit|integration|mixed}`
   - Cache is automatically cleaned up after tests unless `KEEP_TEST_CACHE=true`
   - Override with `MCP_NIXOS_CACHE_DIR=/custom/path nix run .#run-tests`
-  - CI runs use separate caches for unit and integration tests to enable parallel runs
+  - Designed for parallel test runs without cache conflicts
+  - Testing strictly maintains cache directory isolation from system directories
+  - All tests must check for both default OS cache paths and test-specific paths
+  - The gitignore file excludes `mcp_nixos_test_cache/` and `*test_cache*/` patterns
 
 ### Dependency Management
 - Project uses `pyproject.toml` for dependency specification (PEP 621)

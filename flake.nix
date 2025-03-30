@@ -159,23 +159,15 @@
                 # Set up parameters based on arguments
                 TEST_ARGS=""
                 
-                # Set test-specific cache directory to avoid conflicts with regular usage
-                # This ensures tests don't interfere with the regular application cache
-                if [ -z "$MCP_NIXOS_CACHE_DIR" ]; then
-                  export MCP_NIXOS_CACHE_DIR="$PWD/mcp_nixos_test_cache"
-                  echo "Using test-specific cache directory: $MCP_NIXOS_CACHE_DIR"
-                else
-                  echo "Using provided cache directory: $MCP_NIXOS_CACHE_DIR"
-                fi
-                
                 # Handle the unit/integration flags
+                # These arguments get passed directly to pytest
                 if [[ $# -gt 0 && "$1" == "--unit" ]]; then
                   echo "Running unit tests only..."
-                  TEST_ARGS="-k \"not integration\""
+                  TEST_ARGS="--unit"
                   shift
                 elif [[ $# -gt 0 && "$1" == "--integration" ]]; then
                   echo "Running integration tests only..."
-                  TEST_ARGS="-m integration"
+                  TEST_ARGS="--integration"
                   shift
                 else
                   echo "Running all tests..."
@@ -201,12 +193,6 @@
                 # Show coverage report message if applicable
                 if [ -n "$COVERAGE_ARGS" ]; then
                   echo "✅ Coverage report generated. HTML report available in htmlcov/"
-                fi
-                
-                # Clean up test cache directory if we created it (unless explicitly requested to keep it)
-                if [ "$MCP_NIXOS_CACHE_DIR" = "$PWD/mcp_nixos_test_cache" ] && [ "$KEEP_TEST_CACHE" != "true" ]; then
-                  echo "Cleaning up test cache directory..."
-                  rm -rf "$MCP_NIXOS_CACHE_DIR"
                 fi
               '';
             }
@@ -279,6 +265,29 @@
                 echo "--- Uploading to PyPI ---"
                 twine upload dist/*
                 echo "✅ Upload command executed."
+              '';
+            }
+            {
+              name = "sync-rules";
+              category = "development";
+              help = "Sync CLAUDE.md to .windsurfrules, .cursorrules, and .goosehints files";
+              command = ''
+                echo "--- Syncing CLAUDE.md to rule files ---"
+                if [ ! -f "CLAUDE.md" ]; then
+                  echo "❌ Error: CLAUDE.md file not found!"
+                  exit 1
+                fi
+                
+                # Copy content to rule files
+                cat CLAUDE.md > .windsurfrules
+                cat CLAUDE.md > .cursorrules
+                cat CLAUDE.md > .goosehints
+                
+                # Verify sync
+                echo "✅ CLAUDE.md synced to:"
+                echo "   - .windsurfrules"
+                echo "   - .cursorrules"
+                echo "   - .goosehints"
               '';
             }
           ];

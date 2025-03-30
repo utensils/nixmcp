@@ -129,6 +129,21 @@ def init_cache_storage(cache_dir: Optional[str] = None, ttl: int = 86400) -> Dic
         Dictionary containing cache configuration information
     """
     try:
+        # Detect test environment
+        if "pytest" in sys.modules:
+            # For testing, we want to ensure the cache NEVER uses system locations
+            # If we're in a test but no cache_dir was specified, use a temp directory
+            # This avoids polluting system cache directories during tests
+            if not cache_dir and "MCP_NIXOS_CACHE_DIR" not in os.environ:
+                import tempfile as tmp_module
+
+                # Create a test-specific cache directory
+                test_dir = tmp_module.mkdtemp(prefix="mcp_nixos_test_cache_")
+                logger.warning(f"Test environment detected, using isolated cache: {test_dir}")
+                # Set it in the environment so any child processes will use it too
+                os.environ["MCP_NIXOS_CACHE_DIR"] = test_dir
+                cache_dir = test_dir
+
         cache_path = ensure_cache_dir(cache_dir)
         instance_id = str(uuid.uuid4())[:8]  # Generate a unique instance ID
         logger.info(f"Cache initialized with directory: {cache_path}, instance: {instance_id}")
@@ -139,13 +154,14 @@ def init_cache_storage(cache_dir: Optional[str] = None, ttl: int = 86400) -> Dic
             "initialized": True,
             "instance_id": instance_id,
             "creation_time": time.time(),
+            "is_test_dir": "mcp_nixos_test_cache" in cache_path,
         }
     except Exception as e:
         logger.error(f"Failed to initialize cache: {e}")
         # Provide fallback configuration using temporary directory
         import tempfile as tmp_module
 
-        fallback_dir = tmp_module.gettempdir()
+        fallback_dir = tmp_module.mkdtemp(prefix="mcp_nixos_temp_cache_")
         instance_id = str(uuid.uuid4())[:8]
         logger.warning(f"Using fallback cache directory: {fallback_dir}, instance: {instance_id}")
         return {
@@ -155,6 +171,7 @@ def init_cache_storage(cache_dir: Optional[str] = None, ttl: int = 86400) -> Dic
             "error": str(e),
             "instance_id": instance_id,
             "creation_time": time.time(),
+            "is_test_dir": True,  # Mark as test/temp dir so it gets cleaned up
         }
 
 

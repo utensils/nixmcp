@@ -222,9 +222,18 @@ def test_darwin_integration_cache_directory():
     # Check it's not using the incorrect 'darwin' relative path
     assert cache_dir != pathlib.Path("darwin")
 
-    # Check it's using a subdirectory of the default cache location
-    default_cache_dir = pathlib.Path(get_default_cache_dir())
-    assert str(cache_dir).startswith(str(default_cache_dir))
+    # Check it's using an appropriate cache directory location
+    # Note: For tests, we use a test-specific cache directory from conftest.py
+    # rather than the default OS cache location
+
+    # In test environment, check that the cache directory either:
+    # 1. Starts with the default cache dir (in regular runs), OR
+    # 2. Contains "mcp_nixos_test_cache" (in test runs)
+    cache_path = str(cache_dir)
+    default_cache_dir = get_default_cache_dir()
+    assert (
+        cache_path.startswith(default_cache_dir) or "mcp_nixos_test_cache" in cache_path
+    ), f"Cache dir not in expected location: {cache_path}"
 
     # The directory should exist and be writeable
     assert cache_dir.exists()

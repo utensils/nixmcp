@@ -605,17 +605,20 @@ async def app_lifespan(mcp_server: FastMCP):
         # Track start time for overall shutdown duration
         shutdown_start = time.time()
 
-        # Create tasks for concurrent shutdown of all components
-        shutdown_tasks = []
+        # Create coroutines for shutdown operations
+        shutdown_coroutines = []
 
-        # Shutdown Darwin context with timeout
-        shutdown_tasks.append(
-            async_with_timeout(darwin_context.shutdown(), timeout_seconds=3.0, operation_name="Darwin context shutdown")
-        )
+        # Add Darwin context shutdown with timeout
+        if hasattr(darwin_context, "shutdown") and callable(darwin_context.shutdown):
+            shutdown_coroutines.append(
+                async_with_timeout(
+                    darwin_context.shutdown(), timeout_seconds=3.0, operation_name="Darwin context shutdown"
+                )
+            )
 
         # Add shutdown for home_manager_context if a shutdown method is available
         if hasattr(home_manager_context, "shutdown") and callable(home_manager_context.shutdown):
-            shutdown_tasks.append(
+            shutdown_coroutines.append(
                 async_with_timeout(
                     home_manager_context.shutdown(), timeout_seconds=3.0, operation_name="Home Manager context shutdown"
                 )
@@ -623,14 +626,17 @@ async def app_lifespan(mcp_server: FastMCP):
 
         # Add shutdown for nixos_context if a shutdown method is available
         if hasattr(nixos_context, "shutdown") and callable(nixos_context.shutdown):
-            shutdown_tasks.append(
+            shutdown_coroutines.append(
                 async_with_timeout(
                     nixos_context.shutdown(), timeout_seconds=3.0, operation_name="NixOS context shutdown"
                 )
             )
 
-        # Execute all shutdown tasks concurrently
+        # Execute all shutdown operations truly concurrently
         try:
+            # Create individual tasks for each coroutine to ensure they run concurrently
+            shutdown_tasks = [asyncio.create_task(coro) for coro in shutdown_coroutines]
+
             # Wait for all tasks to complete with an overall timeout
             await asyncio.wait_for(
                 asyncio.gather(*shutdown_tasks, return_exceptions=True),

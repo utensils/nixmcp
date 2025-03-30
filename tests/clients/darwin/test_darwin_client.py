@@ -314,10 +314,19 @@ def test_cache_initialization():
     assert darwin_client.html_cache is not None, "HTML cache should not be None"
     assert darwin_client.html_cache.cache_dir != pathlib.Path("darwin")
 
-    # Check that the cache directory is a subpath of the default cache dir
-    default_cache_dir = pathlib.Path(get_default_cache_dir())
+    # Check that the cache directory is properly set up
+    # Note: For tests, we use a test-specific cache directory from conftest.py
+    # rather than the default OS cache location
     assert darwin_client.html_cache is not None, "HTML cache should not be None"
-    assert str(darwin_client.html_cache.cache_dir).startswith(str(default_cache_dir))
+
+    # In test environment, check that the cache directory either:
+    # 1. Starts with the default cache dir (in regular runs), OR
+    # 2. Contains "mcp_nixos_test_cache" (in test runs)
+    cache_path = str(darwin_client.html_cache.cache_dir)
+    default_cache_dir = get_default_cache_dir()
+    assert (
+        cache_path.startswith(default_cache_dir) or "mcp_nixos_test_cache" in cache_path
+    ), f"Cache dir not in expected location: {cache_path}"
 
     # Create a darwin client without passing a client to test the default case
     with patch("mcp_nixos.clients.darwin.darwin_client.HTMLClient") as mock_html_client_class:
@@ -365,9 +374,17 @@ def test_avoid_read_only_filesystem_error():
     # This should not happen with our fix
     assert not darwin_dir.exists(), "The 'darwin' directory should not be created in the current directory"
 
-    # Verify the cache directory is a properly structured path in the OS cache location
+    # Verify the cache directory is a properly structured path
     assert darwin_client.html_cache is not None, "HTML cache should not be None"
-    assert str(darwin_client.html_cache.cache_dir).startswith(str(get_default_cache_dir()))
+
+    # In test environment, check that the cache directory either:
+    # 1. Starts with the default cache dir (in regular runs), OR
+    # 2. Contains "mcp_nixos_test_cache" (in test runs)
+    cache_path = str(darwin_client.html_cache.cache_dir)
+    default_cache_dir = get_default_cache_dir()
+    assert (
+        cache_path.startswith(default_cache_dir) or "mcp_nixos_test_cache" in cache_path
+    ), f"Cache dir not in expected location: {cache_path}"
 
 
 @pytest.mark.asyncio

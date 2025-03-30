@@ -38,6 +38,8 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+mcp_nixos_test_cache/
+*test_cache*/
 
 # Environments
 # Note: We're keeping .env in the repo since it contains public credentials

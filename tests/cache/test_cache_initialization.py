@@ -1,6 +1,7 @@
 """Tests for cache initialization and fallback behavior."""
 
 import os
+import sys
 import tempfile
 import pathlib
 import pytest
@@ -11,7 +12,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.not_integration]
 
 from mcp_nixos.cache.html_cache import HTMLCache
 from mcp_nixos.clients.html_client import HTMLClient
-from mcp_nixos.utils.cache_helpers import init_cache_storage
+from mcp_nixos.utils.cache_helpers import init_cache_storage, get_default_cache_dir
 
 
 class TestCacheInitialization:
@@ -125,3 +126,31 @@ class TestCacheInitialization:
 
                 # Shut down properly to clean up
                 await darwin_context.shutdown()
+
+    def test_cache_never_uses_system_directory(self, temp_cache_dir):
+        """Test that tests never use the system-default cache directory."""
+        # Get the default system cache directory
+        system_cache_dir = get_default_cache_dir()
+
+        # Initialize cache without explicit directory
+        # The temp_cache_dir fixture should have set the environment variable
+        config = init_cache_storage()
+
+        # The resulting cache dir should NEVER be the system default
+        assert config["cache_dir"] != system_cache_dir, "Cache is using system directory during tests"
+
+        # It should match our test-specific directory pattern
+        assert (
+            "mcp_nixos_test_cache" in config["cache_dir"]
+        ), f"Cache directory {config['cache_dir']} doesn't include the test pattern"
+
+        # Explicitly verify we didn't touch the system directory
+        if sys.platform == "darwin":
+            system_dir = os.path.expanduser("~/Library/Caches/mcp_nixos")
+        else:
+            system_dir = os.path.expanduser("~/.cache/mcp_nixos")
+
+        # If the system dir exists, it shouldn't have any new files from our test
+        if os.path.exists(system_dir):
+            test_files = [f for f in os.listdir(system_dir) if "test" in f.lower()]
+            assert len(test_files) == 0, f"System cache directory {system_dir} contains test files: {test_files}"
