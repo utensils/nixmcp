@@ -97,8 +97,8 @@ jobs:
           # Use the new 'typecheck' command from flake.nix
           nix develop --command typecheck
 
-  test:
-    name: Run All Tests (Unit + Integration)
+  unit-tests:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
     needs: [build]
     steps:
@@ -120,38 +120,91 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
-      - name: Setup Python environment and run tests
+      - name: Setup Python environment and run unit tests
         run: |
           # Set up the environment using the setup command from flake.nix
-          # This will clean any existing .venv and create a fresh one
           nix develop --command setup
           
-          # Run all tests (unit and integration) together using the run-tests command from flake.nix
-          # This will use the proper test command with coverage reporting
-          # Not specifying --unit or --integration flag will run all tests together
-          nix develop --command run-tests
+          # Run unit tests only
+          nix develop --command run-tests --unit
 
+      - name: Upload unit test coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-report-${{ runner.os }}
+          path: |
+            ./htmlcov/
+            ./coverage.xml
+
+  integration-tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - name: Cache Nix store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/nix
+            /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+      - name: Setup Python environment and run integration tests
+        run: |
+          # Set up the environment using the setup command from flake.nix
+          nix develop --command setup
+          
+          # Run integration tests only
+          nix develop --command run-tests --integration
+
+      - name: Upload integration test coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage-report-${{ runner.os }}
+          path: |
+            ./htmlcov/
+            ./coverage.xml
+
+  upload-coverage:
+    name: Upload Combined Coverage
+    needs: [unit-tests, integration-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download unit test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-coverage-report-${{ runner.os }}
+          path: ./coverage-unit/
+      - name: Download integration test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-coverage-report-${{ runner.os }}
+          path: ./coverage-integration/
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.xml
+          files: ./coverage-unit/coverage.xml,./coverage-integration/coverage.xml
           fail_ci_if_error: true
         env:
           # Add the Codecov token from repository secrets
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-${{ runner.os }}
-          path: |
-            ./htmlcov/
-            ./coverage.xml
-
   publish:
     name: Build and Publish to PyPI
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, unit-tests, integration-tests]
     runs-on: ubuntu-latest
     environment:
       name: pypi
