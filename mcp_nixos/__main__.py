@@ -2,52 +2,34 @@
 """
 CLI entry point for MCP-NixOS server.
 
-This handles the top-level execution of the MCP-NixOS server, including proper
-signal handling and graceful shutdown on keyboard interrupts.
+This handles the top-level execution of the MCP-NixOS server, allowing the FastMCP
+framework to manage signal handling and graceful shutdown.
 """
 
 import sys
-import signal
+import os
 
 # Import mcp from server
 from mcp_nixos.server import mcp, logger
 
-# Flag to track if shutdown is already in progress
-shutdown_in_progress = False
-
-
-def signal_handler(signum, frame):
-    """Handle termination signals with proper logging and process exit."""
-    global shutdown_in_progress
-
-    if shutdown_in_progress:
-        # If we get a second signal during shutdown, exit immediately
-        logger.warning("Received second signal during shutdown, exiting immediately")
-        sys.exit(130)  # 128 + SIGINT value (2)
-
-    # Mark shutdown as in progress
-    shutdown_in_progress = True
-
-    # Log the signal event
-    try:
-        sig_name = signal.Signals(signum).name
-        logger.info(f"Received {sig_name}, initiating graceful shutdown")
-    except (ValueError, AttributeError):
-        logger.info(f"Received signal {signum}, initiating graceful shutdown")
-
-    # Exit the process with appropriate code
-    # This will trigger proper cleanup in the MCP framework
-    sys.exit(130)  # 128 + SIGINT value (2)
-
 
 def main():
-    """Run the MCP-NixOS server with proper signal handling."""
-    # Register signal handlers for graceful termination
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, signal_handler)
+    """Run the MCP-NixOS server."""
+    # Check if we're running under Windsurf for specific debugging
+    import os
+
+    windsurf_detected = False
+    for env_var in os.environ:
+        if "WINDSURF" in env_var.upper() or "WINDSURFER" in env_var.upper():
+            windsurf_detected = True
+            logger.info(f"Detected Windsurf environment variable: {env_var}={os.environ[env_var]}")
+
+    if windsurf_detected:
+        logger.info("Running under Windsurf - monitoring for restart/refresh signals")
 
     try:
         # Run the server (this is a blocking call)
+        logger.info("Starting server main loop")
         mcp.run()
     except KeyboardInterrupt:
         # Handle keyboard interrupt for cleaner exit

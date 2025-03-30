@@ -688,45 +688,54 @@ register_darwin_tools(darwin_context, mcp)
 # No need to manually add tools here - will be handled by the register_darwin_tools function
 
 
-# Signal handling and shutdown management
-
-
-# Implement proper signal handling
-def setup_signal_handlers():
-    """Set up proper signal handlers for graceful shutdown."""
-    # Flag to track if shutdown is already in progress
-    shutdown_in_progress = False
-
-    def signal_handler(signum, frame):
-        """Handle termination signals with proper logging."""
-        nonlocal shutdown_in_progress
-        sig_name = signal.Signals(signum).name
-
-        # Prevent multiple simultaneous shutdowns
-        if shutdown_in_progress:
-            logger.warning(f"Received {sig_name} while shutdown already in progress")
-            return
-
-        shutdown_in_progress = True
-        logger.info(f"Received signal {sig_name}, initiating graceful shutdown")
-
-        # We don't need to do anything else here because FastMCP will handle
-        # the actual shutdown process, including calling our lifespan's cleanup
-
-    # Register handlers for common termination signals
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, signal_handler)
-
-    logger.debug("Signal handlers registered")
+# Signal handling is now managed by FastMCP framework via app_lifespan
 
 
 if __name__ == "__main__":
     # This will start the server and keep it running
     try:
-        # Set up signal handlers first for better logging
-        setup_signal_handlers()
+        # Log server initialization with additional environment info
+        logger.info("Initializing MCP-NixOS server")
 
-        logger.info("Starting MCP-NixOS server...")
+        # Log process and environment information for debugging
+        try:
+            import psutil
+            import os
+
+            process = psutil.Process()
+            # Log basic process info
+            logger.info(f"Process info - PID: {process.pid}, Parent PID: {process.ppid()}")
+
+            # Try to get parent process info
+            try:
+                parent = psutil.Process(process.ppid())
+                logger.info(f"Parent process: {parent.name()} (PID: {parent.pid})")
+                parent_cmdline = " ".join(parent.cmdline())
+                logger.debug(f"Parent command line: {parent_cmdline}")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                logger.info("Unable to access parent process information")
+
+            # Check if running under Windsurf or other MCP client
+            windsurf_detected = False
+            for env_var in os.environ:
+                if "WINDSURF" in env_var.upper() or "WINDSURFER" in env_var.upper():
+                    windsurf_detected = True
+                    logger.info(f"Detected Windsurf environment: {env_var}={os.environ[env_var]}")
+
+            if windsurf_detected:
+                logger.info("Running under Windsurf - configuring for Windsurf compatibility")
+
+                # Log available signals on this platform
+                signal_names = []
+                for sig_attr in dir(signal):
+                    if sig_attr.startswith("SIG") and not sig_attr.startswith("SIG_"):
+                        signal_names.append(sig_attr)
+                logger.debug(f"Available signals on this platform: {', '.join(signal_names)}")
+
+        except Exception as e:
+            logger.error(f"Error getting process info during startup: {e}")
+
+        logger.info("Starting MCP-NixOS server event loop")
         mcp.run()
     except KeyboardInterrupt:
         # This is normal when Ctrl+C is pressed

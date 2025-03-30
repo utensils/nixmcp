@@ -23,24 +23,29 @@ def run_server_process(ready_queue, shutdown_complete_queue):
             test_cache_dir = tempfile.mkdtemp(prefix="mcp_nixos_test_cache_")
             os.environ["MCP_NIXOS_CACHE_DIR"] = test_cache_dir
 
-        # Set up mocks and import server
-        from mcp_nixos.server import mcp
-
         # Signal that the process is ready
         ready_queue.put(True)
 
         # Set up a handler to notify the test when shutdown is complete
-        original_exit = sys.exit
-
-        def exit_handler(code=0):
+        def signal_handler(signum, frame):
+            # Handle the signal directly here
             shutdown_complete_queue.put(True)
-            original_exit(code)
+            # Still exit to terminate the process
+            sys.exit(130)
 
-        sys.exit = exit_handler
+        # Register our handler for both SIGINT and SIGTERM
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        # Import after registering our signal handlers
+        from mcp_nixos.server import mcp
 
         # Run the server (blocked until terminated)
         try:
             mcp.run()
+        except KeyboardInterrupt:
+            # This is now handled by our signal handler
+            pass
         except Exception as e:
             shutdown_complete_queue.put(f"Server run error: {str(e)}")
             return

@@ -13,6 +13,10 @@ import signal
 import subprocess
 import atexit
 import time
+from typing import Optional
+
+# Global server process variable that will be set in main() and used in signal_handler
+server_process: Optional[subprocess.Popen] = None
 
 
 def find_and_kill_zombie_mcp_processes():
@@ -122,17 +126,86 @@ def main():
 
     def signal_handler(signum, frame):
         """Handle termination signals by cleaning up and immediately exiting."""
-        signal_name = signal.Signals(signum).name
-        print(f"\nReceived {signal_name}, terminating server...")
+        global server_process
+        import sys  # Make sure sys is imported
+
+        try:
+            signal_name = signal.Signals(signum).name
+        except ValueError:
+            signal_name = f"UNKNOWN({signum})"
+
+        print(f"\n⚠️ SIGNAL: Received {signal_name}, terminating server...")
+
+        # Log more details about the signal and the current state
+        import traceback
+
+        stack_trace = "".join(traceback.format_stack(frame))
+        print(f"Signal occurred during execution at:\n{stack_trace}")
+
+        # Get detailed process information for debugging
+        try:
+            import psutil
+            import os
+
+            # Log information about our wrapper process
+            wrapper_process = psutil.Process()
+            print(f"Wrapper process - PID: {wrapper_process.pid}, Status: {wrapper_process.status()}")
+
+            # Log information about server subprocess
+            if server_process:
+                try:
+                    sp_pid = server_process.pid
+                    sp = psutil.Process(sp_pid)
+                    print(
+                        f"Server process - PID: {sp_pid}, Status: {sp.status()}, Running: {server_process.poll() is None}"
+                    )
+                    print(f"Server CPU: {sp.cpu_percent()}%, Memory: {sp.memory_info().rss / (1024*1024):.1f}MB")
+
+                    # Check if server process has children that might be causing issues
+                    children = sp.children(recursive=True)
+                    if children:
+                        print(f"Server has {len(children)} child processes:")
+                        for child in children:
+                            try:
+                                print(f"  Child - PID: {child.pid}, Name: {child.name()}, Status: {child.status()}")
+                            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                print(f"  Child - PID: {child.pid}, Info unavailable")
+                except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                    print(f"Error accessing server process info: {e}")
+
+            # Check for Windsurf or other MCP client environment variables
+            windsurf_vars = [var for var in os.environ if "WINDSURF" in var.upper() or "WINDSURFER" in var.upper()]
+            if windsurf_vars:
+                print("Running under Windsurf environment:")
+                for var in windsurf_vars:
+                    print(f"  {var}={os.environ[var]}")
+        except Exception as e:
+            print(f"Error getting process details: {e}")
 
         # Kill the server process forcefully after logging
         if server_process and server_process.poll() is None:
-            print("Killing server process...")
+            print(f"Killing server process {server_process.pid}...")
             # Immediately terminate the server process
-            server_process.kill()
+            try:
+                server_process.kill()
+                print(f"Kill signal sent to PID {server_process.pid}")
+                # Optionally wait briefly for confirmation
+                try:
+                    server_process.wait(timeout=0.5)
+                except subprocess.TimeoutExpired:
+                    print("Server process kill confirmation timed out.")
+            except Exception as e:
+                print(f"Error killing server process: {e}")
+                # Try alternative kill method if standard method fails
+                try:
+                    os.kill(server_process.pid, signal.SIGKILL)
+                    print(f"SIGKILL sent to PID {server_process.pid} via os.kill")
+                except Exception as e2:
+                    print(f"Failed to kill via os.kill: {e2}")
 
-        # Exit immediately
-        os._exit(130)  # Use os._exit to bypass any further Python cleanup
+        # Exit with sys.exit instead of os._exit for cleaner exit
+        print("Exiting wrapper process...")
+        sys.exit(130)  # Use sys.exit for cleaner exit signaling interrupted state
 
     # Set up signal handling
     for sig in (signal.SIGINT, signal.SIGTERM):
