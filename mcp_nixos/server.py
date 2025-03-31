@@ -117,11 +117,11 @@ darwin_context = DarwinContext()
 
 
 # Define a helper function for handling async timeouts
-async def async_with_timeout(coro, timeout_seconds=5.0, operation_name="operation"):
+async def async_with_timeout(coro_func, timeout_seconds=5.0, operation_name="operation"):
     """Execute a coroutine with a timeout.
 
     Args:
-        coro: The coroutine to execute
+        coro_func: A function that returns a coroutine when called
         timeout_seconds: Maximum time to wait (seconds)
         operation_name: Name of the operation for logging purposes
 
@@ -129,6 +129,8 @@ async def async_with_timeout(coro, timeout_seconds=5.0, operation_name="operatio
         The result of the coroutine, or None if it timed out
     """
     try:
+        # Get the coroutine at execution time, not when passed to the function
+        coro = coro_func()
         return await asyncio.wait_for(coro, timeout=timeout_seconds)
     except asyncio.TimeoutError:
         logger.warning(f"{operation_name} timed out after {timeout_seconds}s")
@@ -156,7 +158,7 @@ async def app_lifespan(mcp_server: FastMCP):
     # Start the Darwin context with a timeout
     try:
         await async_with_timeout(
-            darwin_context.startup(), timeout_seconds=10.0, operation_name="Darwin context startup"
+            lambda: darwin_context.startup(), timeout_seconds=10.0, operation_name="Darwin context startup"
         )
         logger.info(f"Darwin context status: {darwin_context.status}")
     except Exception as e:
@@ -612,7 +614,7 @@ async def app_lifespan(mcp_server: FastMCP):
         if hasattr(darwin_context, "shutdown") and callable(darwin_context.shutdown):
             shutdown_coroutines.append(
                 async_with_timeout(
-                    darwin_context.shutdown(), timeout_seconds=3.0, operation_name="Darwin context shutdown"
+                    lambda: darwin_context.shutdown(), timeout_seconds=0.5, operation_name="Darwin context shutdown"
                 )
             )
 
@@ -620,7 +622,7 @@ async def app_lifespan(mcp_server: FastMCP):
         if hasattr(home_manager_context, "shutdown") and callable(home_manager_context.shutdown):
             shutdown_coroutines.append(
                 async_with_timeout(
-                    home_manager_context.shutdown(), timeout_seconds=3.0, operation_name="Home Manager context shutdown"
+                    lambda: home_manager_context.shutdown(), timeout_seconds=0.5, operation_name="Home Manager context shutdown"
                 )
             )
 
@@ -628,7 +630,7 @@ async def app_lifespan(mcp_server: FastMCP):
         if hasattr(nixos_context, "shutdown") and callable(nixos_context.shutdown):
             shutdown_coroutines.append(
                 async_with_timeout(
-                    nixos_context.shutdown(), timeout_seconds=3.0, operation_name="NixOS context shutdown"
+                    lambda: nixos_context.shutdown(), timeout_seconds=0.5, operation_name="NixOS context shutdown"
                 )
             )
 
@@ -640,7 +642,7 @@ async def app_lifespan(mcp_server: FastMCP):
             # Wait for all tasks to complete with an overall timeout
             await asyncio.wait_for(
                 asyncio.gather(*shutdown_tasks, return_exceptions=True),
-                timeout=5.0,  # Overall timeout for all shutdown operations
+                timeout=0.8,  # Overall timeout for all shutdown operations
             )
             logger.debug("All context shutdowns completed")
         except asyncio.TimeoutError:

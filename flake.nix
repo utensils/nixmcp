@@ -111,6 +111,10 @@
             nix
             nixos-option
             git
+
+            # AI Tools
+            code2prompt
+            llm
           ];
           commands = [
             {

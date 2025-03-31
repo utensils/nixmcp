@@ -23,6 +23,7 @@ dependencies = [
     "requests>=2.32.3",
     "python-dotenv>=1.1.0",
     "beautifulsoup4>=4.13.3",
+    "psutil>=5.9.8",
 ]
 
 [project.optional-dependencies]

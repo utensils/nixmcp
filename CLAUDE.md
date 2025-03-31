@@ -73,7 +73,7 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
 - Environment configuration via ENV variables
 
 ### Configuration
-- `LOG_LEVEL`, `LOG_FILE`
+- `MCP_NIXOS_LOG_LEVEL`, `MCP_NIXOS_LOG_FILE`, `LOG_FORMAT`
 - `MCP_NIXOS_CACHE_DIR`, `MCP_NIXOS_CACHE_TTL`
 - `MCP_NIXOS_CLEANUP_ORPHANS`, `KEEP_TEST_CACHE` (development)
 - `ELASTICSEARCH_URL`, `ELASTICSEARCH_USER`, `ELASTICSEARCH_PASSWORD`
