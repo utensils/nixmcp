@@ -126,13 +126,13 @@ class TestHomeManagerDocStructure(unittest.TestCase):
 
     @pytest.mark.integration
     @pytest.mark.skipif(
-        "RUNNING_ALL_TESTS" in os.environ, 
-        reason="This test needs to run in isolation due to network resource contention"
+        "RUNNING_ALL_TESTS" in os.environ,
+        reason="This test needs to run in isolation due to network resource contention",
         # Note: RUNNING_ALL_TESTS is set by the run-tests command when running the full test suite
         # This allows the test to run when executed individually but skip when run as part of the suite
     )
     def test_extract_sample_options(self):
-        """Extract a few sample options to verify the structure. 
+        """Extract a few sample options to verify the structure.
         Note: This test needs to run in isolation due to network resource contention."""
         # We'll just use the main options URL for this test
         url = "https://nix-community.github.io/home-manager/options.xhtml"
@@ -152,29 +152,29 @@ class TestHomeManagerDocStructure(unittest.TestCase):
 
             # First try to find the variablelist div that should contain the options
             variablelist = soup.find("div", class_="variablelist")
-            
+
             # If not found, try alternatives (HTML structure may change)
             if not variablelist:
                 logger.warning(f"No variablelist div found in {source}, trying fallbacks...")
-                
+
                 # Try finding any divs with class attributes to see what's available
                 all_divs_with_class = soup.find_all("div", class_=True)
-                div_classes = [div.get('class', []) for div in all_divs_with_class]
+                div_classes = [div.get("class", []) for div in all_divs_with_class]
                 logger.info(f"Available div classes: {div_classes[:10]}")
-                
+
                 # Try other potential containers like divs containing dl elements
-                potential_containers = [div for div in all_divs_with_class if div.find('dl')]
+                potential_containers = [div for div in all_divs_with_class if div.find("dl")]
                 if potential_containers:
                     logger.info(f"Found {len(potential_containers)} potential containers with dl elements")
                     variablelist = potential_containers[0]
                 else:
                     # Last resort: look for any div that contains dt and dd elements
                     for div in all_divs_with_class:
-                        if div.find('dt') and div.find('dd'):
+                        if div.find("dt") and div.find("dd"):
                             variablelist = div
                             logger.info(f"Found fallback div with dt/dd elements: {div.get('class', [])}")
                             break
-            
+
             # If we still couldn't find anything useful, skip the test
             if not variablelist:
                 logger.warning(f"No suitable container found for options in {source}")

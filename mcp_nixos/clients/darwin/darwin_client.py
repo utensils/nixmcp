@@ -165,21 +165,49 @@ class DarwinClient:
         return dd if isinstance(dd, Tag) else None
 
     async def _parse_options(self, soup: BeautifulSoup) -> None:
-        """Parse nix-darwin options from BeautifulSoup object (main loop refactored)."""
+        """
+        Parse nix-darwin options from BeautifulSoup object with enhanced fallbacks.
+
+        This method has been enhanced to handle different HTML structures with multiple
+        fallback strategies, similar to the Home Manager fixes.
+        """
         self.options = {}
         self.name_index = defaultdict(list)
         self.word_index = defaultdict(set)
         self.prefix_index = defaultdict(list)
 
         option_links: Sequence[PageElement] = []
-        if isinstance(soup, (BeautifulSoup, Tag)):
-            # Try primary ID strategy first
-            option_links = soup.find_all("a", attrs={"id": lambda x: isinstance(x, str) and x.startswith("opt-")})
-            # Fallback to href strategy if needed
-            if not option_links:
-                option_links = soup.find_all(
-                    "a", attrs={"href": lambda x: isinstance(x, str) and x.startswith("#opt-")}
-                )
+
+        # Multiple strategies for finding option links
+        strategies = [
+            # Strategy 1: Direct ID attribute search
+            lambda s: s.find_all("a", attrs={"id": lambda x: isinstance(x, str) and x.startswith("opt-")}),
+            # Strategy 2: Href attribute search
+            lambda s: s.find_all("a", attrs={"href": lambda x: isinstance(x, str) and x.startswith("#opt-")}),
+            # Strategy 3: Code tags within DT tags (some sites use this structure)
+            lambda s: [dt.find("code") for dt in s.find_all("dt") if dt.find("code")],
+        ]
+
+        # Try each strategy until we find some options
+        for strategy_index, strategy_fn in enumerate(strategies):
+            if isinstance(soup, (BeautifulSoup, Tag)):
+                option_links = strategy_fn(soup)
+                if option_links and len(option_links) > 0:
+                    logger.info(f"Found {len(option_links)} option links using strategy {strategy_index+1}")
+                    break
+
+        # If we still don't have links, try a more aggressive approach
+        if not option_links:
+            logger.warning("No option links found with standard strategies, trying fallback approach")
+            # Look for any code tag that might contain option names
+            code_tags = soup.find_all("code")
+            option_links = [code for code in code_tags if code.get_text() and "." in code.get_text()]
+            if option_links:
+                logger.info(f"Found {len(option_links)} potential options with fallback strategy")
+
+        if not option_links:
+            logger.error("Failed to find any option links in the HTML structure")
+            return
 
         logger.info(f"Found {len(option_links)} potential option links")
         total_processed = 0
@@ -188,16 +216,52 @@ class DarwinClient:
             if not isinstance(link, Tag):
                 continue
 
-            option_id = self._extract_option_id_from_link(link)
-            if not option_id:
-                continue
-
-            option_name = option_id[4:]  # Remove 'opt-'
-            dd = self._find_option_description_element(link)
-            if not dd:
-                continue
-
             try:
+                # Try multiple methods to extract option name
+                option_name = None
+
+                # Method 1: Extract from ID
+                option_id = self._extract_option_id_from_link(link)
+                if option_id:
+                    option_name = option_id[4:]  # Remove 'opt-'
+
+                # Method 2: Use code tag text directly
+                if not option_name and link.name == "code":
+                    option_name = link.get_text().strip()
+
+                # Method 3: Look for nested code tag
+                code_tag = link.find("code")
+                if not option_name and code_tag and isinstance(code_tag, Tag):
+                    option_name = code_tag.get_text().strip()
+
+                if not option_name:
+                    continue
+
+                # Try multiple methods to find description
+                dd = None
+
+                # Method 1: Standard dt/dd structure
+                dd = self._find_option_description_element(link)
+
+                # Method 2: Look for next sibling paragraph
+                if not dd and link.parent:
+                    for sibling in link.parent.next_siblings:
+                        if isinstance(sibling, Tag) and (sibling.name == "dd" or sibling.name == "p"):
+                            dd = sibling
+                            break
+
+                # Method 3: Use parent's next sibling if link is inside a dt/h3/etc
+                if not dd and link.parent and link.parent.next_sibling:
+                    next_elem = link.parent.next_sibling
+                    while next_elem and (not isinstance(next_elem, Tag) or not next_elem.get_text().strip()):
+                        next_elem = next_elem.next_sibling
+                    if next_elem and isinstance(next_elem, Tag):
+                        dd = next_elem
+
+                if not dd:
+                    logger.debug(f"No description found for option {option_name}")
+                    continue
+
                 option = self._parse_option_details(option_name, dd)
                 if option:
                     self.options[option_name] = option
@@ -206,7 +270,8 @@ class DarwinClient:
                     if total_processed % 250 == 0:
                         logger.info(f"Processed {total_processed} options...")
             except Exception as e:
-                logger.warning(f"Failed to parse details for option {option_name}: {e}")  # Log and continue
+                # Log and continue - don't let one bad option break the entire parse
+                logger.warning(f"Failed to parse option details: {e}")
 
         self.total_options = len(self.options)
         self.total_categories = len(self._get_top_level_categories())
@@ -278,10 +343,19 @@ class DarwinClient:
     # --- Refactored Detail Parsing ---
 
     def _parse_option_details(self, name: str, dd: Tag) -> Optional[DarwinOption]:
-        """Parse option details from a <dd> tag using helper methods."""
+        """
+        Parse option details from a description tag with enhanced resilience.
+
+        This method has been updated to handle different formats of metadata
+        with multiple extraction strategies and fallbacks.
+        """
         try:
             description = ""
             full_text = dd.get_text(separator=" ", strip=True) if hasattr(dd, "get_text") else ""
+            if not full_text:
+                logger.warning(f"Empty text found for option {name}")
+                # Create a minimal valid option with just the name
+                return DarwinOption(name=name, description=f"Option: {name}")
 
             # Extract from text first
             description = self._extract_description_from_text(full_text)
@@ -290,16 +364,72 @@ class DarwinClient:
             # Fallback/Supplement using element search
             metadata_elem = self._extract_metadata_from_dd_elements(dd)
 
-            # Combine results, preferring text extraction if available
-            option_type = metadata_text.get("type") or metadata_elem.get("type", "")
-            default_value = metadata_text.get("default") or metadata_elem.get("default", "")
-            example = metadata_text.get("example") or metadata_elem.get("example", "")
-            declared_by = metadata_text.get("declared_by") or metadata_elem.get("declared_by", "")
+            # Try regex-based extraction if standard methods fail
+            metadata_regex = {}
+            if not any([metadata_text.get("type"), metadata_elem.get("type")]):
+                # Try to find type with regex
+                type_match = re.search(r"type:?\s*(\w+)", full_text, re.IGNORECASE)
+                if type_match:
+                    metadata_regex["type"] = type_match.group(1)
+
+            if not any([metadata_text.get("default"), metadata_elem.get("default")]):
+                # Try to find default with regex
+                default_match = re.search(r"default:?\s*([^*]+)", full_text, re.IGNORECASE)
+                if default_match:
+                    metadata_regex["default"] = default_match.group(1).strip()
+
+            if not any([metadata_text.get("example"), metadata_elem.get("example")]):
+                # Try to find example with regex
+                example_match = re.search(r"example:?\s*([^*]+)", full_text, re.IGNORECASE)
+                if example_match:
+                    metadata_regex["example"] = example_match.group(1).strip()
+
+            if not any([metadata_text.get("declared_by"), metadata_elem.get("declared_by")]):
+                # Try to find declared_by with regex
+                declared_match = re.search(r"declared by:?\s*([^*]+)", full_text, re.IGNORECASE)
+                if declared_match:
+                    metadata_regex["declared_by"] = declared_match.group(1).strip()
+
+            # Combine results from all strategies, preferring in order:
+            # 1. Text extraction (most accurate)
+            # 2. Element-based extraction
+            # 3. Regex-based extraction (most fallback)
+            option_type = metadata_text.get("type") or metadata_elem.get("type") or metadata_regex.get("type", "")
+            default_value = (
+                metadata_text.get("default") or metadata_elem.get("default") or metadata_regex.get("default", "")
+            )
+            example = metadata_text.get("example") or metadata_elem.get("example") or metadata_regex.get("example", "")
+            declared_by = (
+                metadata_text.get("declared_by")
+                or metadata_elem.get("declared_by")
+                or metadata_regex.get("declared_by", "")
+            )
 
             # Use extracted description if available, otherwise fallback to raw text
             if not description and full_text:
-                description = full_text  # Fallback if description extraction failed
+                # As a last resort, try to extract description from the beginning of text
+                # up to any of the known metadata markers
+                first_metadata = full_text.lower().find("type:")
+                if first_metadata == -1:
+                    first_metadata = full_text.lower().find("default:")
+                if first_metadata == -1:
+                    first_metadata = full_text.lower().find("example:")
+                if first_metadata == -1:
+                    first_metadata = full_text.lower().find("declared by:")
 
+                if first_metadata > 10:  # Only use if we found a marker and have enough text
+                    description = full_text[:first_metadata].strip()
+                else:
+                    description = full_text  # Complete fallback
+
+            # Clean up description if needed
+            if description:
+                # Remove any trailing metadata keywords
+                for keyword in ["Type:", "Default:", "Example:", "Declared by:"]:
+                    if description.endswith(keyword):
+                        description = description[: -len(keyword)].strip()
+
+            # Create and return the option object
             return DarwinOption(
                 name=name,
                 description=description,
@@ -310,7 +440,8 @@ class DarwinClient:
             )
         except Exception as e:
             logger.error(f"Error parsing option details for {name}: {e}")
-            return None
+            # Create a minimal valid option with just the name as a fallback
+            return DarwinOption(name=name, description=f"Error processing {name}: {str(e)}")
 
     def _index_option(self, option_name: str, option: DarwinOption) -> None:
         """Index an option for searching."""

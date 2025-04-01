@@ -129,9 +129,9 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
-            
+          python-version: "3.11"
+          cache: "pip"
+
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -139,8 +139,8 @@ jobs:
           python -m pip install build pytest pytest-cov pytest-asyncio
           python -m pip install -e ".[dev,win]"
         shell: bash
-        
-      - name: Setup Python environment and run unit tests (Unix)
+
+      - name: Setup Python environment and run unit tests (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           # Set up the environment using the setup command from flake.nix
@@ -149,7 +149,7 @@ jobs:
           # Run unit tests only
           # The conftest.py will automatically create a unit test cache directory
           nix develop --command run-tests --unit
-          
+
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -200,9 +200,9 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
-            
+          python-version: "3.11"
+          cache: "pip"
+
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -210,8 +210,8 @@ jobs:
           python -m pip install build pytest pytest-cov pytest-asyncio
           python -m pip install -e ".[dev,win]"
         shell: bash
-        
-      - name: Setup Python environment and run integration tests (Unix)
+
+      - name: Setup Python environment and run integration tests (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
           # Set up the environment using the setup command from flake.nix
@@ -220,7 +220,7 @@ jobs:
           # Run integration tests only
           # The conftest.py will automatically create an integration test cache directory
           nix develop --command run-tests --integration
-          
+
       - name: Run integration tests (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -243,54 +243,54 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       # Download all coverage artifacts from all platforms
       - name: Download Ubuntu unit test coverage
         uses: actions/download-artifact@v4
         with:
           name: unit-coverage-report-Linux
           path: ./coverage-unit-linux/
-          
+
       - name: Download macOS unit test coverage
         uses: actions/download-artifact@v4
         with:
           name: unit-coverage-report-macOS
           path: ./coverage-unit-macos/
         continue-on-error: true
-        
+
       - name: Download Windows unit test coverage
         uses: actions/download-artifact@v4
         with:
           name: unit-coverage-report-Windows
           path: ./coverage-unit-windows/
         continue-on-error: true
-          
+
       - name: Download Ubuntu integration test coverage
         uses: actions/download-artifact@v4
         with:
           name: integration-coverage-report-Linux
           path: ./coverage-integration-linux/
-          
+
       - name: Download macOS integration test coverage
         uses: actions/download-artifact@v4
         with:
           name: integration-coverage-report-macOS
           path: ./coverage-integration-macos/
         continue-on-error: true
-        
+
       - name: Download Windows integration test coverage
         uses: actions/download-artifact@v4
         with:
           name: integration-coverage-report-Windows
           path: ./coverage-integration-windows/
         continue-on-error: true
-        
+
       # List all coverage files to verify downloads
       - name: List downloaded coverage files
         run: |
           echo "Verifying downloaded coverage files:"
           find ./coverage-*/ -name "coverage.xml" | sort
-        
+
       # Upload all coverage reports to Codecov
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
