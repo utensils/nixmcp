@@ -10,7 +10,9 @@
 
 ## Project Overview
 
-MCP-NixOS provides MCP resources and tools for NixOS packages, system options, Home Manager configuration, and nix-darwin macOS configuration. Communication uses JSON-based messages over standard I/O.
+MCP-NixOS provides MCP resources and tools for NixOS packages, system options, Home Manager configuration, and nix-darwin macOS configuration. Communication uses JSON-based messages over standard I/O. An interactive shell (`mcp_shell.py`) is included for manual testing and exploration.
+
+Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/utensils/mcp-nixos)
 
 ## Architecture
 
@@ -80,6 +82,10 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
 
 ## Development
 
+### C Extension Compilation Support
+- Fully supports building C extensions via native libffi support
+- Environment setup managed by flake.nix for build tools and headers
+
 ### Testing
 - 80%+ code coverage with pytest
 - Static type checking (zero-tolerance policy)
@@ -111,12 +117,14 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
   - `requests>=2.32.3`: HTTP client for API interactions
   - `python-dotenv>=1.1.0`: Environment variable management
   - `beautifulsoup4>=4.13.3`: HTML parsing for documentation
+  - `psutil>=5.9.8`: Process and system utilities for orphan cleanup
 - Dev dependencies defined in `[project.optional-dependencies]`
 - Setup script ensures all dependencies are properly installed
 
 ### Installation & Usage
 - Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
 - Claude Code configuration: Add to `~/.config/claude/config.json`
+- Interactive shell: `python mcp_shell.py` (manual testing and tool exploration)
 - Development:
   - Environment: `nix develop`
   - Run server: `run`
@@ -124,6 +132,7 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
   - Code quality: `lint`, `typecheck`, `format`
   - Stats: `loc`
   - Package: `build`, `publish`
+  - GitHub operations: Use `gh` tool for repository management and troubleshooting
 
 ### Code Style
 - Python 3.11+ with strict type hints
