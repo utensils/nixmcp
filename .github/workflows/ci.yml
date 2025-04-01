@@ -102,14 +102,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
       # Don't fail the entire matrix if one OS fails
       fail-fast: false
+    # Windows tests don't need the build job, only Unix platforms do
     needs: [build]
+    if: matrix.os != 'windows-latest' || success()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Install Nix
+        if: runner.os != 'Windows'
         uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -117,6 +120,7 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
       - name: Cache Nix store
+        if: runner.os != 'Windows'
         uses: actions/cache@v4
         with:
           path: |
@@ -125,7 +129,23 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
-      - name: Setup Python environment and run unit tests
+      - name: Set up Python (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+            
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install build pytest pytest-cov pytest-asyncio
+          python -m pip install -e ".[dev,win]"
+        shell: bash
+        
+      - name: Setup Python environment and run unit tests (Unix)
+        if: runner.os != 'Windows'
         run: |
           # Set up the environment using the setup command from flake.nix
           nix develop --command setup
@@ -133,6 +153,13 @@ jobs:
           # Run unit tests only
           # The conftest.py will automatically create a unit test cache directory
           nix develop --command run-tests --unit
+          
+      - name: Run unit tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
+          python -m pytest tests/ -v --unit
+        shell: pwsh
 
       - name: Upload unit test coverage artifact
         uses: actions/upload-artifact@v4
@@ -147,14 +174,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
       # Don't fail the entire matrix if one OS fails
       fail-fast: false
+    # Windows tests don't need the build job, only Unix platforms do
     needs: [build]
+    if: matrix.os != 'windows-latest' || success()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Install Nix
+        if: runner.os != 'Windows'
         uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -162,6 +192,7 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
       - name: Cache Nix store
+        if: runner.os != 'Windows'
         uses: actions/cache@v4
         with:
           path: |
@@ -170,7 +201,23 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
-      - name: Setup Python environment and run integration tests
+      - name: Set up Python (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+            
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install build pytest pytest-cov pytest-asyncio
+          python -m pip install -e ".[dev,win]"
+        shell: bash
+        
+      - name: Setup Python environment and run integration tests (Unix)
+        if: runner.os != 'Windows'
         run: |
           # Set up the environment using the setup command from flake.nix
           nix develop --command setup
@@ -178,6 +225,13 @@ jobs:
           # Run integration tests only
           # The conftest.py will automatically create an integration test cache directory
           nix develop --command run-tests --integration
+          
+      - name: Run integration tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
+          python -m pytest tests/ -v --integration
+        shell: pwsh
 
       - name: Upload integration test coverage artifact
         uses: actions/upload-artifact@v4
@@ -208,6 +262,13 @@ jobs:
           name: unit-coverage-report-macOS
           path: ./coverage-unit-macos/
         continue-on-error: true
+        
+      - name: Download Windows unit test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-coverage-report-Windows
+          path: ./coverage-unit-windows/
+        continue-on-error: true
           
       - name: Download Ubuntu integration test coverage
         uses: actions/download-artifact@v4
@@ -222,6 +283,13 @@ jobs:
           path: ./coverage-integration-macos/
         continue-on-error: true
         
+      - name: Download Windows integration test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-coverage-report-Windows
+          path: ./coverage-integration-windows/
+        continue-on-error: true
+        
       # List all coverage files to verify downloads
       - name: List downloaded coverage files
         run: |
@@ -232,7 +300,7 @@ jobs:
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./coverage-unit-linux/coverage.xml,./coverage-integration-linux/coverage.xml,./coverage-unit-macos/coverage.xml,./coverage-integration-macos/coverage.xml
+          files: ./coverage-unit-linux/coverage.xml,./coverage-integration-linux/coverage.xml,./coverage-unit-macos/coverage.xml,./coverage-integration-macos/coverage.xml,./coverage-unit-windows/coverage.xml,./coverage-integration-windows/coverage.xml
           fail_ci_if_error: true
         env:
           # Add the Codecov token from repository secrets
