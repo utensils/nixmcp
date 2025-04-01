@@ -1,10 +1,10 @@
 # Smithery configuration for MCP-NixOS
+# See: https://smithery.ai/docs/config#smitheryyaml
 
 startCommand:
   type: stdio
   configSchema:
     type: object
-    required: []
     properties:
       MCP_NIXOS_LOG_LEVEL:
         type: string
@@ -45,6 +45,10 @@ startCommand:
       return {
         command: 'python',
         args: ['-m', 'mcp_nixos'],
-        env: env
+        env
       };
     }
+  exampleConfig:
+    MCP_NIXOS_LOG_LEVEL: "INFO"
+    MCP_NIXOS_CACHE_TTL: 86400
+    MCP_NIXOS_CLEANUP_ORPHANS: true
