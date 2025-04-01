@@ -140,6 +140,67 @@ async def async_with_timeout(coro_func, timeout_seconds=5.0, operation_name="ope
         return None
 
 
+async def run_precache_async():
+    """Run all initialization and cache population, then exit.
+
+    This function runs the same initialization steps as the server startup
+    but waits for all caching operations to complete before returning.
+    """
+    logger.info("Starting pre-cache initialization")
+
+    # Start loading Home Manager data
+    logger.info("Loading Home Manager data...")
+    home_manager_context.hm_client.load_in_background()
+
+    # Start loading Darwin data
+    logger.info("Loading Darwin data...")
+    try:
+        await async_with_timeout(
+            lambda: darwin_context.startup(), timeout_seconds=30.0, operation_name="Darwin context startup"
+        )
+        logger.info(f"Darwin context status: {darwin_context.status}")
+    except Exception as e:
+        logger.error(f"Error starting Darwin context: {e}")
+
+    # Wait for Home Manager client to complete loading
+    # Use a polling approach since there's no explicit wait_for_loading method
+    logger.info("Waiting for Home Manager data to complete loading...")
+    max_wait_seconds = 120
+    wait_interval = 2
+    start_time = time.time()
+
+    while time.time() - start_time < max_wait_seconds:
+        with home_manager_context.hm_client.loading_lock:
+            if hasattr(home_manager_context.hm_client, "is_loaded") and home_manager_context.hm_client.is_loaded:
+                logger.info("Home Manager data finished loading")
+                break
+            if (
+                hasattr(home_manager_context.hm_client, "loading_error")
+                and home_manager_context.hm_client.loading_error
+            ):
+                logger.error(f"Home Manager loading failed: {home_manager_context.hm_client.loading_error}")
+                break
+        logger.debug(f"Home Manager data still loading, waiting {wait_interval}s...")
+        await asyncio.sleep(wait_interval)
+    else:
+        logger.warning(f"Timed out after {max_wait_seconds}s waiting for Home Manager data to load")
+
+    logger.info("All initialization completed successfully")
+    return True
+
+
+def run_precache():
+    """Run all initialization and cache population synchronously, then exit."""
+    try:
+        return asyncio.run(run_precache_async())
+    except KeyboardInterrupt:
+        logger.info("Pre-cache operation interrupted")
+        return False
+    except Exception as e:
+        logger.error(f"Error during pre-cache: {e}", exc_info=True)
+        return False
+
+
 # Define the lifespan context manager for app initialization
 @asynccontextmanager
 async def app_lifespan(mcp_server: FastMCP):

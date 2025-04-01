@@ -24,6 +24,7 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - **Tools**: Search, info, and statistics tools
 - **Utils**: Cross-platform helpers and cache management
 - **Server**: FastMCP server implementation
+- **Pre-Cache**: Command-line option to populate cache data during setup/build
 
 ### Implementation Guidelines
 
@@ -50,6 +51,12 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Strict null safety with defensive programming
 - Detailed error logging and user-friendly messages
 - Support wildcard searches and handle empty results
+- Cross-platform compatibility:
+  - Use pathlib.Path for platform-agnostic path handling
+  - Check sys.platform before using platform-specific features
+  - Handle file operations with appropriate platform-specific adjustments
+  - Use os.path.join() instead of string concatenation for paths
+  - Ensure tests work consistently across Windows, macOS, and Linux
 
 ## API Reference
 
@@ -96,6 +103,11 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Integration tests: `@pytest.mark.integration`
   - Slow tests: `@pytest.mark.slow`
   - Async tests: `@pytest.mark.asyncio`
+- Cross-platform testing:
+  - CI runs tests on Linux, macOS, and Windows
+  - Linux and macOS tests use flake.nix for development environment
+  - Windows tests use Python's venv with special dependencies (pywin32)
+  - All tests must be platform-agnostic or include platform-specific handling
 - Run specific test categories:
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`
@@ -109,6 +121,17 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Testing strictly maintains cache directory isolation from system directories
   - All tests must check for both default OS cache paths and test-specific paths
   - The gitignore file excludes `mcp_nixos_test_cache/` and `*test_cache*/` patterns
+
+### Logging Tests
+- Prefer direct behavior verification over implementation details
+- When testing log level filtering:
+  - Use `isEnabledFor()` assertions for level checks (platform-independent)
+  - Use mock handlers with explicit level settings
+  - Test both logger configuration and actual handler behavior
+  - Avoid patching internal logging methods (`_log`) which vary by platform
+  - Add clear error messages to assertions
+- Prevent test flakiness by avoiding sleep/timing dependencies
+- Use clean logger fixtures to prevent test interaction
 
 ### Dependency Management
 - Project uses `pyproject.toml` for dependency specification (PEP 621)
@@ -125,9 +148,15 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
 - Claude Code configuration: Add to `~/.config/claude/config.json`
 - Interactive shell: `python mcp_shell.py` (manual testing and tool exploration)
+- Docker deployment:
+  - Standard use: `docker run --rm ghcr.io/utensils/mcp-nixos`
+  - Docker image includes pre-cached data for immediate startup
+  - Build with pre-cache: `docker build -t mcp-nixos .`
+  - Deployed on Smithery.ai as a hosted service
 - Development:
   - Environment: `nix develop`
   - Run server: `run`
+  - Pre-cache data: `python -m mcp_nixos --pre-cache`
   - Tests: `run-tests`, `run-tests --unit`, `run-tests --integration`
   - Code quality: `lint`, `typecheck`, `format`
   - Stats: `loc`
