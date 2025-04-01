@@ -110,6 +110,17 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - All tests must check for both default OS cache paths and test-specific paths
   - The gitignore file excludes `mcp_nixos_test_cache/` and `*test_cache*/` patterns
 
+### Logging Tests
+- Prefer direct behavior verification over implementation details
+- When testing log level filtering:
+  - Use `isEnabledFor()` assertions for level checks (platform-independent)
+  - Use mock handlers with explicit level settings
+  - Test both logger configuration and actual handler behavior
+  - Avoid patching internal logging methods (`_log`) which vary by platform
+  - Add clear error messages to assertions
+- Prevent test flakiness by avoiding sleep/timing dependencies
+- Use clean logger fixtures to prevent test interaction
+
 ### Dependency Management
 - Project uses `pyproject.toml` for dependency specification (PEP 621)
 - Core dependencies:

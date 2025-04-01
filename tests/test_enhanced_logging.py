@@ -139,51 +139,65 @@ class TestEnhancedLogging:
             warning_printed = any("Invalid log level" in str(args) for args in mock_print.call_args_list)
             assert warning_printed
 
-    @pytest.mark.timeout(5)  # Add timeout to prevent hanging
+    @pytest.mark.timeout(5)  # Timeout to prevent test hanging
     def test_log_level_filtering(self, clean_logger):
-        """Test that messages are properly filtered based on log level."""
+        """
+        Test log level filtering using direct handler verification.
+        
+        This test verifies that log filtering works correctly by:
+        1. Setting up a logger with WARNING level
+        2. Adding a controlled mock handler to capture logs
+        3. Testing log calls at all levels
+        4. Verifying only messages ≥ WARNING level are processed
+        
+        Note: This test was simplified from a previous complex implementation
+        that was causing CI failures. This approach avoids implementation-specific
+        details and directly tests the logging behavior as seen by handlers.
+        """
         from mcp_nixos.logging import setup_logging
         import logging as logging_module  # Import with a different name to avoid conflicts
 
-        # Create a real logger with handlers that we control
+        # Create a logger with WARNING level set via environment
         with patch.dict(os.environ, {"MCP_NIXOS_LOG_LEVEL": "WARNING"}, clear=True):
-            # Set up logging - this will create the real logger
+            # Set up a clean logger instance
             logger = setup_logging()
 
-            # Verify the effective level meets our expectations
-            # The effective level might be different from the logger.level attribute
-            # What matters is that DEBUG and INFO messages don't get logged
-            assert logger.isEnabledFor(logging_module.WARNING)
-            assert logger.isEnabledFor(logging_module.ERROR)
-            assert logger.isEnabledFor(logging_module.CRITICAL)
-            assert not logger.isEnabledFor(logging_module.INFO)
-            assert not logger.isEnabledFor(logging_module.DEBUG)
+            # VERIFICATION METHOD 1: Direct level checks
+            # First verify levels directly using isEnabledFor - this is reliable across platforms
+            assert logger.isEnabledFor(logging_module.WARNING), "WARNING should be enabled"
+            assert logger.isEnabledFor(logging_module.ERROR), "ERROR should be enabled"
+            assert logger.isEnabledFor(logging_module.CRITICAL), "CRITICAL should be enabled"
+            assert not logger.isEnabledFor(logging_module.INFO), "INFO should be filtered out"
+            assert not logger.isEnabledFor(logging_module.DEBUG), "DEBUG should be filtered out"
 
-            # Track actual handler method calls to verify filtering
+            # VERIFICATION METHOD 2: Handler capture testing
+            # Create a mock handler to capture log records
             mock_handler = MagicMock()
             mock_handler.level = logging_module.WARNING
-
-            # Add our test handler
+            
+            # Add our mock handler to the logger
             logger.addHandler(mock_handler)
 
-            # Log messages at different levels
+            # Log messages at all standard levels
             logger.debug("Debug message")
             logger.info("Info message")
             logger.warning("Warning message")
             logger.error("Error message")
             logger.critical("Critical message")
 
-            # Verify our handler received only WARNING and above
-            assert mock_handler.handle.call_count == 3  # WARNING, ERROR, CRITICAL
+            # Verify our handler received exactly 3 records (WARNING, ERROR, CRITICAL)
+            assert mock_handler.handle.call_count == 3, "Should receive exactly 3 records (WARNING+)"
 
-            # If we want to be even more specific, we can check the record levels
+            # Extract log levels from the captured records
             record_levels = [args[0][0].levelno for args in mock_handler.handle.call_args_list]
 
-            # Verify only WARNING, ERROR, and CRITICAL got through
-            assert all(level >= logging_module.WARNING for level in record_levels)
-            assert logging_module.WARNING in record_levels
-            assert logging_module.ERROR in record_levels
-            assert logging_module.CRITICAL in record_levels
+            # Verify level filtering: all records should be ≥ WARNING
+            assert all(level >= logging_module.WARNING for level in record_levels), "Only WARNING+ logs should pass"
+            
+            # Verify we received exactly one record of each expected level
+            assert logging_module.WARNING in record_levels, "WARNING level record should be present"
+            assert logging_module.ERROR in record_levels, "ERROR level record should be present"
+            assert logging_module.CRITICAL in record_levels, "CRITICAL level record should be present"
 
     @patch.dict(os.environ, {"WINDSURF_SOMETHING": "true"})
     def test_windsurf_environment_detected(self, clean_logger):
