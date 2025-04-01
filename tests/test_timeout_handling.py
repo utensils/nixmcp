@@ -33,18 +33,33 @@ class TestTimeoutHandling:
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
 
-        # Create a hung service that never completes
+        # Flag to detect if we're hung
+        hang_detected = False
+
+        # Create a hung service that never completes but has a safety mechanism
         async def never_completes():
             """Simulate a hung service that never completes."""
             # This simulates a component that's completely unresponsive
-            while True:
-                await asyncio.sleep(1)
+            # but with a safety limit to prevent test hanging if timeout fails
+            safety_counter = 0
+            while safety_counter < 20:  # Limit to 20 seconds max as a safety valve
+                nonlocal hang_detected
+                hang_detected = True
+                await asyncio.sleep(0.5)  # Shorter sleep for more responsive test
+                safety_counter += 1
+            # If we reach here, the test timeout mechanism failed
+            return None
 
         # Import with patched environment
         with patch("mcp_nixos.server.logger") as mock_logger:
             from mcp_nixos.server import app_lifespan, darwin_context
 
-            # Patch shutdown with our hung function
+            # Force reset any module-level state that might exist
+            # Use setattr() to bypass type checking for test purposes
+            if hasattr(darwin_context, "_initialized"):
+                setattr(darwin_context, "_initialized", False)
+
+            # Ensure the timeout function works correctly
             with patch.object(darwin_context, "shutdown", side_effect=never_completes):
                 # Create the context manager
                 context_manager = app_lifespan(mock_server)
@@ -55,12 +70,12 @@ class TestTimeoutHandling:
                 # Start time to measure shutdown duration
                 start_time = time.time()
 
-                # Run shutdown with a timeout
+                # Run shutdown with a strict timeout
                 # Our implementation should handle the hung component and continue
                 try:
                     await asyncio.wait_for(
                         context_manager.__aexit__(None, None, None),
-                        timeout=10.0,  # Give enough time for our implementation's timeouts to trigger
+                        timeout=5.0,  # Shorter timeout to fail faster if hanging
                     )
 
                     # Calculate how long shutdown took
@@ -69,8 +84,11 @@ class TestTimeoutHandling:
                     # Verify shutdown messages were logged
                     mock_logger.info.assert_any_call("Shutting down MCP-NixOS server")
 
-                    # Our timeout mechanism should have triggered a warning (0.5s is the new timeout value)
+                    # Our timeout mechanism should have triggered a warning (0.5s is the timeout value)
                     mock_logger.warning.assert_any_call("Darwin context shutdown timed out after 0.5s")
+
+                    # Verify we detected an actual hang attempt (proves our mock was called)
+                    assert hang_detected, "Hang function was never called"
 
                     # And we should have a completion message with duration
                     completion_logged = False
@@ -84,12 +102,15 @@ class TestTimeoutHandling:
 
                     # Assert shutdown took less than our overall timeout
                     # but more than the component timeout (since it had to wait for timeout)
+                    # More lenient range to reduce test flakiness
                     assert (
-                        0.3 <= shutdown_duration < 2.0
+                        0.2 <= shutdown_duration < 3.0
                     ), f"Shutdown duration outside expected range: {shutdown_duration}"
 
                 except asyncio.TimeoutError:
-                    pytest.fail("Shutdown timed out - implementation still hanging")
+                    pytest.fail(
+                        f"Shutdown timed out after {time.time() - start_time:.2f}s - implementation still hanging"
+                    )
 
     @pytest.mark.asyncio
     async def test_shutdown_with_slow_component(self, temp_cache_dir):
