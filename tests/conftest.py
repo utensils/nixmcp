@@ -238,13 +238,14 @@ def clean_system_cache_dirs():
 def pytest_runtest_setup(item):
     """Skip tests marked with 'skipwindows' on Windows platforms."""
     import sys
-    
+
     if sys.platform == "win32" and item.get_closest_marker("skipwindows"):
         pytest.skip("Test not supported on Windows")
-        
-        
+
+
 @pytest.fixture(scope="session")
 def is_windows():
     """Return True if running on Windows."""
     import sys
+
     return sys.platform == "win32"

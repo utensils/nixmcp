@@ -40,7 +40,7 @@ def run_server_process(ready_queue, shutdown_complete_queue):
                 time.sleep(0.2)
                 # Use os._exit in signal handlers to avoid asyncio cleanup issues
                 # This is more reliable than sys.exit() for signal handlers
-                os._exit(130) 
+                os._exit(130)
             except Exception as e:
                 print(f"Error in signal handler: {e}")
                 os._exit(1)
@@ -129,6 +129,7 @@ class TestServerTermination:
             # If still running on CI, give it a final chance after logging diagnostic info
             if process.is_alive() and ci_environment:
                 import psutil
+
                 try:
                     proc = psutil.Process(process.pid)
                     logger.info(f"Process {process.pid} still alive on CI. Status: {proc.status()}")
@@ -137,7 +138,7 @@ class TestServerTermination:
                     process.join(timeout=5)
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
-            
+
             # Skip this assertion when running in CI to avoid flaky tests
             if not ci_environment:
                 assert not process.is_alive(), "Process did not terminate within timeout"
@@ -216,6 +217,7 @@ class TestServerTermination:
             # If still running on CI, give it a final chance after logging diagnostic info
             if process.is_alive() and ci_environment:
                 import psutil
+
                 try:
                     proc = psutil.Process(process.pid)
                     logger.info(f"Process {process.pid} still alive on CI. Status: {proc.status()}")
@@ -224,7 +226,7 @@ class TestServerTermination:
                     process.join(timeout=5)
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
-            
+
             # Skip this assertion when running in CI to avoid flaky tests
             if not ci_environment:
                 assert not process.is_alive(), "Process did not terminate within timeout"
