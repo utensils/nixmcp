@@ -7,8 +7,6 @@ from unittest.mock import patch
 import os
 import json
 import pathlib
-import platform
-import sys
 
 # datetime not needed, removed import
 
@@ -28,7 +26,7 @@ pytestmark = pytest.mark.integration
 # - Create platform-specific test variants where needed
 skip_in_ci = pytest.mark.skipif(
     "CI" in os.environ or "GITHUB_ACTIONS" in os.environ,
-    reason="Test skipped in CI environment due to timing/filesystem inconsistencies"
+    reason="Test skipped in CI environment due to timing/filesystem inconsistencies",
 )
 
 from mcp_nixos.cache.simple_cache import SimpleCache
