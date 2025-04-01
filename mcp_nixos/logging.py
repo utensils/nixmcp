@@ -7,7 +7,6 @@ import logging.handlers
 import os
 import sys
 import time
-from datetime import datetime
 
 
 def setup_logging():

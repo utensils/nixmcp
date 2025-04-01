@@ -7,10 +7,8 @@ It validates that the correct signal handlers are registered in run.py and that 
 
 import os
 import signal
-import sys
 import logging
-import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 
 class TestSignalHandling:
@@ -37,8 +35,7 @@ class TestSignalHandling:
                     main()
 
         # Check that signal.signal was called for SIGINT and SIGTERM
-        expected_signals = [signal.SIGINT, signal.SIGTERM]
-        registered_signals = [call[0][0] for call in mock_signal.call_args_list]
+        registered_signals = [c[0][0] for c in mock_signal.call_args_list]
 
         # Verify SIGINT and SIGTERM were registered
         assert signal.SIGINT in registered_signals
@@ -69,8 +66,7 @@ class TestRunScriptSignalHandling:
                     main()
 
         # Check that signal.signal was called for SIGINT and SIGTERM
-        expected_signals = [signal.SIGINT, signal.SIGTERM]
-        registered_signals = [call[0][0] for call in mock_signal.call_args_list]
+        registered_signals = [c[0][0] for c in mock_signal.call_args_list]
 
         # Verify SIGINT and SIGTERM were registered
         assert signal.SIGINT in registered_signals
@@ -116,13 +112,11 @@ class TestWindsurfCompatibility:
                 setup_logging()
 
                 # Check that Windsurf environment was detected
-                windsurf_detected = any(
-                    "Detected Windsurf environment" in str(call) for call in mock_info.call_args_list
-                )
+                windsurf_detected = any("Detected Windsurf environment" in str(c) for c in mock_info.call_args_list)
                 assert windsurf_detected
 
                 # Check that Windsurf env vars were logged
-                windsurf_vars_logged = any("WINDSURF" in str(call) for call in mock_debug.call_args_list)
+                windsurf_vars_logged = any("WINDSURF" in str(c) for c in mock_debug.call_args_list)
                 assert windsurf_vars_logged
 
     @patch.dict(os.environ, {"MCP_NIXOS_LOG_FILE": "/tmp/mcp_nixos_test.log"})

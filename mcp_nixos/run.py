@@ -126,7 +126,6 @@ def main():
 
     def signal_handler(signum, frame):
         """Handle termination signals by cleaning up and immediately exiting."""
-        global server_process
         import sys  # Make sure sys is imported
 
         try:
@@ -157,7 +156,8 @@ def main():
                     sp_pid = server_process.pid
                     sp = psutil.Process(sp_pid)
                     print(
-                        f"Server process - PID: {sp_pid}, Status: {sp.status()}, Running: {server_process.poll() is None}"
+                        f"Server process - PID: {sp_pid}, Status: {sp.status()}, "
+                        f"Running: {server_process.poll() is None}"
                     )
                     print(f"Server CPU: {sp.cpu_percent()}%, Memory: {sp.memory_info().rss / (1024*1024):.1f}MB")
 

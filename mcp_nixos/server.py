@@ -622,7 +622,9 @@ async def app_lifespan(mcp_server: FastMCP):
         if hasattr(home_manager_context, "shutdown") and callable(home_manager_context.shutdown):
             shutdown_coroutines.append(
                 async_with_timeout(
-                    lambda: home_manager_context.shutdown(), timeout_seconds=0.5, operation_name="Home Manager context shutdown"
+                    lambda: home_manager_context.shutdown(),
+                    timeout_seconds=0.5,
+                    operation_name="Home Manager context shutdown",
                 )
             )
 

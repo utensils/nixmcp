@@ -120,7 +120,7 @@ class TestTimeoutHandling:
 
                 # Verify shutdown message was logged
                 mock_logger.info.assert_any_call("Shutting down MCP-NixOS server")
-                
+
                 # Verify our mock function was called
                 assert shutdown_called, "Shutdown was not called"
 
@@ -227,51 +227,53 @@ class TestTimeoutHandling:
         """Test that multiple shutdown operations can happen concurrently."""
         # Set up a simpler test that just verifies the shutdowns are called
         # and that the overall duration is reasonable
-        
+
         # Track which shutdown methods were called
         shutdown_called = {"darwin": False, "home_manager": False}
-        
+
         # Mock shutdown methods that track when they're called
         async def mock_darwin_shutdown():
             shutdown_called["darwin"] = True
             await asyncio.sleep(0.1)
             return True
-            
+
         async def mock_home_manager_shutdown():
             shutdown_called["home_manager"] = True
             await asyncio.sleep(0.1)
             return True
-        
+
         # Create server mock
         mock_server = MagicMock()
-        
+
         # Make sure we have a clean module import
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
-        
+
         # Import with patched environment
         with patch("mcp_nixos.server.logger") as mock_logger:
             from mcp_nixos.server import app_lifespan, darwin_context, home_manager_context
-            
-            # Apply our mocks 
+
+            # Apply our mocks
             with patch.object(darwin_context, "shutdown", side_effect=mock_darwin_shutdown):
-                with patch.object(home_manager_context, "shutdown", side_effect=mock_home_manager_shutdown, create=True):
-                    
+                with patch.object(
+                    home_manager_context, "shutdown", side_effect=mock_home_manager_shutdown, create=True
+                ):
+
                     # Create and enter context
                     context_manager = app_lifespan(mock_server)
                     await context_manager.__aenter__()
-                    
+
                     # Start time for measuring shutdown duration
                     start_time = time.time()
-                    
+
                     # Exit context to trigger shutdown
                     await context_manager.__aexit__(None, None, None)
-                    
+
                     # Calculate shutdown duration
                     total_duration = time.time() - start_time
-                    
+
                     # Verify shutdown message was logged
                     mock_logger.info.assert_any_call("Shutting down MCP-NixOS server")
-                    
+
                     # Test for elapsed time
                     assert total_duration < 1.0, f"Shutdown took too long: {total_duration}s"

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "nixos": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "-m",
+        "mcp_nixos"
+      ],
+      "env": {}
+    }
+  }
+}

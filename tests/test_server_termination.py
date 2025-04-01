@@ -156,7 +156,7 @@ class TestServerTermination:
 
                 # Give it some time to process the signal
                 time.sleep(0.5)
-                
+
                 # Try to get the result from the queue
                 try:
                     result = shutdown_complete_queue.get(timeout=3)

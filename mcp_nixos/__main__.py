@@ -7,16 +7,15 @@ framework to manage signal handling and graceful shutdown.
 """
 
 import sys
-import os
 
 # Import mcp from server
 from mcp_nixos.server import mcp, logger
+import os
 
 
 def main():
     """Run the MCP-NixOS server."""
     # Check if we're running under Windsurf for specific debugging
-    import os
 
     windsurf_detected = False
     for env_var in os.environ:

@@ -7,9 +7,8 @@ MCP-NixOS server process and ensures proper shutdown during signals.
 
 import os
 import signal
-import subprocess
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 
 class TestRunScriptSignalHandling:
@@ -136,13 +135,9 @@ class TestOrphanProcessCleanup:
                 assert mock_kill.call_count >= 2
 
                 # Check SIGTERM was sent to both PIDs
-                sigterm_67890 = any(
-                    call[0][0] == 67890 and call[0][1] == signal.SIGTERM for call in mock_kill.call_args_list
-                )
+                sigterm_67890 = any(c[0][0] == 67890 and c[0][1] == signal.SIGTERM for c in mock_kill.call_args_list)
 
-                sigterm_78901 = any(
-                    call[0][0] == 78901 and call[0][1] == signal.SIGTERM for call in mock_kill.call_args_list
-                )
+                sigterm_78901 = any(c[0][0] == 78901 and c[0][1] == signal.SIGTERM for c in mock_kill.call_args_list)
 
                 assert sigterm_67890 or sigterm_78901
 
