@@ -141,11 +141,11 @@ class TestHomeManagerDocStructure(unittest.TestCase):
 
             logger.info(f"Extracting sample options from {source}")
 
-            # The variablelist contains the options - align with HomeManagerClient.parse_html
-            variablelist = soup.find(class_="variablelist")
+            # The variablelist contains the options - HomeManagerClient looks for the class="variablelist" div
+            variablelist = soup.find("div", class_="variablelist")
             if not variablelist:
-                logger.warning(f"No variablelist found in {source}")
-                self.skipTest("No variablelist found in the HTML structure")
+                logger.warning(f"No variablelist div found in {source}")
+                self.skipTest("No variablelist div found in the HTML structure")
                 return
 
             # Find all definition terms (dt) which contain the option names
@@ -168,10 +168,14 @@ class TestHomeManagerDocStructure(unittest.TestCase):
                         logger.warning("Term span not found or not a Tag")
                         continue
 
-                    code = term_span.find("code")
+                    # The HTML structure now has a code element with class="option" inside an <a> element
+                    code = term_span.find("code", class_="option")
                     if not code or not isinstance(code, Tag) or not hasattr(code, "text"):
-                        logger.warning("Code element not found or invalid")
-                        continue
+                        # Try the old way as fallback
+                        code = term_span.find("code")
+                        if not code or not isinstance(code, Tag) or not hasattr(code, "text"):
+                            logger.warning("Code element not found or invalid")
+                            continue
 
                     option_name = code.text.strip()
 
