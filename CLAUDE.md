@@ -24,6 +24,7 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - **Tools**: Search, info, and statistics tools
 - **Utils**: Cross-platform helpers and cache management
 - **Server**: FastMCP server implementation
+- **Pre-Cache**: Command-line option to populate cache data during setup/build
 
 ### Implementation Guidelines
 
@@ -147,9 +148,15 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
 - Claude Code configuration: Add to `~/.config/claude/config.json`
 - Interactive shell: `python mcp_shell.py` (manual testing and tool exploration)
+- Docker deployment:
+  - Standard use: `docker run --rm ghcr.io/utensils/mcp-nixos`
+  - Docker image includes pre-cached data for immediate startup
+  - Build with pre-cache: `docker build -t mcp-nixos .`
+  - Deployed on Smithery.ai as a hosted service
 - Development:
   - Environment: `nix develop`
   - Run server: `run`
+  - Pre-cache data: `python -m mcp_nixos --pre-cache`
   - Tests: `run-tests`, `run-tests --unit`, `run-tests --integration`
   - Code quality: `lint`, `typecheck`, `format`
   - Stats: `loc`
