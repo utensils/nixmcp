@@ -123,12 +123,8 @@ class TestHomeManagerDocStructure(unittest.TestCase):
                 logger.error(f"Error analyzing {source}: {str(e)}")
                 self.fail(f"Failed to analyze {source} due to: {str(e)}")
 
-    @unittest.skip("Test skipped due to changes in HTML structure that need updates")
     def test_extract_sample_options(self):
         """Extract a few sample options to verify the structure."""
-        # Instead of calling test_fetch_docs_and_analyze_structure, fetch a single URL directly
-        # This avoids dependency between tests and potential hanging
-
         # We'll just use the main options URL for this test
         url = "https://nix-community.github.io/home-manager/options.xhtml"
         source = "options"
@@ -137,7 +133,7 @@ class TestHomeManagerDocStructure(unittest.TestCase):
             logger.info(f"Fetching {source} documentation from {url}")
 
             # Use a timeout to prevent hanging
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=15)
             response.raise_for_status()
 
             # Parse HTML
@@ -145,7 +141,7 @@ class TestHomeManagerDocStructure(unittest.TestCase):
 
             logger.info(f"Extracting sample options from {source}")
 
-            # The variablelist contains the options
+            # The variablelist contains the options - align with HomeManagerClient.parse_html
             variablelist = soup.find(class_="variablelist")
             if not variablelist:
                 logger.warning(f"No variablelist found in {source}")
@@ -154,59 +150,75 @@ class TestHomeManagerDocStructure(unittest.TestCase):
 
             # Find all definition terms (dt) which contain the option names
             dl = variablelist.find("dl")
-            if not dl:
+            if not dl or not isinstance(dl, Tag):
                 logger.warning(f"No definition list found in {source}")
                 self.skipTest("No definition list found in the HTML structure")
                 return
 
-            # Get all dt elements (terms)
-            if not isinstance(dl, Tag):
-                self.skipTest("Definition list is not a Tag element")
-                return
-
-            dt_elements = dl.find_all("dt")
+            # Get all dt elements (terms) - align with HomeManagerClient implementation
+            dt_elements = dl.find_all("dt", recursive=False)
 
             # Process a few options
             options_found = 0
             for dt in dt_elements[:5]:  # Limit to first 5 options
-                # Find the term span
-                term_span = dt.find("span", class_="term")
-                if not term_span:
+                try:
+                    # Extract option name using the same approach as HomeManagerClient._extract_option_name
+                    term_span = dt.find("span", class_="term")
+                    if not term_span or not isinstance(term_span, Tag):
+                        logger.warning("Term span not found or not a Tag")
+                        continue
+
+                    code = term_span.find("code")
+                    if not code or not isinstance(code, Tag) or not hasattr(code, "text"):
+                        logger.warning("Code element not found or invalid")
+                        continue
+
+                    option_name = code.text.strip()
+
+                    # Find the associated description - align with HomeManagerClient._parse_single_option
+                    dd = dt.find_next_sibling("dd")
+                    if not dd or not isinstance(dd, Tag):
+                        logger.warning(f"No description found for {option_name}")
+                        continue
+
+                    # Extract metadata using similar approach to HomeManagerClient._extract_metadata_from_paragraphs
+                    p_elements = dd.find_all("p")
+                    if not p_elements:
+                        logger.warning(f"No paragraphs found for {option_name}")
+                        continue
+
+                    # Description is in the first paragraph
+                    description = p_elements[0].text.strip() if hasattr(p_elements[0], "text") else ""
+
+                    # Get type info from paragraphs
+                    metadata = {
+                        "type": None,
+                        "default": None,
+                        "example": None,
+                    }
+
+                    for p in p_elements[1:]:  # Skip first paragraph (description)
+                        if not hasattr(p, "text"):
+                            continue
+                        text = p.text.strip()
+                        if "Type:" in text:
+                            metadata["type"] = text.split("Type:", 1)[1].strip()
+                        elif "Default:" in text:
+                            metadata["default"] = text.split("Default:", 1)[1].strip()
+                        elif "Example:" in text:
+                            metadata["example"] = text.split("Example:", 1)[1].strip()
+
+                    # Log the option
+                    logger.info(f"Option: {option_name}")
+                    logger.info(f"  Type: {metadata['type'] or 'unknown'}")
+                    logger.info(f"  Default: {metadata['default'] or 'N/A'}")
+                    logger.info(f"  Description: {description[:100]}...")
+
+                    options_found += 1
+
+                except Exception as e:
+                    logger.warning(f"Error parsing option: {e}")
                     continue
-
-                # Find the code element with the option name
-                code = term_span.find("code")
-                if not code:
-                    continue
-
-                option_name = code.text
-
-                # Find the associated description
-                dd = dt.find_next_sibling("dd")
-                if not dd:
-                    continue
-
-                # Get type info which is in a paragraph with emphasis
-                type_text = None
-                p_elements = dd.find_all("p")
-                for p in p_elements:
-                    if "Type:" in p.text:
-                        type_text = p.text.split("Type:")[1].strip() if "Type:" in p.text else "unknown"
-                        break
-
-                option_type = type_text or "unknown"
-
-                # Description is in the first paragraph
-                description = ""
-                if p_elements:
-                    description = p_elements[0].text
-
-                # Log the option
-                logger.info(f"Option: {option_name}")
-                logger.info(f"  Type: {option_type}")
-                logger.info(f"  Description: {description[:100]}...")
-
-                options_found += 1
 
             self.assertGreater(options_found, 0, f"No options extracted from {source}")
             logger.info(f"Successfully extracted {options_found} sample options from {source}")
