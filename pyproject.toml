@@ -37,6 +37,9 @@ dev = [
     "types-beautifulsoup4>=4.12.0.20240229",
     "types-requests>=2.32.0",
 ]
+win = [
+    "pywin32>=306.0",
+]
 
 [project.scripts]
 mcp-nixos = "mcp_nixos.__main__:mcp.run"

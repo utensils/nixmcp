@@ -106,8 +106,9 @@ def pytest_configure(config):
        based on the marker expression or command-line options.
     2. Registers custom markers used by our test suite
     """
-    # Register the timeout marker to avoid warnings
+    # Register markers to avoid warnings
     config.addinivalue_line("markers", "timeout(seconds): mark test to timeout after given seconds")
+    config.addinivalue_line("markers", "skipwindows: mark test to be skipped on Windows platforms")
 
     # Add the current_test_type attribute to pytest module if it doesn't exist
     if not hasattr(pytest, "current_test_type"):
@@ -165,6 +166,14 @@ def clean_system_cache_dirs():
         default_cache_dir = (
             os.path.join(xdg_cache, "mcp_nixos") if xdg_cache else os.path.expanduser("~/.cache/mcp_nixos")
         )
+    elif sys.platform == "win32":
+        # Windows: %LOCALAPPDATA%\mcp_nixos\Cache
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            default_cache_dir = os.path.join(local_app_data, "mcp_nixos", "Cache")
+        else:
+            # Fallback if LOCALAPPDATA is not available
+            default_cache_dir = os.path.join(os.path.expanduser("~"), "AppData", "Local", "mcp_nixos", "Cache")
     else:
         default_cache_dir = os.path.expanduser("~/.cache/mcp_nixos")
 
@@ -224,3 +233,18 @@ def clean_system_cache_dirs():
 
     if unexpected_dirs:
         print(f"⚠️ Found unexpected cache directories after tests: {unexpected_dirs}")
+
+
+def pytest_runtest_setup(item):
+    """Skip tests marked with 'skipwindows' on Windows platforms."""
+    import sys
+    
+    if sys.platform == "win32" and item.get_closest_marker("skipwindows"):
+        pytest.skip("Test not supported on Windows")
+        
+        
+@pytest.fixture(scope="session")
+def is_windows():
+    """Return True if running on Windows."""
+    import sys
+    return sys.platform == "win32"
