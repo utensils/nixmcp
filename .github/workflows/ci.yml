@@ -98,8 +98,13 @@ jobs:
           nix develop --command typecheck
 
   unit-tests:
-    name: Run Unit Tests
-    runs-on: ubuntu-latest
+    name: Run Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+      # Don't fail the entire matrix if one OS fails
+      fail-fast: false
     needs: [build]
     steps:
       - name: Checkout code
@@ -138,8 +143,13 @@ jobs:
             ./coverage.xml
 
   integration-tests:
-    name: Run Integration Tests
-    runs-on: ubuntu-latest
+    name: Run Integration Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+      # Don't fail the entire matrix if one OS fails
+      fail-fast: false
     needs: [build]
     steps:
       - name: Checkout code
@@ -184,20 +194,45 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Download unit test coverage
+        
+      # Download all coverage artifacts from all platforms
+      - name: Download Ubuntu unit test coverage
         uses: actions/download-artifact@v4
         with:
-          name: unit-coverage-report-${{ runner.os }}
-          path: ./coverage-unit/
-      - name: Download integration test coverage
+          name: unit-coverage-report-Linux
+          path: ./coverage-unit-linux/
+          
+      - name: Download macOS unit test coverage
         uses: actions/download-artifact@v4
         with:
-          name: integration-coverage-report-${{ runner.os }}
-          path: ./coverage-integration/
+          name: unit-coverage-report-macOS
+          path: ./coverage-unit-macos/
+        continue-on-error: true
+          
+      - name: Download Ubuntu integration test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-coverage-report-Linux
+          path: ./coverage-integration-linux/
+          
+      - name: Download macOS integration test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-coverage-report-macOS
+          path: ./coverage-integration-macos/
+        continue-on-error: true
+        
+      # List all coverage files to verify downloads
+      - name: List downloaded coverage files
+        run: |
+          echo "Verifying downloaded coverage files:"
+          find ./coverage-*/ -name "coverage.xml" | sort
+        
+      # Upload all coverage reports to Codecov
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./coverage-unit/coverage.xml,./coverage-integration/coverage.xml
+          files: ./coverage-unit-linux/coverage.xml,./coverage-integration-linux/coverage.xml,./coverage-unit-macos/coverage.xml,./coverage-integration-macos/coverage.xml
           fail_ci_if_error: true
         env:
           # Add the Codecov token from repository secrets
