@@ -21,7 +21,12 @@
 
         # Use a single Python instance with proper library support
         pythonWithLibs = python.buildEnv.override {
-          extraLibs = [ ];
+          extraLibs = [
+            ps.cffi
+            ps.wheel
+            ps.setuptools
+            ps.pip
+          ];
           ignoreCollisions = true;
         };
 
@@ -92,9 +97,14 @@
           env = [
             { name = "PYTHONPATH"; value = "$PWD"; }
             { name = "MCP_NIXOS_ENV"; value = "development"; }
-            { name = "LIBFFI_INCLUDE_DIR"; value = "${pkgs.libffi}/include"; }
-            # Ensure Python can find _ctypes
-            { name = "NIX_LDFLAGS"; value = "-L${pkgs.libffi}/lib"; }
+            { name = "LIBFFI_INCLUDE_DIR"; value = "${pkgs.libffi.dev}/include"; } # Add .dev
+            # Make sure Python can find _ctypes with correct linking flags
+            { name = "NIX_LDFLAGS"; value = "-L${pkgs.libffi}/lib -L${pkgs.libffi.out}/lib"; }
+            { name = "NIX_CFLAGS_COMPILE"; value = "-I${pkgs.libffi.dev}/include"; }
+            # For macOS specifically
+            { name = "DYLD_LIBRARY_PATH"; value = "${pkgs.libffi}/lib:${pkgs.libffi.out}/lib"; }
+            # Add SDK path for macOS if needed
+            { name = "SDKROOT"; value = "${pkgs.darwin.apple_sdk.frameworks.CoreServices}"; }
           ];
           packages = with pkgs; [
             # Python with build dependencies
