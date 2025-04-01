@@ -22,7 +22,7 @@ class TestEnhancedLogging:
         original_level = logger.level
         original_handlers = logger.handlers[:]
         original_propagate = logger.propagate
-        
+
         # Clean up logger for test
         logger.setLevel(logging.NOTSET)  # Reset to default
         for handler in logger.handlers[:]:
@@ -149,7 +149,6 @@ class TestEnhancedLogging:
             assert mock_print.called
             warning_printed = any("Invalid log level" in str(args) for args in mock_print.call_args_list)
             assert warning_printed
-
 
     @patch.dict(os.environ, {"WINDSURF_SOMETHING": "true"})
     def test_windsurf_environment_detected(self, clean_logger):

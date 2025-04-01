@@ -9,6 +9,10 @@ import json
 import random
 import os
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+
+from mcp_nixos.cache.html_cache import HTMLCache
+from mcp_nixos.clients.html_client import HTMLClient
 
 # Mark all tests in this module as integration tests
 pytestmark = pytest.mark.integration
@@ -27,12 +31,8 @@ pytestmark = pytest.mark.integration
 # - Have longer timeouts in CI
 skip_in_ci = pytest.mark.skipif(
     "CI" in os.environ or "GITHUB_ACTIONS" in os.environ,
-    reason="Test skipped in CI environment due to threading/concurrency inconsistencies"
+    reason="Test skipped in CI environment due to threading/concurrency inconsistencies",
 )
-from concurrent.futures import ThreadPoolExecutor
-
-from mcp_nixos.cache.html_cache import HTMLCache
-from mcp_nixos.clients.html_client import HTMLClient
 
 
 @pytest.fixture
