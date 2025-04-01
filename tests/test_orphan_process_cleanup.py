@@ -2,11 +2,13 @@
 
 import os
 import unittest
+import pytest
 from unittest.mock import patch, MagicMock
 
 from mcp_nixos.run import find_and_kill_zombie_mcp_processes
 
 
+@pytest.mark.unit
 class TestOrphanProcessCleanup(unittest.TestCase):
     """Test suite for orphaned process cleanup functionality."""
 
@@ -113,15 +115,14 @@ class TestOrphanProcessCleanup(unittest.TestCase):
                 # Set env var
                 os.environ["MCP_NIXOS_CLEANUP_ORPHANS"] = env_value
 
-                # Mock psutil.process_iter to avoid actual process listing
+                # Mock psutil.process_iter for process discovery
                 with patch("psutil.process_iter") as mock_process_iter:
-                    # Create mock process
-                    if should_cleanup:
-                        mock_proc = MagicMock()
-                        mock_proc.pid = 12345
-                        mock_proc.name.return_value = "python"
-                        mock_proc.cmdline.return_value = ["python", "-m", "mcp_nixos"]
-                        mock_process_iter.return_value = [mock_proc]
+                    # Setup mock process
+                    mock_proc = MagicMock()
+                    mock_proc.pid = 12345
+                    mock_proc.name.return_value = "python"
+                    mock_proc.cmdline.return_value = ["python", "-m", "mcp_nixos"]
+                    mock_process_iter.return_value = [mock_proc]
 
                     # Mock getpid to avoid interference
                     with patch("os.getpid", return_value=9999):
@@ -130,9 +131,19 @@ class TestOrphanProcessCleanup(unittest.TestCase):
 
                         # Verify behavior based on whether cleanup should happen
                         if should_cleanup:
+                            # Verify process discovery is called
                             mock_process_iter.assert_called_once()
+                            # Verify process filtering by checking terminate was called
+                            # on processes that match our criteria
+                            mock_proc.terminate.assert_called_once()
                         else:
+                            # Verify process discovery is not called when cleanup is disabled
                             mock_process_iter.assert_not_called()
+                            # Verify no termination happens
+                            self.assertFalse(
+                                hasattr(mock_proc, "terminate") and mock_proc.terminate.called,
+                                f"Process should not be terminated when env value is {env_value}",
+                            )
 
 
 if __name__ == "__main__":

@@ -3,12 +3,14 @@
 import os
 import logging
 import unittest
+import pytest
 from unittest.mock import patch, MagicMock
 
 # Import the setup_logging function from mcp_nixos.server.py
 from mcp_nixos.server import setup_logging
 
 
+@pytest.mark.unit
 class TestLogging(unittest.TestCase):
     """Test cases for logging configuration."""
 
@@ -27,8 +29,33 @@ class TestLogging(unittest.TestCase):
             logger = setup_logging()
 
         # Should have only one handler (console)
-        self.assertEqual(len(logger.handlers), 1)
-        self.assertIsInstance(logger.handlers[0], logging.StreamHandler)
+        self.assertEqual(len(logger.handlers), 1, "Should have exactly one handler with default configuration")
+        self.assertIsInstance(logger.handlers[0], logging.StreamHandler, "Default handler should be StreamHandler")
+
+        # Verify the console handler configuration
+        console_handler = logger.handlers[0]
+        self.assertEqual(console_handler.level, logging.INFO, "Console handler should have INFO level by default")
+
+        # Verify formatter is configured correctly
+        formatter = console_handler.formatter
+        self.assertIsNotNone(formatter, "Console handler should have a formatter")
+
+        # Test actual log message formatting with a test message
+        test_record = logging.LogRecord(
+            name="test_logger",
+            level=logging.INFO,
+            pathname="test_path",
+            lineno=42,
+            msg="Test message",
+            args=(),
+            exc_info=None,
+        )
+
+        # Type assertion for the type checker
+        assert formatter is not None, "Formatter should not be None"
+        formatted = formatter.format(test_record)
+        self.assertIn("Test message", formatted, "Formatted message should contain the log message")
+        self.assertIn("INFO", formatted, "Formatted message should contain the log level")
 
     @patch.dict(os.environ, {"LOG_FILE": ""}, clear=True)
     def test_logging_empty_log_path(self):
