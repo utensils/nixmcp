@@ -11,15 +11,6 @@ startCommand:
         enum: ["DEBUG", "INFO", "WARNING", "ERROR"]
         default: "INFO"
         description: "Logging level for the MCP-NixOS server"
-      ELASTICSEARCH_URL:
-        type: string
-        description: "URL for Elasticsearch API (optional)"
-      ELASTICSEARCH_USER:
-        type: string
-        description: "Username for Elasticsearch API (optional)"
-      ELASTICSEARCH_PASSWORD:
-        type: string
-        description: "Password for Elasticsearch API (optional)"
   commandFunction: |
     (config) => {
       const env = {};
