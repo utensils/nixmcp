@@ -80,7 +80,7 @@ class TestRunScriptSignalHandling:
 
         run_py_path = os.path.join(os.path.dirname(__file__), "..", "mcp_nixos", "run.py")
 
-        with open(run_py_path, "r") as file:
+        with open(run_py_path, "r", encoding="utf-8") as file:
             content = file.read()
 
         # Check that sys.exit is used instead of os._exit

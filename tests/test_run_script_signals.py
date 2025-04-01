@@ -92,7 +92,8 @@ class TestRunScriptSignalHandlerBehavior:
 
         run_py_path = os.path.join(os.path.dirname(__file__), "..", "mcp_nixos", "run.py")
 
-        with open(run_py_path, "r") as file:
+        # Use utf-8 encoding explicitly to avoid Windows encoding issues
+        with open(run_py_path, "r", encoding="utf-8") as file:
             content = file.read()
 
         # Check that sys.exit is used instead of os._exit in the signal handler
@@ -106,52 +107,54 @@ class TestRunScriptSignalHandlerBehavior:
 class TestOrphanProcessCleanup:
     """Tests for the orphaned process cleanup functionality."""
 
-    @patch("mcp_nixos.run.os.popen")
+    @patch("psutil.process_iter")
     @patch.dict(os.environ, {"MCP_NIXOS_CLEANUP_ORPHANS": "true"})
     @patch("mcp_nixos.run.os.getpid")
-    def test_find_and_kill_zombie_processes(self, mock_getpid, mock_popen):
+    def test_find_and_kill_zombie_processes(self, mock_getpid, mock_process_iter):
         """Test that orphaned processes are detected and killed."""
         from mcp_nixos.run import find_and_kill_zombie_mcp_processes
 
         # Mock our own PID
         mock_getpid.return_value = 12345
 
-        # Mock process listing
-        mock_file = MagicMock()
-        mock_file.readlines.return_value = ["67890 python3 -m mcp_nixos", "78901 python3 /path/to/mcp_nixos"]
-        mock_popen.return_value = mock_file
+        # Create mock processes for testing
+        mock_proc1 = MagicMock()
+        mock_proc1.pid = 67890
+        mock_proc1.name.return_value = "python3"
+        mock_proc1.cmdline.return_value = ["python3", "-m", "mcp_nixos"]
 
-        # Mock killing processes
-        with patch("mcp_nixos.run.os.kill") as mock_kill:
-            with patch("mcp_nixos.run.print"):  # Suppress print during test
-                # Call the function we're testing
-                find_and_kill_zombie_mcp_processes()
+        mock_proc2 = MagicMock()
+        mock_proc2.pid = 78901
+        mock_proc2.name.return_value = "python3"
+        mock_proc2.cmdline.return_value = ["python3", "/path/to/mcp_nixos"]
 
-                # Check that we tried to kill processes
-                assert mock_kill.called
+        # Return our mock processes from process_iter
+        mock_process_iter.return_value = [mock_proc1, mock_proc2]
 
-                # Should be called twice for each process (SIGTERM, check)
-                # or 3 times if SIGKILL is needed
-                assert mock_kill.call_count >= 2
+        # Suppress print output during test
+        with patch("mcp_nixos.run.print"):
+            # Call the function we're testing
+            find_and_kill_zombie_mcp_processes()
 
-                # Check SIGTERM was sent to both PIDs
-                sigterm_67890 = any(c[0][0] == 67890 and c[0][1] == signal.SIGTERM for c in mock_kill.call_args_list)
+            # Check that terminate was called on both processes
+            mock_proc1.terminate.assert_called_once()
+            mock_proc2.terminate.assert_called_once()
 
-                sigterm_78901 = any(c[0][0] == 78901 and c[0][1] == signal.SIGTERM for c in mock_kill.call_args_list)
-
-                assert sigterm_67890 or sigterm_78901
+            # Check that wait was called for both processes
+            mock_proc1.wait.assert_called_once()
+            mock_proc2.wait.assert_called_once()
 
     @patch.dict(os.environ, {"MCP_NIXOS_CLEANUP_ORPHANS": "false"})
-    @patch("mcp_nixos.run.os.popen")
-    def test_cleanup_disabled_by_default(self, mock_popen):
+    @patch("psutil.process_iter")
+    def test_cleanup_disabled_by_default(self, mock_process_iter):
         """Test that orphaned process cleanup is disabled by default."""
         from mcp_nixos.run import find_and_kill_zombie_mcp_processes
 
         # Call the function we're testing
         find_and_kill_zombie_mcp_processes()
 
-        # Should not call popen if cleanup is disabled
-        mock_popen.assert_not_called()
+        # Should not call process_iter if cleanup is disabled
+        mock_process_iter.assert_not_called()
 
 
 class TestWindsurfRunScriptCompatibility:
@@ -164,7 +167,8 @@ class TestWindsurfRunScriptCompatibility:
 
         run_py_path = os.path.join(os.path.dirname(__file__), "..", "mcp_nixos", "run.py")
 
-        with open(run_py_path, "r") as file:
+        # Use utf-8 encoding explicitly to avoid Windows encoding issues
+        with open(run_py_path, "r", encoding="utf-8") as file:
             content = file.read()
 
         # Check for Windsurf detection patterns in the code

@@ -25,18 +25,27 @@ class TestCrossplatformIntegration:
         # Linux
         with mock.patch("sys.platform", "linux"):
             with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": "/xdg/cache"}):
-                assert get_default_cache_dir() == "/xdg/cache/mcp_nixos"
+                cache_dir = get_default_cache_dir()
+                # Use pathlib to handle platform-specific path separators
+                assert pathlib.Path(cache_dir) == pathlib.Path("/xdg/cache/mcp_nixos")
 
         # macOS
         with mock.patch("sys.platform", "darwin"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/Users/test")):
-                assert get_default_cache_dir() == "/Users/test/Library/Caches/mcp_nixos"
+                cache_dir = get_default_cache_dir()
+                assert pathlib.Path(cache_dir) == pathlib.Path("/Users/test/Library/Caches/mcp_nixos")
 
         # Windows
         with mock.patch("sys.platform", "win32"):
             with mock.patch.dict(os.environ, {"LOCALAPPDATA": r"C:\Users\test\AppData\Local"}):
                 cache_dir = get_default_cache_dir()
-                assert "AppData\\Local\\mcp_nixos\\Cache" in cache_dir.replace("/", "\\")
+                assert "mcp_nixos" in cache_dir
+                assert "Cache" in cache_dir
+                # Compare path components in a platform-neutral way
+                path_obj = pathlib.Path(cache_dir)
+                expected_path = pathlib.Path(r"C:\Users\test\AppData\Local\mcp_nixos\Cache")
+                assert path_obj.name == expected_path.name
+                assert path_obj.parent.name == expected_path.parent.name
 
     def test_html_client_environment_ttl(self):
         """Test that HTMLClient respects environment TTL setting."""

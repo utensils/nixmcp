@@ -24,20 +24,24 @@ class TestCacheHelpers:
             # Test with XDG_CACHE_HOME set
             with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": "/xdg/cache"}):
                 cache_dir = get_default_cache_dir()
-                assert cache_dir == "/xdg/cache/mcp_nixos"
+                # Use os.path.normpath for platform-agnostic path comparison
+                expected = os.path.normpath("/xdg/cache/mcp_nixos")
+                assert os.path.normpath(cache_dir) == expected
 
             # Test without XDG_CACHE_HOME (fallback to ~/.cache)
             with mock.patch.dict(os.environ, {}, clear=True):
                 with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/home/user")):
                     cache_dir = get_default_cache_dir()
-                    assert cache_dir == "/home/user/.cache/mcp_nixos"
+                    expected = os.path.normpath("/home/user/.cache/mcp_nixos")
+                    assert os.path.normpath(cache_dir) == expected
 
     def test_get_default_cache_dir_macos(self):
         """Test default cache directory paths on macOS."""
         with mock.patch("sys.platform", "darwin"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/Users/user")):
                 cache_dir = get_default_cache_dir()
-                assert cache_dir == "/Users/user/Library/Caches/mcp_nixos"
+                expected = os.path.normpath("/Users/user/Library/Caches/mcp_nixos")
+                assert os.path.normpath(cache_dir) == expected
 
     def test_get_default_cache_dir_windows(self):
         """Test default cache directory paths on Windows."""
@@ -60,14 +64,16 @@ class TestCacheHelpers:
         with mock.patch("sys.platform", "unknown"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/home/user")):
                 cache_dir = get_default_cache_dir()
-                assert cache_dir == "/home/user/.cache/mcp_nixos"
+                expected = os.path.normpath("/home/user/.cache/mcp_nixos")
+                assert os.path.normpath(cache_dir) == expected
 
     def test_get_default_cache_dir_custom_app_name(self):
         """Test custom app name for cache directory."""
         with mock.patch("sys.platform", "linux"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/home/user")):
                 cache_dir = get_default_cache_dir(app_name="custom_app")
-                assert cache_dir == "/home/user/.cache/custom_app"
+                expected = os.path.normpath("/home/user/.cache/custom_app")
+                assert os.path.normpath(cache_dir) == expected
 
     def test_ensure_cache_dir_explicit_path(self):
         """Test ensuring cache directory with explicit path."""
