@@ -50,6 +50,12 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Strict null safety with defensive programming
 - Detailed error logging and user-friendly messages
 - Support wildcard searches and handle empty results
+- Cross-platform compatibility:
+  - Use pathlib.Path for platform-agnostic path handling
+  - Check sys.platform before using platform-specific features
+  - Handle file operations with appropriate platform-specific adjustments
+  - Use os.path.join() instead of string concatenation for paths
+  - Ensure tests work consistently across Windows, macOS, and Linux
 
 ## API Reference
 
@@ -96,6 +102,11 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Integration tests: `@pytest.mark.integration`
   - Slow tests: `@pytest.mark.slow`
   - Async tests: `@pytest.mark.asyncio`
+- Cross-platform testing:
+  - CI runs tests on Linux, macOS, and Windows
+  - Linux and macOS tests use flake.nix for development environment
+  - Windows tests use Python's venv with special dependencies (pywin32)
+  - All tests must be platform-agnostic or include platform-specific handling
 - Run specific test categories:
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`

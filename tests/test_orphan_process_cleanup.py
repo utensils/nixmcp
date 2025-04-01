@@ -69,7 +69,11 @@ class TestOrphanProcessCleanup(unittest.TestCase):
         mock_proc.cmdline.return_value = ["python", "-m", "mcp_nixos"]
 
         # Make wait time out to simulate a process that doesn't respond to SIGTERM
-        mock_proc.wait.side_effect = MagicMock(side_effect=__import__("psutil").TimeoutExpired)
+        # Using proper TimeoutExpired constructor with required parameters for cross-platform compatibility
+        import psutil
+
+        # TimeoutExpired expects process ID as first parameter, not a named 'proc' parameter
+        mock_proc.wait.side_effect = psutil.TimeoutExpired(mock_proc.pid, 0.5)
 
         # Setup process_iter to return our mock process
         mock_process_iter.return_value = [mock_proc]

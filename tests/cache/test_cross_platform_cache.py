@@ -22,30 +22,52 @@ class TestCrossplatformIntegration:
 
     def test_cache_platform_specific_paths(self):
         """Test that appropriate paths are returned for each platform."""
+
+        # Helper function to verify path components regardless of platform
+        def verify_path_components(actual_path, expected_components):
+            """Verify path contains expected components in a platform-agnostic way."""
+            path_parts = pathlib.Path(actual_path).parts
+            for component in expected_components:
+                assert component in path_parts, f"Path {actual_path} missing component '{component}'"
+
         # Linux
         with mock.patch("sys.platform", "linux"):
             with mock.patch.dict(os.environ, {"XDG_CACHE_HOME": "/xdg/cache"}):
                 cache_dir = get_default_cache_dir()
-                # Use pathlib to handle platform-specific path separators
-                assert pathlib.Path(cache_dir) == pathlib.Path("/xdg/cache/mcp_nixos")
+                verify_path_components(cache_dir, ["xdg", "cache", "mcp_nixos"])
+                # For Linux, we can still safely check the exact path
+                assert str(pathlib.Path(cache_dir)) == str(pathlib.Path("/xdg/cache/mcp_nixos"))
 
         # macOS
         with mock.patch("sys.platform", "darwin"):
             with mock.patch("pathlib.Path.home", return_value=pathlib.Path("/Users/test")):
                 cache_dir = get_default_cache_dir()
-                assert pathlib.Path(cache_dir) == pathlib.Path("/Users/test/Library/Caches/mcp_nixos")
+                verify_path_components(cache_dir, ["Users", "test", "Library", "Caches", "mcp_nixos"])
+                # For macOS, we can still safely check the exact path
+                assert str(pathlib.Path(cache_dir)) == str(pathlib.Path("/Users/test/Library/Caches/mcp_nixos"))
 
         # Windows
         with mock.patch("sys.platform", "win32"):
             with mock.patch.dict(os.environ, {"LOCALAPPDATA": r"C:\Users\test\AppData\Local"}):
                 cache_dir = get_default_cache_dir()
-                assert "mcp_nixos" in cache_dir
-                assert "Cache" in cache_dir
-                # Compare path components in a platform-neutral way
+                # For Windows, we need to be careful with path comparison
+                # Verify key components expected in the path
                 path_obj = pathlib.Path(cache_dir)
-                expected_path = pathlib.Path(r"C:\Users\test\AppData\Local\mcp_nixos\Cache")
-                assert path_obj.name == expected_path.name
-                assert path_obj.parent.name == expected_path.parent.name
+
+                # Check the path ends correctly
+                if sys.platform == "win32":
+                    # On Windows, pathlib correctly parses Windows paths
+                    assert path_obj.parts[-1] == "Cache"
+                    assert path_obj.parts[-2] == "mcp_nixos"
+                else:
+                    # On non-Windows platforms, manually check path endings
+                    assert cache_dir.endswith(os.path.join("mcp_nixos", "Cache"))
+
+                # These checks work cross-platform
+                assert "mcp_nixos" in str(path_obj)
+                assert "Cache" in str(path_obj)
+                assert "AppData" in str(path_obj)
+                assert "Local" in str(path_obj)
 
     def test_html_client_environment_ttl(self):
         """Test that HTMLClient respects environment TTL setting."""
