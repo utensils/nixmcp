@@ -1,0 +1,50 @@
+# Smithery configuration for MCP-NixOS
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required: []
+    properties:
+      MCP_NIXOS_LOG_LEVEL:
+        type: string
+        enum: ["DEBUG", "INFO", "WARNING", "ERROR"]
+        default: "INFO"
+        description: "Logging level for the MCP-NixOS server"
+      MCP_NIXOS_CACHE_DIR:
+        type: string
+        description: "Directory for caching NixOS, Home Manager, and nix-darwin data"
+      MCP_NIXOS_CACHE_TTL:
+        type: integer
+        default: 86400
+        description: "Cache TTL in seconds (default: 24 hours)"
+      MCP_NIXOS_CLEANUP_ORPHANS:
+        type: boolean
+        default: true
+        description: "Whether to clean up orphaned cache files"
+      ELASTICSEARCH_URL:
+        type: string
+        description: "URL for Elasticsearch API (optional)"
+      ELASTICSEARCH_USER:
+        type: string
+        description: "Username for Elasticsearch API (optional)"
+      ELASTICSEARCH_PASSWORD:
+        type: string
+        description: "Password for Elasticsearch API (optional)"
+  commandFunction: |-
+    (config) => {
+      const env = {};
+      
+      // Add all config properties to environment
+      for (const [key, value] of Object.entries(config)) {
+        if (value !== undefined && value !== null) {
+          env[key] = String(value);
+        }
+      }
+      
+      return {
+        command: 'python',
+        args: ['-m', 'mcp_nixos'],
+        env: env
+      };
+    }
