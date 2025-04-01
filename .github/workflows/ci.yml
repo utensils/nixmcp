@@ -105,9 +105,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
       # Don't fail the entire matrix if one OS fails
       fail-fast: false
-    # Windows tests don't need the build job, only Unix platforms do
+    # All tests need the build job to complete first
     needs: [build]
-    if: matrix.os != 'windows-latest' || success()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -177,9 +176,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
       # Don't fail the entire matrix if one OS fails
       fail-fast: false
-    # Windows tests don't need the build job, only Unix platforms do
+    # All tests need the build job to complete first
     needs: [build]
-    if: matrix.os != 'windows-latest' || success()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
