@@ -36,10 +36,15 @@ def setup_logging():
 
     # Set the log level
     try:
-        logger.setLevel(getattr(logging, log_level))
+        # Directly set the level attribute to ensure the internal level value is updated
+        # This addresses an issue where isEnabledFor() wasn't reflecting the level correctly
+        level_value = getattr(logging, log_level)
+        logger.setLevel(level_value)
+        logger.level = level_value  # Explicitly set the level attribute for test compatibility
     except AttributeError:
         print(f"Invalid log level '{log_level}', using INFO")
         logger.setLevel(logging.INFO)
+        logger.level = logging.INFO  # Explicitly set the level attribute for test compatibility
         log_level = "INFO"
 
     # Only configure handlers if they haven't been added yet

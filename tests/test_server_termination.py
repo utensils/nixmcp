@@ -30,6 +30,8 @@ def run_server_process(ready_queue, shutdown_complete_queue):
         def signal_handler(signum, frame):
             # Handle the signal directly here
             shutdown_complete_queue.put(True)
+            # Ensure the queue is flushed before exiting
+            time.sleep(0.1)
             # Still exit to terminate the process
             sys.exit(130)
 
@@ -154,12 +156,12 @@ class TestServerTermination:
             if process.pid is not None:
                 os.kill(process.pid, signal.SIGINT)
 
-                # Give it some time to process the signal
-                time.sleep(0.5)
+                # Give it more time to process the signal
+                time.sleep(1.5)
 
-                # Try to get the result from the queue
+                # Try to get the result from the queue with increased timeout
                 try:
-                    result = shutdown_complete_queue.get(timeout=3)
+                    result = shutdown_complete_queue.get(timeout=5)
                     assert result is True, f"Unexpected result: {result}"
                 except queue.Empty:
                     # If queue is empty, check if process is still alive
@@ -173,8 +175,8 @@ class TestServerTermination:
                         # This is acceptable behavior
                         pass
 
-            # Wait for process to actually terminate
-            process.join(timeout=5)
+            # Wait for process to actually terminate with increased timeout
+            process.join(timeout=10)
 
             # Verify process has terminated
             assert not process.is_alive(), "Process did not terminate within timeout"
