@@ -198,6 +198,9 @@
                   shift
                 else
                   echo "Running all tests..."
+                  # Set environment variable to indicate all tests are running
+                  # This helps certain tests that need to run in isolation skip when run in a full suite
+                  export RUNNING_ALL_TESTS=1
                 fi
                 
                 # Check if running in CI environment
