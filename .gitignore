@@ -63,6 +63,7 @@ venv.bak/
 # Misc
 temp
 tmp
+uv.lock
 uv-*.lock
 .aider*
 .pypirc
