@@ -40,16 +40,15 @@ There. Now your AI assistant can actually give you correct information about Nix
 
 ### Environment Variables (For Control Freaks)
 
-| Variable                   | Description                                      | Default                          |
-| -------------------------- | ------------------------------------------------ | -------------------------------- |
-| `MCP_NIXOS_LOG_LEVEL`      | How much you want to know about your failures    | INFO                             |
-| `MCP_NIXOS_LOG_FILE`       | Where to document said failures                  | (nowhere—your secret is safe)    |
-| `LOG_FORMAT`               | Log format (simple, detailed, json)              | detailed                         |
-| `MCP_NIXOS_CACHE_DIR`      | Where to store stuff you'll forget about         | OS-specific cache locations\*    |
-| `MCP_NIXOS_CACHE_TTL`      | How long until cache invalidation ruins your day | 86400 (24h)                      |
-| `MCP_NIXOS_CLEANUP_ORPHANS`| Whether to kill orphaned MCP processes on startup| false                            |
-| `KEEP_TEST_CACHE`          | Keep test cache directory for debugging (dev-only)| false                           |
-| `ELASTICSEARCH_URL`        | NixOS Elasticsearch API URL                      | https://search.nixos.org/backend |
+| Variable                    | Description                                        | Default                          |
+| --------------------------- | -------------------------------------------------- | -------------------------------- |
+| `MCP_NIXOS_LOG_LEVEL`       | How much you want to know about your failures      | INFO                             |
+| `MCP_NIXOS_LOG_FILE`        | Where to document said failures                    | (nowhere—your secret is safe)    |
+| `MCP_NIXOS_CACHE_DIR`       | Where to store stuff you'll forget about           | OS-specific cache locations\*    |
+| `MCP_NIXOS_CACHE_TTL`       | How long until cache invalidation ruins your day   | 86400 (24h)                      |
+| `MCP_NIXOS_CLEANUP_ORPHANS` | Whether to kill orphaned MCP processes on startup  | false                            |
+| `KEEP_TEST_CACHE`           | Keep test cache directory for debugging (dev-only) | false                            |
+| `ELASTICSEARCH_URL`         | NixOS Elasticsearch API URL                        | https://search.nixos.org/backend |
 
 \*Default cache locations (where your gigabytes will quietly disappear to):
 

@@ -7,7 +7,7 @@ This module tests the standardized logging configuration implemented in logging.
 import os
 import logging
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 
 @pytest.mark.unit
@@ -136,7 +136,7 @@ class TestEnhancedLogging:
 
             # Verify warning was printed
             assert mock_print.called
-            warning_printed = any("Invalid log level" in str(call) for call in mock_print.call_args_list)
+            warning_printed = any("Invalid log level" in str(args) for args in mock_print.call_args_list)
             assert warning_printed
 
     @pytest.mark.timeout(5)  # Add timeout to prevent hanging
@@ -145,88 +145,45 @@ class TestEnhancedLogging:
         from mcp_nixos.logging import setup_logging
         import logging as logging_module  # Import with a different name to avoid conflicts
 
-        # Create a custom logger just for this test to avoid global state issues
-        logger_name = f"mcp_nixos_test_{id(self)}"
-        test_logger = logging_module.getLogger(logger_name)
-
-        # Clear any handlers that might exist
-        for handler in test_logger.handlers[:]:
-            test_logger.removeHandler(handler)
-
-        # Set up environment and mocks
+        # Create a real logger with handlers that we control
         with patch.dict(os.environ, {"MCP_NIXOS_LOG_LEVEL": "WARNING"}, clear=True):
-            # Create our own logger setup function that works like the original but uses our test logger
-            def test_setup_logging():
-                test_logger.setLevel(logging_module.WARNING)
-                handler = logging_module.StreamHandler()
-                handler.setLevel(logging_module.WARNING)
-                test_logger.addHandler(handler)
-                return test_logger
+            # Set up logging - this will create the real logger
+            logger = setup_logging()
 
-            # Use our test setup function
-            with patch("mcp_nixos.logging.setup_logging", side_effect=test_setup_logging):
-                # Get the logger and verify it's set up correctly
-                setup_logging()
+            # Verify the effective level meets our expectations
+            # The effective level might be different from the logger.level attribute
+            # What matters is that DEBUG and INFO messages don't get logged
+            assert logger.isEnabledFor(logging_module.WARNING)
+            assert logger.isEnabledFor(logging_module.ERROR)
+            assert logger.isEnabledFor(logging_module.CRITICAL)
+            assert not logger.isEnabledFor(logging_module.INFO)
+            assert not logger.isEnabledFor(logging_module.DEBUG)
 
-                # Get the logger for verification
-                logger = logging_module.getLogger(logger_name)
+            # Track actual handler method calls to verify filtering
+            mock_handler = MagicMock()
+            mock_handler.level = logging_module.WARNING
 
-                # Verify logger level is set correctly
-                assert logger.level == logging_module.WARNING
+            # Add our test handler
+            logger.addHandler(mock_handler)
 
-                # Track which methods were called in the mock objects later
+            # Log messages at different levels
+            logger.debug("Debug message")
+            logger.info("Info message")
+            logger.warning("Warning message")
+            logger.error("Error message")
+            logger.critical("Critical message")
 
-                # Mock the original log methods to track calls
-                with (
-                    patch.object(logger, "debug", wraps=logger.debug) as mock_debug,
-                    patch.object(logger, "info", wraps=logger.info) as mock_info,
-                    patch.object(logger, "warning", wraps=logger.warning) as mock_warning,
-                    patch.object(logger, "error", wraps=logger.error) as mock_error,
-                    patch.object(logger, "critical", wraps=logger.critical) as mock_critical,
-                    patch.object(logger, "_log") as mock_log,
-                ):
+            # Verify our handler received only WARNING and above
+            assert mock_handler.handle.call_count == 3  # WARNING, ERROR, CRITICAL
 
-                    # Call all log methods
-                    logger.debug("Debug message")
-                    logger.info("Info message")
-                    logger.warning("Warning message")
-                    logger.error("Error message")
-                    logger.critical("Critical message")
+            # If we want to be even more specific, we can check the record levels
+            record_levels = [args[0][0].levelno for args in mock_handler.handle.call_args_list]
 
-                    # Check if the methods were called
-                    assert mock_debug.called
-                    assert mock_info.called
-                    assert mock_warning.called
-                    assert mock_error.called
-                    assert mock_critical.called
-
-                    # Verify the messages actually get processed only for WARNING and above
-                    warning_call_count = (
-                        mock_log.call_args_list.count(call(logging_module.WARNING, "Warning message", ()))
-                        if mock_log.call_args_list
-                        else 0
-                    )
-
-                    error_call_count = (
-                        mock_log.call_args_list.count(call(logging_module.ERROR, "Error message", ()))
-                        if mock_log.call_args_list
-                        else 0
-                    )
-
-                    critical_call_count = (
-                        mock_log.call_args_list.count(call(logging_module.CRITICAL, "Critical message", ()))
-                        if mock_log.call_args_list
-                        else 0
-                    )
-
-                    # If _log is being patched correctly, these should be logged
-                    if len(mock_log.call_args_list) > 0:
-                        assert warning_call_count + error_call_count + critical_call_count > 0
-                        # Verify WARNING and above messages are logged
-                        debug_info_call_count = sum(
-                            1 for args in mock_log.call_args_list if args[0][0] < logging_module.WARNING
-                        )
-                        assert debug_info_call_count == 0, "DEBUG/INFO messages should be filtered out"
+            # Verify only WARNING, ERROR, and CRITICAL got through
+            assert all(level >= logging_module.WARNING for level in record_levels)
+            assert logging_module.WARNING in record_levels
+            assert logging_module.ERROR in record_levels
+            assert logging_module.CRITICAL in record_levels
 
     @patch.dict(os.environ, {"WINDSURF_SOMETHING": "true"})
     def test_windsurf_environment_detected(self, clean_logger):
@@ -238,11 +195,11 @@ class TestEnhancedLogging:
                 setup_logging()
 
                 windsurf_detected = any(
-                    "Detected Windsurf environment" in str(call) for call in mock_info.call_args_list
+                    "Detected Windsurf environment" in str(args) for args in mock_info.call_args_list
                 )
                 assert windsurf_detected
 
-                env_var_logged = any("WINDSURF" in str(call) for call in mock_debug.call_args_list)
+                env_var_logged = any("WINDSURF" in str(args) for args in mock_debug.call_args_list)
                 assert env_var_logged
 
     @patch.dict(os.environ, {"MCP_NIXOS_LOG_FILE": "/nonexistent/path/test.log"})
@@ -273,8 +230,8 @@ class TestEnhancedLogging:
                             # Error should be logged
                             assert mock_error.called
                             permission_error_logged = any(
-                                "Permission denied" in str(call) and "Failed to set up file logging" in str(call)
-                                for call in mock_error.call_args_list
+                                "Permission denied" in str(args) and "Failed to set up file logging" in str(args)
+                                for args in mock_error.call_args_list
                             )
                             assert permission_error_logged
 
