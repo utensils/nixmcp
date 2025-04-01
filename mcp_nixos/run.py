@@ -12,7 +12,6 @@ import sys
 import signal
 import subprocess
 import atexit
-import time
 from typing import Optional
 
 # Global server process variable that will be set in main() and used in signal_handler
@@ -33,19 +32,19 @@ def find_and_kill_zombie_mcp_processes():
 
     try:
         import psutil
-        
+
         my_pid = os.getpid()
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 # Skip our own process
                 if proc.pid == my_pid:
                     continue
-                    
+
                 # Look for python processes running mcp_nixos
                 proc_name = proc.name().lower()
-                if proc_name.startswith('python'):
-                    cmdline = ' '.join(proc.cmdline()) if proc.cmdline() else ''
-                    if 'mcp_nixos' in cmdline and 'run.py' not in cmdline:
+                if proc_name.startswith("python"):
+                    cmdline = " ".join(proc.cmdline()) if proc.cmdline() else ""
+                    if "mcp_nixos" in cmdline and "run.py" not in cmdline:
                         print(f"Found orphaned process {proc.pid}: {cmdline}")
                         proc.terminate()
                         # Wait briefly
@@ -199,7 +198,10 @@ def main():
         # Add Windows-specific handler for CTRL events
         try:
             import win32api
-            win32api.SetConsoleCtrlHandler(lambda ctrl_type: signal_handler(signal.SIGINT, None) if ctrl_type == 0 else None, True)
+
+            win32api.SetConsoleCtrlHandler(
+                lambda ctrl_type: signal_handler(signal.SIGINT, None) if ctrl_type == 0 else None, True
+            )
         except ImportError:
             # win32api not available, fallback to basic handling
             print("Warning: win32api not available, Windows CTRL event handling is limited")
