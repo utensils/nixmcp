@@ -19,7 +19,11 @@
         python = pkgs."python${pythonVersion}";
         ps = pkgs."python${pythonVersion}Packages";
 
-        pythonForVenv = python.withPackages (p: with p; [ ]);
+        # Use a single Python instance with proper library support
+        pythonWithLibs = python.buildEnv.override {
+          extraLibs = [ ];
+          ignoreCollisions = true;
+        };
 
         setupVenvScript = pkgs.writeShellScriptBin "setup-venv" ''
           set -e
@@ -33,7 +37,7 @@
 
           if [ ! -d ".venv" ]; then
             echo "Creating Python virtual environment in ./.venv ..."
-            ${pythonForVenv}/bin/python -m venv .venv
+            ${pythonWithLibs}/bin/python -m venv .venv
           else
             echo "Virtual environment ./.venv already exists."
           fi
@@ -88,13 +92,22 @@
           env = [
             { name = "PYTHONPATH"; value = "$PWD"; }
             { name = "MCP_NIXOS_ENV"; value = "development"; }
+            { name = "LIBFFI_INCLUDE_DIR"; value = "${pkgs.libffi}/include"; }
+            # Ensure Python can find _ctypes
+            { name = "NIX_LDFLAGS"; value = "-L${pkgs.libffi}/lib"; }
           ];
           packages = with pkgs; [
-            # Python & Build Tools
-            pythonForVenv
+            # Python with build dependencies
+            pythonWithLibs
             uv # Faster pip alternative
             ps.build
             ps.twine
+            # Required for building C extensions
+            libffi
+            pkg-config
+            # Build tools needed for extension compilation
+            binutils
+            stdenv.cc.cc
 
             # Linters & Formatters
             ps.black
