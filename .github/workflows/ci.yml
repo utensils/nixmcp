@@ -33,7 +33,6 @@ jobs:
         with:
           path: |
             ~/.cache/nix
-            /nix/store
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
@@ -61,7 +60,6 @@ jobs:
         with:
           path: |
             ~/.cache/nix
-            /nix/store
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
@@ -88,7 +86,6 @@ jobs:
         with:
           path: |
             ~/.cache/nix
-            /nix/store
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
@@ -329,7 +326,6 @@ jobs:
         with:
           path: |
             ~/.cache/nix
-            /nix/store
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
