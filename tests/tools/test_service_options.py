@@ -13,7 +13,8 @@ from unittest.mock import MagicMock, patch
 from mcp_nixos.clients.elasticsearch_client import FIELD_OPT_NAME, FIELD_TYPE  # Import constants used in tests
 
 # Import the server module functions and classes
-from mcp_nixos.server import ElasticsearchClient, NixOSContext, nixos_info, nixos_search
+from mcp_nixos.server import ElasticsearchClient, NixOSContext
+from mcp_nixos.tools.nixos_tools import nixos_info, nixos_search
 
 logging.disable(logging.CRITICAL)
 

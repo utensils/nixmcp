@@ -252,7 +252,7 @@ class TestErrorHandling(MCPNixOSTestBase):
     def test_search_with_invalid_parameters(self):
         """Test search with invalid parameters."""
         # Import the nixos_search function directly
-        from mcp_nixos.server import nixos_search
+        from mcp_nixos.tools.nixos_tools import nixos_search
 
         # Test with an invalid type
         result = nixos_search("python", "invalid_type", 5)

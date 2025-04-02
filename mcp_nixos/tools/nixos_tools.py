@@ -635,6 +635,8 @@ def register_nixos_tools(mcp) -> None:
 
         # Get context
         try:
+            # Import get_nixos_context dynamically to avoid circular imports
+            from mcp_nixos.server import get_nixos_context
             nixos_context = get_nixos_context()
 
             # Validate channel input
@@ -646,6 +648,7 @@ def register_nixos_tools(mcp) -> None:
 
             # Call the undecorated function directly
             from mcp_nixos.tools.nixos_tools import nixos_search as search_func
+
             result = search_func(query, type, limit, channel, nixos_context)
             return result
         except Exception as e:
@@ -675,6 +678,8 @@ def register_nixos_tools(mcp) -> None:
 
         # Get context
         try:
+            # Import get_nixos_context dynamically to avoid circular imports
+            from mcp_nixos.server import get_nixos_context
             nixos_context = get_nixos_context()
 
             # Validate channel input
@@ -686,6 +691,7 @@ def register_nixos_tools(mcp) -> None:
 
             # Call the undecorated function directly
             from mcp_nixos.tools.nixos_tools import nixos_info as info_func
+
             result = info_func(name, type, channel, nixos_context)
             return result
         except Exception as e:
@@ -713,6 +719,8 @@ def register_nixos_tools(mcp) -> None:
 
         # Get context
         try:
+            # Import get_nixos_context dynamically to avoid circular imports
+            from mcp_nixos.server import get_nixos_context
             nixos_context = get_nixos_context()
 
             # Validate channel input
@@ -724,6 +732,7 @@ def register_nixos_tools(mcp) -> None:
 
             # Call the undecorated function directly
             from mcp_nixos.tools.nixos_tools import nixos_stats as stats_func
+
             result = stats_func(channel, nixos_context)
             return result
         except Exception as e:
