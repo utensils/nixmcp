@@ -433,7 +433,7 @@ class TestHomeManagerTools(unittest.TestCase):
         mock_context = MagicMock()
         mock_server_module.get_home_manager_context.return_value = mock_context
         mock_import_module.return_value = mock_server_module
-        
+
         # Setup context with search_options method
         mock_context.search_options.return_value = {"count": 1, "options": [{"name": "a", "description": "desc"}]}
 
@@ -458,7 +458,7 @@ class TestHomeManagerTools(unittest.TestCase):
         mock_context = MagicMock()
         mock_server_module.get_home_manager_context.return_value = mock_context
         mock_import_module.return_value = mock_server_module
-        
+
         # Setup context with get_option method
         mock_context.get_option.return_value = {"name": "a", "found": True, "description": "desc"}
 
@@ -480,7 +480,7 @@ class TestHomeManagerTools(unittest.TestCase):
         mock_context = MagicMock()
         mock_server_module.get_home_manager_context.return_value = mock_context
         mock_import_module.return_value = mock_server_module
-        
+
         # Setup context with get_option method returning not found
         mock_context.get_option.return_value = {"name": "option_name", "found": False, "error": "Not found"}
 
@@ -501,7 +501,7 @@ class TestHomeManagerTools(unittest.TestCase):
         mock_context = MagicMock()
         mock_server_module.get_home_manager_context.return_value = mock_context
         mock_import_module.return_value = mock_server_module
-        
+
         # Setup context with get_stats method
         mock_context.get_stats.return_value = {"total_options": 123, "total_categories": 5}
 

@@ -65,7 +65,7 @@ class TestNixOSSearchWithMultiWord(unittest.TestCase):
         self.mock_es_client = MagicMock()
         self.mock_context.es_client = self.mock_es_client
         self.mock_context.search_options.return_value = {"options": [], "count": 0}
-        
+
         # Create a mock server module that will return our context
         self.mock_server_module = MagicMock()
         self.mock_server_module.get_nixos_context.return_value = self.mock_context
@@ -93,7 +93,7 @@ class TestNixOSSearchWithMultiWord(unittest.TestCase):
 
         # Verify importlib.import_module was called with correct module
         mock_import_module.assert_called_with("mcp_nixos.server")
-        
+
         # Verify get_nixos_context was called
         self.mock_server_module.get_nixos_context.assert_called_once()
 
@@ -131,7 +131,7 @@ class TestNixOSSearchWithMultiWord(unittest.TestCase):
 
         # Verify importlib.import_module was called with correct module
         mock_import_module.assert_called_with("mcp_nixos.server")
-        
+
         # Verify get_nixos_context was called
         self.mock_server_module.get_nixos_context.assert_called_once()
 

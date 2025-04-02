@@ -14,6 +14,16 @@ MCP-NixOS provides MCP resources and tools for NixOS packages, system options, H
 
 Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/utensils/mcp-nixos)
 
+## Branch Management
+
+- Default development branch is `develop`
+- Main release branch is `main`
+- Branch protection rules are enforced:
+  - `main`: Requires PR review (1 approval), admin enforcement, no deletion, no force push
+  - `develop`: Protected from deletion but allows force push
+- PRs follow the pattern: commit to `develop` → open PR to `main` → merge once approved
+- Branch deletion on merge is disabled to preserve branch history
+
 ## Architecture
 
 ### Core Components

@@ -377,7 +377,7 @@ class TestIntegrationScenarios(unittest.TestCase):
         # Create a mock context and server module
         self.mock_context = MagicMock(spec=NixOSContext)
         self.mock_context.es_client = MagicMock(spec=ElasticsearchClient)  # Add mock es_client
-        
+
         # Create a mock server module that get_nixos_context will return our mock context
         self.mock_server_module = MagicMock()
         self.mock_server_module.get_nixos_context.return_value = self.mock_context
