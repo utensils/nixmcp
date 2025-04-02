@@ -11,6 +11,10 @@ from mcp_nixos.utils.helpers import (  # create_wildcard_query, # Removed - hand
     parse_multi_word_query,
 )
 
+# Import get_nixos_context from server
+# Import get_nixos_context from utils to avoid circular imports
+import importlib
+
 # Get logger
 logger = logging.getLogger("mcp_nixos")
 
@@ -26,7 +30,17 @@ def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
     """Gets the NixOS context and sets the specified channel."""
     # Import NixOSContext locally if needed, or assume context is passed correctly
     # from mcp_nixos.contexts.nixos_context import NixOSContext
-    ctx = get_context_or_fallback(context, "nixos_context")
+    if context is not None:
+        ctx = context
+    else:
+        # Import get_nixos_context dynamically to avoid circular imports
+        try:
+            server_module = importlib.import_module("mcp_nixos.server")
+            get_nixos_context = getattr(server_module, "get_nixos_context")
+            ctx = get_nixos_context()
+        except (ImportError, AttributeError) as e:
+            logger.error(f"Failed to dynamically import get_nixos_context: {e}")
+            ctx = None
     if ctx is None:
         logger.warning("Failed to get NixOS context")
         return None
@@ -582,10 +596,139 @@ def nixos_stats(channel: str = CHANNEL_UNSTABLE, context=None) -> str:
         return f"Error retrieving statistics: {str(e)}"
 
 
+def check_request_ready(ctx) -> bool:
+    """Check if the server is ready to handle requests.
+
+    Args:
+        ctx: The request context
+
+    Returns:
+        True if ready, False if not
+    """
+    return ctx.request_context.lifespan_context.get("is_ready", False)
+
+
 def register_nixos_tools(mcp) -> None:
     """Register all NixOS tools with the MCP server."""
     logger.info("Registering NixOS MCP tools...")
-    mcp.tool()(nixos_search)
-    mcp.tool()(nixos_info)
-    mcp.tool()(nixos_stats)
-    logger.info("NixOS MCP tools registered.")
+
+    @mcp.tool()
+    async def nixos_search(ctx, query: str, type: str = "packages", limit: int = 20, channel: str = "unstable") -> str:
+        """Search for NixOS packages, options, or programs.
+
+        Args:
+            query: The search term
+            type: The type to search (packages, options, or programs)
+            limit: Maximum number of results to return (default: 20)
+            channel: NixOS channel to use (default: unstable)
+
+        Returns:
+            Results formatted as text
+        """
+        logger.info(f"NixOS search request: query='{query}', type='{type}', limit={limit}, channel='{channel}'")
+
+        # Check if the server is ready for requests
+        if not check_request_ready(ctx):
+            error_msg = "The server is still initializing. Please try again in a few seconds."
+            logger.warning(f"Request blocked - server not ready: {error_msg}")
+            return error_msg
+
+        # Get context
+        try:
+            nixos_context = get_nixos_context()
+
+            # Validate channel input
+            valid_channels = ["unstable", "24.11"]
+            if channel not in valid_channels:
+                error_msg = f"Invalid channel: {channel}. Must be one of: {', '.join(valid_channels)}"
+                logger.error(error_msg)
+                return error_msg
+
+            # Call the undecorated function directly
+            from mcp_nixos.tools.nixos_tools import nixos_search as search_func
+            result = search_func(query, type, limit, channel, nixos_context)
+            return result
+        except Exception as e:
+            error_msg = f"Error during NixOS search: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    @mcp.tool()
+    async def nixos_info(ctx, name: str, type: str = "package", channel: str = "unstable") -> str:
+        """Get detailed information about a NixOS package or option.
+
+        Args:
+            name: The name of the package or option
+            type: Either "package" or "option"
+            channel: NixOS channel to use (default: unstable)
+
+        Returns:
+            Detailed information about the package or option
+        """
+        logger.info(f"NixOS info request: name='{name}', type='{type}', channel='{channel}'")
+
+        # Check if the server is ready for requests
+        if not check_request_ready(ctx):
+            error_msg = "The server is still initializing. Please try again in a few seconds."
+            logger.warning(f"Request blocked - server not ready: {error_msg}")
+            return error_msg
+
+        # Get context
+        try:
+            nixos_context = get_nixos_context()
+
+            # Validate channel input
+            valid_channels = ["unstable", "24.11"]
+            if channel not in valid_channels:
+                error_msg = f"Invalid channel: {channel}. Must be one of: {', '.join(valid_channels)}"
+                logger.error(error_msg)
+                return error_msg
+
+            # Call the undecorated function directly
+            from mcp_nixos.tools.nixos_tools import nixos_info as info_func
+            result = info_func(name, type, channel, nixos_context)
+            return result
+        except Exception as e:
+            error_msg = f"Error during NixOS info: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    @mcp.tool()
+    async def nixos_stats(ctx, channel: str = "unstable") -> str:
+        """Get statistics about available NixOS packages and options.
+
+        Args:
+            channel: NixOS channel to use (default: unstable)
+
+        Returns:
+            Statistics about packages and options
+        """
+        logger.info(f"NixOS stats request: channel='{channel}'")
+
+        # Check if the server is ready for requests
+        if not check_request_ready(ctx):
+            error_msg = "The server is still initializing. Please try again in a few seconds."
+            logger.warning(f"Request blocked - server not ready: {error_msg}")
+            return error_msg
+
+        # Get context
+        try:
+            nixos_context = get_nixos_context()
+
+            # Validate channel input
+            valid_channels = ["unstable", "24.11"]
+            if channel not in valid_channels:
+                error_msg = f"Invalid channel: {channel}. Must be one of: {', '.join(valid_channels)}"
+                logger.error(error_msg)
+                return error_msg
+
+            # Call the undecorated function directly
+            from mcp_nixos.tools.nixos_tools import nixos_stats as stats_func
+            result = stats_func(channel, nixos_context)
+            return result
+        except Exception as e:
+            error_msg = f"Error during NixOS stats: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    logger.info("NixOS MCP tools registered with request gating.")
