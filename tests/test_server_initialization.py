@@ -1,7 +1,7 @@
 """Tests for proper MCP protocol initialization and app state synchronization."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 
 @pytest.mark.asyncio

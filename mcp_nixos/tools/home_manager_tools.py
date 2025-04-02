@@ -3,13 +3,13 @@ MCP tools for Home Manager.
 """
 
 import logging
-from typing import Dict, Optional, Any, Union
+from typing import Dict, Optional, Any
 
 # Get logger
 logger = logging.getLogger("mcp_nixos")
 
 # Import utility functions
-from mcp_nixos.utils.helpers import create_wildcard_query, get_context_or_fallback
+from mcp_nixos.utils.helpers import create_wildcard_query
 
 
 def home_manager_search(query: str, limit: int = 20, context=None) -> str:
@@ -28,8 +28,8 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
 
     # Import needed modules here to avoid circular imports
     import importlib
-    
-    # Get context 
+
+    # Get context
     if context is None:
         # Import get_home_manager_context dynamically to avoid circular imports
         try:
@@ -210,8 +210,8 @@ def home_manager_info(name: str, context=None) -> str:
 
     # Import needed modules here to avoid circular imports
     import importlib
-    
-    # Get context 
+
+    # Get context
     if context is None:
         # Import get_home_manager_context dynamically to avoid circular imports
         try:
@@ -385,8 +385,8 @@ def home_manager_stats(context=None) -> str:
 
     # Import needed modules here to avoid circular imports
     import importlib
-    
-    # Get context 
+
+    # Get context
     if context is None:
         # Import get_home_manager_context dynamically to avoid circular imports
         try:
@@ -477,8 +477,8 @@ def home_manager_list_options(context=None) -> str:
 
     # Import needed modules here to avoid circular imports
     import importlib
-    
-    # Get context 
+
+    # Get context
     if context is None:
         # Import get_home_manager_context dynamically to avoid circular imports
         try:
@@ -596,8 +596,8 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
 
     # Import needed modules here to avoid circular imports
     import importlib
-    
-    # Get context 
+
+    # Get context
     if context is None:
         # Import get_home_manager_context dynamically to avoid circular imports
         try:
@@ -890,6 +890,7 @@ def register_home_manager_tools(mcp) -> None:
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             # Access the correct function (not this decorated function)
             from mcp_nixos.tools.home_manager_tools import home_manager_search as search_func
+
             result = search_func(query, limit, home_ctx)
             return result
         except Exception as e:
@@ -919,6 +920,7 @@ def register_home_manager_tools(mcp) -> None:
         try:
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_info as info_func
+
             result = info_func(name, home_ctx)
             return result
         except Exception as e:
@@ -945,6 +947,7 @@ def register_home_manager_tools(mcp) -> None:
         try:
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_stats as stats_func
+
             result = stats_func(home_ctx)
             return result
         except Exception as e:
@@ -971,6 +974,7 @@ def register_home_manager_tools(mcp) -> None:
         try:
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_list_options as list_options_func
+
             result = list_options_func(home_ctx)
             return result
         except Exception as e:
@@ -1000,6 +1004,7 @@ def register_home_manager_tools(mcp) -> None:
         try:
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_options_by_prefix as options_by_prefix_func
+
             result = options_by_prefix_func(option_prefix, home_ctx)
             return result
         except Exception as e:

@@ -6,10 +6,7 @@ import logging
 from typing import Any, Dict, List, Optional  # Add List
 
 # Import utility functions
-from mcp_nixos.utils.helpers import (  # create_wildcard_query, # Removed - handled by ES Client
-    get_context_or_fallback,
-    parse_multi_word_query,
-)
+from mcp_nixos.utils.helpers import parse_multi_word_query
 
 # Import get_nixos_context from server
 # Import get_nixos_context from utils to avoid circular imports
@@ -637,6 +634,7 @@ def register_nixos_tools(mcp) -> None:
         try:
             # Import get_nixos_context dynamically to avoid circular imports
             from mcp_nixos.server import get_nixos_context
+
             nixos_context = get_nixos_context()
 
             # Validate channel input
@@ -680,6 +678,7 @@ def register_nixos_tools(mcp) -> None:
         try:
             # Import get_nixos_context dynamically to avoid circular imports
             from mcp_nixos.server import get_nixos_context
+
             nixos_context = get_nixos_context()
 
             # Validate channel input
@@ -721,6 +720,7 @@ def register_nixos_tools(mcp) -> None:
         try:
             # Import get_nixos_context dynamically to avoid circular imports
             from mcp_nixos.server import get_nixos_context
+
             nixos_context = get_nixos_context()
 
             # Validate channel input

@@ -421,62 +421,97 @@ class TestHomeManagerContext(unittest.TestCase):
         mock_client_instance.get_options_by_prefix.assert_not_called()
 
 
-# Patch the helper function used by the tools to get the context
-@patch("mcp_nixos.tools.home_manager_tools.get_context_or_fallback")
+# Patch importlib.import_module to return a mocked server module
+@patch("importlib.import_module")
 class TestHomeManagerTools(unittest.TestCase):
     """Test the Home Manager MCP tool functions."""
 
-    def test_home_manager_search_tool(self, mock_get_context):
+    def test_home_manager_search_tool(self, mock_import_module):
         """Test the home_manager_search tool calls context correctly."""
+        # Setup mock server module with get_home_manager_context function
+        mock_server_module = MagicMock()
         mock_context = MagicMock()
-        mock_get_context.return_value = mock_context
+        mock_server_module.get_home_manager_context.return_value = mock_context
+        mock_import_module.return_value = mock_server_module
+        
+        # Setup context with search_options method
         mock_context.search_options.return_value = {"count": 1, "options": [{"name": "a", "description": "desc"}]}
 
         result = home_manager_search("query", limit=10)
 
-        mock_get_context.assert_called_once_with(None, "home_manager_context")
+        # Verify import_module was called with correct arg
+        mock_import_module.assert_called_with("mcp_nixos.server")
+        # Verify get_home_manager_context was called
+        mock_server_module.get_home_manager_context.assert_called_once()
+        # Verify search_options was called with expected args
         mock_context.search_options.assert_called_once()
-        # Check args passed to context method - tool adds wildcard
         args, kwargs = mock_context.search_options.call_args
         self.assertEqual(args[0], "*query*")  # Tool adds wildcards
         self.assertEqual(args[1], 10)  # Limit is passed positionally
         self.assertIn("Found 1", result)  # Basic output check
         self.assertIn("a", result)
 
-    def test_home_manager_info_tool(self, mock_get_context):
+    def test_home_manager_info_tool(self, mock_import_module):
         """Test the home_manager_info tool calls context correctly."""
+        # Setup mock server module with get_home_manager_context function
+        mock_server_module = MagicMock()
         mock_context = MagicMock()
-        mock_get_context.return_value = mock_context
+        mock_server_module.get_home_manager_context.return_value = mock_context
+        mock_import_module.return_value = mock_server_module
+        
+        # Setup context with get_option method
         mock_context.get_option.return_value = {"name": "a", "found": True, "description": "desc"}
 
         result = home_manager_info("option_name")
 
-        mock_get_context.assert_called_once_with(None, "home_manager_context")
+        # Verify import_module was called with correct arg
+        mock_import_module.assert_called_with("mcp_nixos.server")
+        # Verify get_home_manager_context was called
+        mock_server_module.get_home_manager_context.assert_called_once()
+        # Verify get_option was called with expected args
         mock_context.get_option.assert_called_once_with("option_name")
         self.assertIn("# a", result)  # Basic output check
         self.assertIn("desc", result)
 
-    def test_home_manager_info_tool_not_found(self, mock_get_context):
+    def test_home_manager_info_tool_not_found(self, mock_import_module):
         """Test home_manager_info tool handles 'not found' from context."""
+        # Setup mock server module with get_home_manager_context function
+        mock_server_module = MagicMock()
         mock_context = MagicMock()
-        mock_get_context.return_value = mock_context
+        mock_server_module.get_home_manager_context.return_value = mock_context
+        mock_import_module.return_value = mock_server_module
+        
+        # Setup context with get_option method returning not found
         mock_context.get_option.return_value = {"name": "option_name", "found": False, "error": "Not found"}
 
         result = home_manager_info("option_name")
 
-        mock_get_context.assert_called_once_with(None, "home_manager_context")
+        # Verify import_module was called with correct arg
+        mock_import_module.assert_called_with("mcp_nixos.server")
+        # Verify get_home_manager_context was called
+        mock_server_module.get_home_manager_context.assert_called_once()
+        # Verify get_option was called with expected args
         mock_context.get_option.assert_called_once_with("option_name")
         self.assertIn("Option 'option_name' not found", result)  # Check specific not found message
 
-    def test_home_manager_stats_tool(self, mock_get_context):
+    def test_home_manager_stats_tool(self, mock_import_module):
         """Test the home_manager_stats tool calls context correctly."""
+        # Setup mock server module with get_home_manager_context function
+        mock_server_module = MagicMock()
         mock_context = MagicMock()
-        mock_get_context.return_value = mock_context
+        mock_server_module.get_home_manager_context.return_value = mock_context
+        mock_import_module.return_value = mock_server_module
+        
+        # Setup context with get_stats method
         mock_context.get_stats.return_value = {"total_options": 123, "total_categories": 5}
 
         result = home_manager_stats()
 
-        mock_get_context.assert_called_once_with(None, "home_manager_context")
+        # Verify import_module was called with correct arg
+        mock_import_module.assert_called_with("mcp_nixos.server")
+        # Verify get_home_manager_context was called
+        mock_server_module.get_home_manager_context.assert_called_once()
+        # Verify get_stats was called
         mock_context.get_stats.assert_called_once()
         self.assertIn("Total options: 123", result)  # Basic output check
         self.assertIn("Categories: 5", result)

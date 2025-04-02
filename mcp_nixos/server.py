@@ -230,11 +230,11 @@ async def app_lifespan(mcp_server: FastMCP):
     # FastMCP doesn't expose a public API for modifying initialize behavior,
     # but it handles the initialize/initialized protocol automatically.
     # We'll use protocol_initialized.set() when we detect the first connection.
-    
+
     # We'll mark the initialization as complete as soon as app is ready
     logger.info("Setting protocol initialization events")
     protocol_initialized.set()
-    
+
     # This will trigger waiting for connection
     logger.info("App is ready for requests")
     lifespan_context["is_ready"] = True
