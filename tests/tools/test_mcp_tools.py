@@ -3,7 +3,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from mcp_nixos.server import home_manager_info, home_manager_search, nixos_info, nixos_search
+from mcp_nixos.tools.nixos_tools import nixos_info, nixos_search
+from mcp_nixos.tools.home_manager_tools import home_manager_info, home_manager_search
 from mcp_nixos.tools.home_manager_tools import home_manager_list_options, home_manager_options_by_prefix
 from mcp_nixos.tools.nixos_tools import CHANNEL_STABLE, CHANNEL_UNSTABLE
 

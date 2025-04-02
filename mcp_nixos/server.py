@@ -80,13 +80,8 @@ from mcp_nixos.resources.nixos_resources import (  # noqa: F401
     search_programs_resource,
 )
 from mcp_nixos.tools.darwin.darwin_tools import register_darwin_tools
-from mcp_nixos.tools.home_manager_tools import (  # noqa: F401
-    home_manager_info,
-    home_manager_search,
-    home_manager_stats,
-    register_home_manager_tools,
-)
-from mcp_nixos.tools.nixos_tools import nixos_info, nixos_search, nixos_stats, register_nixos_tools  # noqa: F401
+from mcp_nixos.tools.home_manager_tools import register_home_manager_tools
+from mcp_nixos.tools.nixos_tools import register_nixos_tools
 from mcp_nixos.utils.helpers import create_wildcard_query  # noqa: F401
 
 # Load environment variables from .env file
@@ -206,6 +201,44 @@ def run_precache():
 async def app_lifespan(mcp_server: FastMCP):
     logger.info("Initializing MCP-NixOS server components")
 
+    # Import state persistence
+    from mcp_nixos.utils.state_persistence import get_state_persistence
+
+    # Create state tracking with initial value
+    state_persistence = get_state_persistence()
+    state_persistence.load_state()
+
+    # Track connection count across reconnections
+    connection_count = state_persistence.increment_counter("connection_count")
+    logger.info(f"This is connection #{connection_count} since server installation")
+
+    # Create synchronization for MCP protocol initialization
+    protocol_initialized = asyncio.Event()
+    app_ready = asyncio.Event()
+
+    # Track initialization state in context
+    lifespan_context = {
+        "nixos_context": nixos_context,
+        "home_manager_context": home_manager_context,
+        "darwin_context": darwin_context,
+        "is_ready": False,
+        "initialization_time": time.time(),
+        "connection_count": connection_count,
+    }
+
+    # Handle MCP protocol handshake
+    # FastMCP doesn't expose a public API for modifying initialize behavior,
+    # but it handles the initialize/initialized protocol automatically.
+    # We'll use protocol_initialized.set() when we detect the first connection.
+
+    # We'll mark the initialization as complete as soon as app is ready
+    logger.info("Setting protocol initialization events")
+    protocol_initialized.set()
+
+    # This will trigger waiting for connection
+    logger.info("App is ready for requests")
+    lifespan_context["is_ready"] = True
+
     # Start loading Home Manager data in background thread
     # This way the server can start up immediately without blocking
     logger.info("Starting background loading of Home Manager data...")
@@ -227,6 +260,20 @@ async def app_lifespan(mcp_server: FastMCP):
 
     # Don't wait for the data to be fully loaded
     logger.info("Server will continue startup while Home Manager and Darwin data loads in background")
+
+    # Mark app as ready for requests
+    logger.info("App is ready for requests, waiting for MCP protocol initialization")
+    app_ready.set()
+
+    # Wait for MCP protocol initialization (with timeout)
+    try:
+        await asyncio.wait_for(protocol_initialized.wait(), timeout=5.0)
+        logger.info("MCP protocol initialization complete")
+        lifespan_context["is_ready"] = True
+    except asyncio.TimeoutError:
+        logger.warning("Timeout waiting for MCP initialize request. Server will proceed anyway.")
+        # Still mark as ready to avoid hanging
+        lifespan_context["is_ready"] = True
 
     # Add prompt to guide assistants on using the MCP tools
     @mcp_server.prompt()
@@ -652,12 +699,15 @@ async def app_lifespan(mcp_server: FastMCP):
     """
 
     try:
+        # Save the final state before yielding control to server
+        from mcp_nixos.utils.state_persistence import get_state_persistence
+
+        state_persistence = get_state_persistence()
+        state_persistence.set_state("last_startup_time", time.time())
+        state_persistence.save_state()
+
         # We yield our contexts that will be accessible in all handlers
-        yield {
-            "nixos_context": nixos_context,
-            "home_manager_context": home_manager_context,
-            "darwin_context": darwin_context,
-        }
+        yield lifespan_context
     except Exception as e:
         logger.error(f"Error in server lifespan: {e}")
         raise
@@ -667,6 +717,25 @@ async def app_lifespan(mcp_server: FastMCP):
 
         # Track start time for overall shutdown duration
         shutdown_start = time.time()
+
+        # Save final state before shutdown
+        try:
+            from mcp_nixos.utils.state_persistence import get_state_persistence
+
+            state_persistence = get_state_persistence()
+            state_persistence.set_state("last_shutdown_time", time.time())
+            state_persistence.set_state("shutdown_reason", "normal")
+
+            # Calculate uptime if we have an initialization time
+            if lifespan_context.get("initialization_time"):
+                uptime = time.time() - lifespan_context["initialization_time"]
+                state_persistence.set_state("last_uptime", uptime)
+                logger.info(f"Server uptime: {uptime:.2f}s")
+
+            # Save state to disk
+            state_persistence.save_state()
+        except Exception as e:
+            logger.error(f"Error saving state during shutdown: {e}")
 
         # Create coroutines for shutdown operations
         shutdown_coroutines = []
@@ -710,8 +779,22 @@ async def app_lifespan(mcp_server: FastMCP):
             logger.debug("All context shutdowns completed")
         except asyncio.TimeoutError:
             logger.warning("Some shutdown operations timed out and were terminated")
+            # Record abnormal shutdown in state
+            try:
+                state_persistence = get_state_persistence()
+                state_persistence.set_state("shutdown_reason", "timeout")
+                state_persistence.save_state()
+            except Exception:
+                pass  # Avoid cascading errors
         except Exception as e:
             logger.error(f"Error during concurrent shutdown operations: {e}")
+            # Record error in state
+            try:
+                state_persistence = get_state_persistence()
+                state_persistence.set_state("shutdown_reason", f"error: {str(e)}")
+                state_persistence.save_state()
+            except Exception:
+                pass  # Avoid cascading errors
 
         # Log shutdown duration
         shutdown_duration = time.time() - shutdown_start

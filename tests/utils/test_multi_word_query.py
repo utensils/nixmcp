@@ -55,7 +55,7 @@ class TestMultiWordQueryParsing(unittest.TestCase):
         self.assertEqual(result["terms"], ["enable", "ssl"])
 
 
-@patch("mcp_nixos.tools.nixos_tools.get_context_or_fallback")
+@patch("importlib.import_module")
 class TestNixOSSearchWithMultiWord(unittest.TestCase):
     """Test the nixos_search function with multi-word queries."""
 
@@ -66,10 +66,14 @@ class TestNixOSSearchWithMultiWord(unittest.TestCase):
         self.mock_context.es_client = self.mock_es_client
         self.mock_context.search_options.return_value = {"options": [], "count": 0}
 
-    def test_acme_search_issue(self, mock_get_context):
+        # Create a mock server module that will return our context
+        self.mock_server_module = MagicMock()
+        self.mock_server_module.get_nixos_context.return_value = self.mock_context
+
+    def test_acme_search_issue(self, mock_import_module):
         """Test the issue from TODO.md: security.acme acceptTerms."""
-        # Mock the context to return empty results
-        mock_get_context.return_value = self.mock_context
+        # Configure import_module to return our mock server module
+        mock_import_module.return_value = self.mock_server_module
 
         # Define a successful result for the search_options call
         self.mock_context.search_options.return_value = {
@@ -87,6 +91,12 @@ class TestNixOSSearchWithMultiWord(unittest.TestCase):
         # Test the improved multi-word query
         nixos_search(query="security.acme acceptTerms", type="options")
 
+        # Verify importlib.import_module was called with correct module
+        mock_import_module.assert_called_with("mcp_nixos.server")
+
+        # Verify get_nixos_context was called
+        self.mock_server_module.get_nixos_context.assert_called_once()
+
         # Verify that search_options was called with the correct parameters
         self.mock_context.search_options.assert_called_once()
         args, kwargs = self.mock_context.search_options.call_args
@@ -98,10 +108,10 @@ class TestNixOSSearchWithMultiWord(unittest.TestCase):
         self.assertIn("additional_terms", kwargs)
         self.assertEqual(kwargs["additional_terms"], ["acceptTerms"])
 
-    def test_multi_word_with_quoted_terms(self, mock_get_context):
+    def test_multi_word_with_quoted_terms(self, mock_import_module):
         """Test multi-word query with quoted terms."""
-        # Mock the context to return empty results
-        mock_get_context.return_value = self.mock_context
+        # Configure import_module to return our mock server module
+        mock_import_module.return_value = self.mock_server_module
 
         # Define a successful result for the search_options call
         self.mock_context.search_options.return_value = {
@@ -118,6 +128,12 @@ class TestNixOSSearchWithMultiWord(unittest.TestCase):
 
         # Test the multi-word query with quotes
         nixos_search(query='services.nginx "access log"', type="options")
+
+        # Verify importlib.import_module was called with correct module
+        mock_import_module.assert_called_with("mcp_nixos.server")
+
+        # Verify get_nixos_context was called
+        self.mock_server_module.get_nixos_context.assert_called_once()
 
         # Verify that search_options was called with the correct parameters
         self.mock_context.search_options.assert_called_once()

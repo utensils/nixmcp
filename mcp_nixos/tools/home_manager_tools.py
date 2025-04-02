@@ -3,12 +3,13 @@ MCP tools for Home Manager.
 """
 
 import logging
+from typing import Dict, Optional, Any
 
 # Get logger
 logger = logging.getLogger("mcp_nixos")
 
 # Import utility functions
-from mcp_nixos.utils.helpers import create_wildcard_query, get_context_or_fallback
+from mcp_nixos.utils.helpers import create_wildcard_query
 
 
 def home_manager_search(query: str, limit: int = 20, context=None) -> str:
@@ -25,8 +26,19 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
     """
     logger.info(f"Searching for Home Manager options with query '{query}'")
 
-    # Get context using the helper function
-    context = get_context_or_fallback(context, "home_manager_context")
+    # Import needed modules here to avoid circular imports
+    import importlib
+
+    # Get context
+    if context is None:
+        # Import get_home_manager_context dynamically to avoid circular imports
+        try:
+            server_module = importlib.import_module("mcp_nixos.server")
+            get_home_manager_context = getattr(server_module, "get_home_manager_context")
+            context = get_home_manager_context()
+        except (ImportError, AttributeError) as e:
+            logger.error(f"Failed to dynamically import get_home_manager_context: {e}")
+            context = None
 
     try:
         # Add wildcards if not present and not a special query
@@ -196,8 +208,19 @@ def home_manager_info(name: str, context=None) -> str:
     """
     logger.info(f"Getting Home Manager option information for: {name}")
 
-    # Get context using the helper function
-    context = get_context_or_fallback(context, "home_manager_context")
+    # Import needed modules here to avoid circular imports
+    import importlib
+
+    # Get context
+    if context is None:
+        # Import get_home_manager_context dynamically to avoid circular imports
+        try:
+            server_module = importlib.import_module("mcp_nixos.server")
+            get_home_manager_context = getattr(server_module, "get_home_manager_context")
+            context = get_home_manager_context()
+        except (ImportError, AttributeError) as e:
+            logger.error(f"Failed to dynamically import get_home_manager_context: {e}")
+            context = None
 
     try:
         # Ensure context is not None before accessing its attributes
@@ -360,8 +383,19 @@ def home_manager_stats(context=None) -> str:
     """
     logger.info("Getting Home Manager option statistics")
 
-    # Get context using the helper function
-    context = get_context_or_fallback(context, "home_manager_context")
+    # Import needed modules here to avoid circular imports
+    import importlib
+
+    # Get context
+    if context is None:
+        # Import get_home_manager_context dynamically to avoid circular imports
+        try:
+            server_module = importlib.import_module("mcp_nixos.server")
+            get_home_manager_context = getattr(server_module, "get_home_manager_context")
+            context = get_home_manager_context()
+        except (ImportError, AttributeError) as e:
+            logger.error(f"Failed to dynamically import get_home_manager_context: {e}")
+            context = None
 
     try:
         # Ensure context is not None before accessing its attributes
@@ -441,8 +475,19 @@ def home_manager_list_options(context=None) -> str:
     """
     logger.info("Listing all top-level Home Manager option categories")
 
-    # Get context using the helper function
-    context = get_context_or_fallback(context, "home_manager_context")
+    # Import needed modules here to avoid circular imports
+    import importlib
+
+    # Get context
+    if context is None:
+        # Import get_home_manager_context dynamically to avoid circular imports
+        try:
+            server_module = importlib.import_module("mcp_nixos.server")
+            get_home_manager_context = getattr(server_module, "get_home_manager_context")
+            context = get_home_manager_context()
+        except (ImportError, AttributeError) as e:
+            logger.error(f"Failed to dynamically import get_home_manager_context: {e}")
+            context = None
 
     try:
         # Ensure context is not None before accessing its attributes
@@ -549,8 +594,19 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
     """
     logger.info(f"Getting Home Manager options by prefix '{option_prefix}'")
 
-    # Get context using the helper function
-    context = get_context_or_fallback(context, "home_manager_context")
+    # Import needed modules here to avoid circular imports
+    import importlib
+
+    # Get context
+    if context is None:
+        # Import get_home_manager_context dynamically to avoid circular imports
+        try:
+            server_module = importlib.import_module("mcp_nixos.server")
+            get_home_manager_context = getattr(server_module, "get_home_manager_context")
+            context = get_home_manager_context()
+        except (ImportError, AttributeError) as e:
+            logger.error(f"Failed to dynamically import get_home_manager_context: {e}")
+            context = None
 
     try:
         # Ensure context is not None before accessing its attributes
@@ -755,6 +811,53 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
         return f"Error retrieving options: {str(e)}"
 
 
+def check_request_ready(ctx) -> bool:
+    """Check if the server is ready to handle requests.
+
+    Args:
+        ctx: The request context
+
+    Returns:
+        True if ready, False if not
+    """
+    return ctx.request_context.lifespan_context.get("is_ready", False)
+
+
+def check_home_manager_ready(ctx) -> Optional[Dict[str, Any]]:
+    """Check if Home Manager client is ready.
+
+    Args:
+        ctx: The request context
+
+    Returns:
+        Dict with error message if not ready, None if ready
+    """
+    # First check if server is ready
+    if not check_request_ready(ctx):
+        return {"error": "The server is still initializing. Please try again in a few seconds.", "found": False}
+
+    # Get Home Manager context and check if data is loaded
+    home_manager_context = ctx.request_context.lifespan_context.get("home_manager_context")
+    if home_manager_context and hasattr(home_manager_context, "hm_client"):
+        client = home_manager_context.hm_client
+        if not client.is_loaded:
+            if client.loading_in_progress:
+                return {
+                    "error": "Home Manager data is still loading. Please try again in a few seconds.",
+                    "found": False,
+                    "partial_init": True,
+                }
+            elif client.loading_error:
+                return {
+                    "error": f"Failed to load Home Manager data: {client.loading_error}",
+                    "found": False,
+                    "partial_init": True,
+                }
+
+    # All good
+    return None
+
+
 def register_home_manager_tools(mcp) -> None:
     """
     Register all Home Manager tools with the MCP server.
@@ -762,8 +865,151 @@ def register_home_manager_tools(mcp) -> None:
     Args:
         mcp: The MCP server instance
     """
-    mcp.tool()(home_manager_search)
-    mcp.tool()(home_manager_info)
-    mcp.tool()(home_manager_stats)
-    mcp.tool()(home_manager_list_options)
-    mcp.tool()(home_manager_options_by_prefix)
+
+    @mcp.tool()
+    async def home_manager_search(ctx, query: str, limit: int = 20) -> str:
+        """Search for Home Manager options.
+
+        Args:
+            query: The search term
+            limit: Maximum number of results to return (default: 20)
+
+        Returns:
+            Results formatted as text
+        """
+        logger.info(f"Home Manager search request: query='{query}', limit={limit}")
+
+        # Check if Home Manager is ready
+        ready_check = check_home_manager_ready(ctx)
+        if ready_check:
+            logger.warning(f"Home Manager search blocked: {ready_check['error']}")
+            return ready_check["error"]
+
+        # Get context
+        try:
+            home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
+            # Access the correct function (not this decorated function)
+            from mcp_nixos.tools.home_manager_tools import home_manager_search as search_func
+
+            result = search_func(query, limit, home_ctx)
+            return result
+        except Exception as e:
+            error_msg = f"Error during Home Manager search: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    @mcp.tool()
+    async def home_manager_info(ctx, name: str) -> str:
+        """Get detailed information about a Home Manager option.
+
+        Args:
+            name: The name of the option
+
+        Returns:
+            Detailed information formatted as text
+        """
+        logger.info(f"Home Manager info request: name='{name}'")
+
+        # Check if Home Manager is ready
+        ready_check = check_home_manager_ready(ctx)
+        if ready_check:
+            logger.warning(f"Home Manager info blocked: {ready_check['error']}")
+            return ready_check["error"]
+
+        # Get context
+        try:
+            home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
+            from mcp_nixos.tools.home_manager_tools import home_manager_info as info_func
+
+            result = info_func(name, home_ctx)
+            return result
+        except Exception as e:
+            error_msg = f"Error during Home Manager info: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    @mcp.tool()
+    async def home_manager_stats(ctx) -> str:
+        """Get statistics about Home Manager options.
+
+        Returns:
+            Statistics about Home Manager options
+        """
+        logger.info("Home Manager stats request")
+
+        # Check if Home Manager is ready
+        ready_check = check_home_manager_ready(ctx)
+        if ready_check:
+            logger.warning(f"Home Manager stats blocked: {ready_check['error']}")
+            return ready_check["error"]
+
+        # Get context
+        try:
+            home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
+            from mcp_nixos.tools.home_manager_tools import home_manager_stats as stats_func
+
+            result = stats_func(home_ctx)
+            return result
+        except Exception as e:
+            error_msg = f"Error during Home Manager stats: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    @mcp.tool()
+    async def home_manager_list_options(ctx) -> str:
+        """List all top-level Home Manager option categories.
+
+        Returns:
+            Formatted list of top-level option categories and their statistics
+        """
+        logger.info("Home Manager list options request")
+
+        # Check if Home Manager is ready
+        ready_check = check_home_manager_ready(ctx)
+        if ready_check:
+            logger.warning(f"Home Manager list options blocked: {ready_check['error']}")
+            return ready_check["error"]
+
+        # Get context
+        try:
+            home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
+            from mcp_nixos.tools.home_manager_tools import home_manager_list_options as list_options_func
+
+            result = list_options_func(home_ctx)
+            return result
+        except Exception as e:
+            error_msg = f"Error during Home Manager list options: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    @mcp.tool()
+    async def home_manager_options_by_prefix(ctx, option_prefix: str) -> str:
+        """Get all Home Manager options under a specific prefix.
+
+        Args:
+            option_prefix: The option prefix to search for (e.g., "programs", "programs.git")
+
+        Returns:
+            Formatted list of options under the given prefix
+        """
+        logger.info(f"Home Manager options by prefix request: option_prefix='{option_prefix}'")
+
+        # Check if Home Manager is ready
+        ready_check = check_home_manager_ready(ctx)
+        if ready_check:
+            logger.warning(f"Home Manager options by prefix blocked: {ready_check['error']}")
+            return ready_check["error"]
+
+        # Get context
+        try:
+            home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
+            from mcp_nixos.tools.home_manager_tools import home_manager_options_by_prefix as options_by_prefix_func
+
+            result = options_by_prefix_func(option_prefix, home_ctx)
+            return result
+        except Exception as e:
+            error_msg = f"Error during Home Manager options by prefix: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
+
+    logger.info("Home Manager MCP tools registered with request gating.")

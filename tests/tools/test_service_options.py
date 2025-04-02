@@ -13,7 +13,8 @@ from unittest.mock import MagicMock, patch
 from mcp_nixos.clients.elasticsearch_client import FIELD_OPT_NAME, FIELD_TYPE  # Import constants used in tests
 
 # Import the server module functions and classes
-from mcp_nixos.server import ElasticsearchClient, NixOSContext, nixos_info, nixos_search
+from mcp_nixos.server import ElasticsearchClient, NixOSContext
+from mcp_nixos.tools.nixos_tools import nixos_info, nixos_search
 
 logging.disable(logging.CRITICAL)
 
@@ -368,15 +369,19 @@ class TestIntegrationScenarios(unittest.TestCase):
 
     def setUp(self):
         """Set up the test environment."""
-        # Patch NixOSContext to control its behavior without real API calls
-        patcher_context = patch("mcp_nixos.tools.nixos_tools.get_context_or_fallback")
-        self.mock_get_context = patcher_context.start()
-        self.addCleanup(patcher_context.stop)
+        # Patch importlib.import_module to return a mocked server module
+        patcher_import = patch("importlib.import_module")
+        self.mock_import_module = patcher_import.start()
+        self.addCleanup(patcher_import.stop)
 
-        # Create a mock context instance that get_context_or_fallback will return
+        # Create a mock context and server module
         self.mock_context = MagicMock(spec=NixOSContext)
         self.mock_context.es_client = MagicMock(spec=ElasticsearchClient)  # Add mock es_client
-        self.mock_get_context.return_value = self.mock_context
+
+        # Create a mock server module that get_nixos_context will return our mock context
+        self.mock_server_module = MagicMock()
+        self.mock_server_module.get_nixos_context.return_value = self.mock_context
+        self.mock_import_module.return_value = self.mock_server_module
 
     def test_channel_selection_in_service_search(self):
         """Test that channel selection is respected in service searches."""
