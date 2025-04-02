@@ -325,6 +325,10 @@ class TestServerTermination:
                         # In a proper implementation, there should be a timeout mechanism
                         pass
 
+                    # Give a little time for the shutdown to start before checking
+                    # This helps with slower CI environments, especially on macOS
+                    await asyncio.sleep(0.5)
+
                     # Check if shutdown was attempted
                     mock_shutdown.assert_called_once()
 
