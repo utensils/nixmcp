@@ -326,6 +326,102 @@
                 echo "   - .goosehints"
               '';
             }
+            {
+              name = "complexity";
+              category = "development";
+              help = "Run wily to analyze code complexity";
+              command = ''
+                if [ -z "$VIRTUAL_ENV" ]; then source .venv/bin/activate; fi
+                
+                # Check if wily is installed
+                if ! command -v wily >/dev/null 2>&1; then
+                  echo "Installing wily..."
+                  if command -v uv >/dev/null 2>&1; then
+                    uv pip install wily
+                  else
+                    python -m pip install wily
+                  fi
+                fi
+                
+                # Subcommands
+                case "$1" in
+                  build)
+                    echo "--- Building wily cache ---"
+                    wily build mcp_nixos tests
+                    ;;
+                  report)
+                    echo "--- Generating wily report ---"
+                    if [ -z "$2" ]; then
+                      echo "Usage: complexity report <file_path> <metric>"
+                      echo "Available metrics: mi (maintainability index), raw.loc (lines of code), etc."
+                      echo "Run 'wily list-metrics' for a complete list"
+                      exit 1
+                    fi
+                    if [ -z "$3" ]; then
+                      wily report "$2" "mi"
+                    else
+                      wily report "$2" "$3"
+                    fi
+                    ;;
+                  graph)
+                    echo "--- Generating wily graph ---"
+                    if [ -z "$2" ]; then
+                      echo "Usage: complexity graph <file_path> <metric>"
+                      echo "Available metrics: mi (maintainability index), raw.loc (lines of code), etc."
+                      echo "Run 'wily list-metrics' for a complete list"
+                      exit 1
+                    fi
+                    if [ -z "$3" ]; then
+                      wily graph "$2" "mi"
+                    else
+                      wily graph "$2" "$3"
+                    fi
+                    ;;
+                  rank)
+                    echo "--- Ranking files by complexity ---"
+                    if [ -z "$2" ]; then
+                      PATH_ARG="."
+                    else
+                      PATH_ARG="$2"
+                    fi
+                    
+                    if [ -z "$3" ]; then
+                      wily rank "$PATH_ARG" "mi"
+                    else
+                      wily rank "$PATH_ARG" "$3"
+                    fi
+                    ;;
+                  diff)
+                    echo "--- Comparing complexity changes ---"
+                    if [ -z "$2" ]; then
+                      wily diff mcp_nixos tests -r "HEAD^1"
+                    else
+                      wily diff mcp_nixos tests -r "$2"
+                    fi
+                    ;;
+                  list-metrics)
+                    wily list-metrics
+                    ;;
+                  *)
+                    echo "=== Wily Code Complexity Analysis ==="
+                    echo "Usage: complexity <command> [args]"
+                    echo ""
+                    echo "Commands:"
+                    echo "  build         - Build the wily cache (run this first)"
+                    echo "  report <file> <metric> - Show metrics for a file"
+                    echo "  graph <file> <metric>  - Generate graph visualization"
+                    echo "  rank [path] [metric]   - Rank files by complexity"
+                    echo "  diff [git_ref]         - Show complexity changes (default: HEAD^1)"
+                    echo "  list-metrics  - List available metrics"
+                    echo ""
+                    echo "Examples:"
+                    echo "  complexity build"
+                    echo "  complexity report mcp_nixos/server.py mi"
+                    echo "  complexity diff origin/main"
+                    ;;
+                esac
+              '';
+            }
           ];
           devshell.startup.venvActivate.text = ''
              echo "Ensuring Python virtual environment is set up..."
