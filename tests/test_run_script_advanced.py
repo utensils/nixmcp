@@ -322,33 +322,37 @@ class TestRunScriptMain:
 
     def test_windows_signal_handlers(self, mock_dependencies):
         """Test Windows-specific signal handling."""
-        # We need to patch at module level to ensure win32api is properly mocked
-        # before it's imported in the run.py module
+        # We need to patch importlib.util.find_spec to simulate win32api being available
+        mock_find_spec = MagicMock(return_value=MagicMock())
         mock_set_handler = MagicMock()
 
-        # Patch the win32api module at import time with our specific handler
-        with patch.dict("sys.modules", {"win32api": MagicMock(SetConsoleCtrlHandler=mock_set_handler)}):
-            # Mock platform as Windows
-            with patch("sys.platform", "win32"):
-                # Call main function on Windows platform
-                main()
+        # Create a mock win32api module with our handler
+        mock_win32api = MagicMock()
+        mock_win32api.SetConsoleCtrlHandler = mock_set_handler
 
-            # Verify Windows console handler was set up
-            mock_set_handler.assert_called_once()
+        # First patch importlib to say the module exists, then provide the module
+        with patch("importlib.util.find_spec", mock_find_spec):
+            with patch.dict("sys.modules", {"win32api": mock_win32api}):
+                # Mock platform as Windows
+                with patch("sys.platform", "win32"):
+                    # Call main function on Windows platform
+                    main()
+
+                    # Verify Windows console handler was set up
+                    mock_set_handler.assert_called_once()
 
     def test_windows_without_win32api(self, mock_dependencies):
         """Test Windows handling when win32api is not available."""
-        # Mock platform
+        # Mock platform and importlib.util.find_spec to say module doesn't exist
         with patch("sys.platform", "win32"):
-            # Simulate win32api not available
-            with patch("mcp_nixos.run.win32api", None):
+            with patch("importlib.util.find_spec", return_value=None):
                 # Call main function
                 with patch("builtins.print") as mock_print:
                     main()
 
                     # Verify warning was printed
                     mock_print.assert_any_call(
-                        "Warning: win32api not available, Windows CTRL event handling is limited"
+                        "Note: Using basic signal handling for Windows. Install pywin32 for enhanced handling."
                     )
 
     def test_signal_handler(self, mock_dependencies):

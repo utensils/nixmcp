@@ -6,6 +6,7 @@ MCP-NixOS server process and ensures proper shutdown during signals.
 """
 
 import os
+import sys
 import signal
 import pytest
 from unittest.mock import patch, MagicMock
@@ -30,20 +31,22 @@ class TestRunScriptSignalHandling:
             mock_process.wait.return_value = 0
             mock_popen.return_value = mock_process
 
-            # And mock the orphan cleanup
-            with patch("mcp_nixos.run.find_and_kill_zombie_mcp_processes"):
-                # Call the function we're testing
-                main()
+            # Mock importlib.util.find_spec for Windows testing
+            with patch("importlib.util.find_spec", return_value=None):
+                # And mock the orphan cleanup
+                with patch("mcp_nixos.run.find_and_kill_zombie_mcp_processes"):
+                    # Call the function we're testing
+                    main()
 
-                # Check that signal handlers were registered
-                assert mock_signal.called
+                    # Check that signal handlers were registered
+                    assert mock_signal.called
 
-                # At minimum, SIGINT and SIGTERM should be registered
-                sigint_registered = any(call[0][0] == signal.SIGINT for call in mock_signal.call_args_list)
-                sigterm_registered = any(call[0][0] == signal.SIGTERM for call in mock_signal.call_args_list)
+                    # At minimum, SIGINT and SIGTERM should be registered
+                    sigint_registered = any(call[0][0] == signal.SIGINT for call in mock_signal.call_args_list)
+                    sigterm_registered = any(call[0][0] == signal.SIGTERM for call in mock_signal.call_args_list)
 
-                assert sigint_registered
-                assert sigterm_registered
+                    assert sigint_registered
+                    assert sigterm_registered
 
 
 class TestRunScriptSignalHandlerBehavior:
@@ -178,3 +181,58 @@ class TestWindsurfRunScriptCompatibility:
         # (This is more reliable than trying to mock the environment and capture output)
         assert "WINDSURF" in content
         assert "if windsurf_vars:" in content or "if windsurf_detected:" in content
+
+
+class TestWindowsCompatibility:
+    """Tests for Windows-specific compatibility in run.py."""
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific test")
+    @patch("sys.platform", "win32")
+    @patch("importlib.util.find_spec")
+    def test_windows_ctrl_handler_with_win32api(self, mock_find_spec):
+        """Test Windows CTRL handler setup with win32api available."""
+        from mcp_nixos.run import main
+
+        # Mock win32api to be available
+        mock_find_spec.return_value = MagicMock()
+
+        # Mock win32api module
+        mock_win32api = MagicMock()
+        with patch.dict("sys.modules", {"win32api": mock_win32api}):
+            # Mock subprocess to prevent actual server startup
+            with patch("mcp_nixos.run.subprocess.Popen") as mock_popen:
+                mock_process = MagicMock()
+                mock_process.wait.return_value = 0
+                mock_popen.return_value = mock_process
+
+                # Mock the orphan cleanup
+                with patch("mcp_nixos.run.find_and_kill_zombie_mcp_processes"):
+                    with patch("mcp_nixos.run.print"):  # Suppress print output
+                        main()
+
+                # Verify win32api.SetConsoleCtrlHandler was called
+                mock_win32api.SetConsoleCtrlHandler.assert_called_once()
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific test")
+    @patch("sys.platform", "win32")
+    @patch("importlib.util.find_spec")
+    def test_windows_ctrl_handler_without_win32api(self, mock_find_spec):
+        """Test graceful fallback when win32api is not available."""
+        from mcp_nixos.run import main
+
+        # Mock win32api to be unavailable
+        mock_find_spec.return_value = None
+
+        # Mock subprocess to prevent actual server startup
+        with patch("mcp_nixos.run.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+
+            # Mock the orphan cleanup
+            with patch("mcp_nixos.run.find_and_kill_zombie_mcp_processes"):
+                # Should not raise any exceptions even without win32api
+                with patch("mcp_nixos.run.print"):  # Suppress print output
+                    main()
+
+                # Test passes if no exception is raised

@@ -196,30 +196,28 @@ def main():
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-        # Add Windows-specific handler for CTRL events
-        win32api_module = sys.modules.get("win32api", None)
+        # Safe Windows-specific handling for CTRL events
+        win32api_available = False
+        try:
+            # Try to import win32api safely
+            import importlib.util
 
-        # If win32api is None in the module cache, try to import it
-        if win32api_module is None:
-            try:
+            if importlib.util.find_spec("win32api") is not None:
                 import win32api
 
-                win32api_module = win32api
-            except ImportError:
-                # win32api not available, fallback to basic handling
-                print("Warning: win32api not available, Windows CTRL event handling is limited")
+                # Only set the handler if the module is properly loaded and functioning
+                if hasattr(win32api, "SetConsoleCtrlHandler"):
+                    win32api.SetConsoleCtrlHandler(
+                        lambda ctrl_type: signal_handler(signal.SIGINT, None) if ctrl_type == 0 else None, True
+                    )
+                    win32api_available = True
+        except (ImportError, AttributeError) as e:
+            # Specific error handling
+            print(f"Warning: Enhanced Windows CTRL event handling unavailable: {e}")
+            pass
 
-        # Handle case where win32api is patched to None in tests
-        if win32api_module is not None:
-            try:
-                win32api_module.SetConsoleCtrlHandler(
-                    lambda ctrl_type: signal_handler(signal.SIGINT, None) if ctrl_type == 0 else None, True
-                )
-            except AttributeError:
-                # This can happen if win32api was mocked to None in tests
-                print("Warning: win32api not available, Windows CTRL event handling is limited")
-        else:
-            print("Warning: win32api not available, Windows CTRL event handling is limited")
+        if not win32api_available:
+            print("Note: Using basic signal handling for Windows. Install pywin32 for enhanced handling.")
     else:
         # Unix signals
         for sig in (signal.SIGINT, signal.SIGTERM):
