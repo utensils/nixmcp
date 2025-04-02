@@ -250,10 +250,16 @@
             {
               name = "lint";
               category = "development";
-              help = "Lint code with Black (check) and Flake8";
+              help = "Format with Black and then lint code with Flake8 (only checks format in CI)";
               command = ''
-                echo "--- Checking formatting with Black ---"
-                black --check mcp_nixos/ tests/
+                # Check if running in CI environment
+                if [ "$(printenv CI 2>/dev/null)" != "" ] || [ "$(printenv GITHUB_ACTIONS 2>/dev/null)" != "" ]; then
+                  echo "--- CI detected: Checking formatting with Black ---"
+                  black --check mcp_nixos/ tests/
+                else
+                  echo "--- Formatting code with Black ---"
+                  black mcp_nixos/ tests/
+                fi
                 echo "--- Running Flake8 linter ---"
                 flake8 mcp_nixos/ tests/
               '';
