@@ -196,15 +196,21 @@ def main():
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
         # Add Windows-specific handler for CTRL events
+        # First check if win32api is available
+        win32api_available = False
         try:
             import win32api
 
-            win32api.SetConsoleCtrlHandler(
-                lambda ctrl_type: signal_handler(signal.SIGINT, None) if ctrl_type == 0 else None, True
-            )
+            win32api_available = True
         except ImportError:
             # win32api not available, fallback to basic handling
             print("Warning: win32api not available, Windows CTRL event handling is limited")
+
+        # Only setup the handler if win32api is available
+        if win32api_available:
+            win32api.SetConsoleCtrlHandler(
+                lambda ctrl_type: signal_handler(signal.SIGINT, None) if ctrl_type == 0 else None, True
+            )
     else:
         # Unix signals
         for sig in (signal.SIGINT, signal.SIGTERM):
