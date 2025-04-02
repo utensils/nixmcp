@@ -369,9 +369,9 @@ jobs:
           echo "$DIFF_OUTPUT" > complexity-report/diff.txt
           
           # Also create a more detailed report of top 10 most complex files
-          wily rank mcp_nixos -n 10 mi > complexity-report/top10_maintainability.txt
-          wily rank mcp_nixos -n 10 raw.loc > complexity-report/top10_loc.txt
-          wily rank mcp_nixos -n 10 cyclomatic.complexity > complexity-report/top10_cyclomatic.txt
+          wily rank mcp_nixos maintainability.mi --limit 10 --desc > complexity-report/top10_maintainability.txt
+          wily rank mcp_nixos raw.loc --limit 10 --desc > complexity-report/top10_loc.txt
+          wily rank mcp_nixos cyclomatic.complexity --limit 10 --desc > complexity-report/top10_cyclomatic.txt
 
       - name: Upload complexity report
         uses: actions/upload-artifact@v4
