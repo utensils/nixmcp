@@ -8,7 +8,11 @@ It validates that the correct signal handlers are registered in run.py and that 
 import os
 import signal
 import logging
+import pytest
 from unittest.mock import patch, MagicMock
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 
 class TestSignalHandling:

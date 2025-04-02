@@ -2,6 +2,10 @@
 
 from unittest.mock import patch
 import os
+import pytest
+
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
 
 # Import the __main__ module
 from mcp_nixos.__main__ import parse_args, main

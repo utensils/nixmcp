@@ -10,6 +10,9 @@ import signal
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
+
 
 class TestRunScriptSignalHandling:
     """Tests for the signal handling in run.py."""

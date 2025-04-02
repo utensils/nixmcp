@@ -3,7 +3,12 @@ Tests for NixOS and Home Manager option documentation integration.
 """
 
 import unittest
+import pytest
 from unittest.mock import MagicMock
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
+
 from mcp_nixos.tools.nixos_tools import nixos_info
 from mcp_nixos.tools.home_manager_tools import home_manager_info
 

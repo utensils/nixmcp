@@ -12,6 +12,9 @@ import multiprocessing
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark all tests in this module as asyncio and integration tests
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+
 # Set up logger for this module
 logger = logging.getLogger(__name__)
 

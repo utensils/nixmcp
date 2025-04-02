@@ -1,6 +1,10 @@
 """Tests for helper functions in the MCP-NixOS server."""
 
 import unittest
+import pytest
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 from mcp_nixos.server import create_wildcard_query
 

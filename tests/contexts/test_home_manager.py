@@ -1,9 +1,13 @@
 import unittest
 import threading
 import time
+import pytest
 
 import logging
 from unittest.mock import patch, MagicMock, call
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 # Import the classes to be tested
 from mcp_nixos.clients.home_manager_client import HomeManagerClient

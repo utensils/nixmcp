@@ -1,9 +1,13 @@
 """Unit tests for HTML client implementation."""
 
 import tempfile
+import pytest
 from unittest import mock
 
 import requests
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 from mcp_nixos.clients.html_client import HTMLClient
 from mcp_nixos.cache.html_cache import HTMLCache

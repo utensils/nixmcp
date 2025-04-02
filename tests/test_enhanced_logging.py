@@ -9,6 +9,9 @@ import logging
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
+
 
 @pytest.mark.unit
 class TestEnhancedLogging:

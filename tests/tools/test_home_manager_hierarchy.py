@@ -1,7 +1,11 @@
 """Test Home Manager hierarchical tools and resources."""
 
 import logging
+import pytest
 from unittest.mock import Mock
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 # Import base test class
 from tests import MCPNixOSTestBase

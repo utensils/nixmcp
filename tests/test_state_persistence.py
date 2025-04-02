@@ -6,6 +6,9 @@ import pytest
 import tempfile
 from unittest.mock import patch
 
+# Mark as unit tests
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def state_file_path():

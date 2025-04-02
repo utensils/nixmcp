@@ -7,6 +7,9 @@ import pytest
 from unittest.mock import patch, MagicMock
 from mcp.server.fastmcp import FastMCP
 
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
+
 # Import required modules
 from mcp_nixos.contexts.home_manager_context import HomeManagerContext as HMContext
 

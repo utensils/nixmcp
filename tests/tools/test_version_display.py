@@ -3,9 +3,13 @@ Test to verify version information is properly displayed for real packages.
 """
 
 import unittest
+import pytest
 from unittest.mock import patch
 from mcp_nixos.contexts.nixos_context import NixOSContext
 from mcp_nixos.tools.nixos_tools import nixos_info
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 
 class TestVersionDisplay(unittest.TestCase):

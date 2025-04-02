@@ -7,6 +7,9 @@ from datetime import datetime
 from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
+
 from mcp_nixos.clients.darwin.darwin_client import DarwinClient, DarwinOption
 from mcp_nixos.clients.html_client import HTMLClient
 from mcp_nixos.cache.html_cache import HTMLCache

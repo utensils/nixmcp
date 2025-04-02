@@ -4,6 +4,9 @@ import sys
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark as asyncio integration tests
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+
 
 # Use pytest fixtures and async tests with pytest instead of unittest
 class TestAppLifespan:

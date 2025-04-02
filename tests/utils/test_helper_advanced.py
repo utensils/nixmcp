@@ -4,6 +4,9 @@ import pytest
 from unittest.mock import patch, MagicMock, Mock
 from requests.exceptions import ConnectionError, Timeout
 
+# Mark as unit tests
+pytestmark = pytest.mark.unit
+
 # sys is imported by the patches
 
 import mcp_nixos.utils.helpers
