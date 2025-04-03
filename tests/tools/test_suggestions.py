@@ -3,7 +3,11 @@
 # Disable logging during tests
 import logging
 import unittest
+import pytest
 from unittest.mock import patch
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 # Import the server module functions and classes
 from mcp_nixos.server import ElasticsearchClient, NixOSContext

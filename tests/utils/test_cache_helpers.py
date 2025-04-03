@@ -8,6 +8,9 @@ from unittest import mock
 
 import pytest
 
+# Mark as unit tests
+pytestmark = pytest.mark.unit
+
 from mcp_nixos.utils.cache_helpers import (
     get_default_cache_dir,
     ensure_cache_dir,

@@ -36,6 +36,8 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
+        # Continue even if cache restoration fails
+        continue-on-error: true
       - name: Build flake and check dev environment
         run: |
           nix flake check --accept-flake-config
@@ -63,6 +65,8 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
+        # Continue even if cache restoration fails
+        continue-on-error: true
       - name: Run linters (Black, Flake8)
         run: |
           nix develop --command lint
@@ -89,6 +93,8 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
+        # Continue even if cache restoration fails
+        continue-on-error: true
       - name: Run pyright type checker
         run: |
           # Use the new 'typecheck' command from flake.nix
@@ -125,6 +131,8 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
+        # Continue even if cache restoration fails
+        continue-on-error: true
       - name: Set up Python (Windows)
         if: runner.os == 'Windows'
         uses: actions/setup-python@v5
@@ -154,6 +162,8 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
+          # Use a unique directory for each test type to prevent conflicts
+          New-Item -ItemType Directory -Force -Path $env:MCP_NIXOS_CACHE_DIR
           python -m pytest tests/ -v --unit
         shell: pwsh
 
@@ -164,6 +174,8 @@ jobs:
           path: |
             ./htmlcov/
             ./coverage.xml
+        # Continue even if artifacts can't be uploaded
+        continue-on-error: true
 
   integration-tests:
     name: Run Integration Tests (${{ matrix.os }})
@@ -196,6 +208,8 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
+        # Continue even if cache restoration fails
+        continue-on-error: true
       - name: Set up Python (Windows)
         if: runner.os == 'Windows'
         uses: actions/setup-python@v5
@@ -224,7 +238,9 @@ jobs:
       - name: Run integration tests (Windows)
         if: runner.os == 'Windows'
         run: |
-          $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
+          $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win_integration"
+          # Use a unique directory for each test type to prevent conflicts
+          New-Item -ItemType Directory -Force -Path $env:MCP_NIXOS_CACHE_DIR
           python -m pytest tests/ -v --integration
         shell: pwsh
 
@@ -235,6 +251,8 @@ jobs:
           path: |
             ./htmlcov/
             ./coverage.xml
+        # Continue even if artifacts can't be uploaded
+        continue-on-error: true
 
   upload-coverage:
     name: Upload Combined Coverage
@@ -250,6 +268,7 @@ jobs:
         with:
           name: unit-coverage-report-Linux
           path: ./coverage-unit-linux/
+        continue-on-error: true
 
       - name: Download macOS unit test coverage
         uses: actions/download-artifact@v4
@@ -270,6 +289,7 @@ jobs:
         with:
           name: integration-coverage-report-Linux
           path: ./coverage-integration-linux/
+        continue-on-error: true
 
       - name: Download macOS integration test coverage
         uses: actions/download-artifact@v4
@@ -289,17 +309,19 @@ jobs:
       - name: List downloaded coverage files
         run: |
           echo "Verifying downloaded coverage files:"
-          find ./coverage-*/ -name "coverage.xml" | sort
+          find ./ -name "coverage.xml" -type f | sort
+        continue-on-error: true
 
       # Upload all coverage reports to Codecov
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage-unit-linux/coverage.xml,./coverage-integration-linux/coverage.xml,./coverage-unit-macos/coverage.xml,./coverage-integration-macos/coverage.xml,./coverage-unit-windows/coverage.xml,./coverage-integration-windows/coverage.xml
-          fail_ci_if_error: true
+          fail_ci_if_error: false
         env:
           # Add the Codecov token from repository secrets
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        continue-on-error: true
           
   analyze-complexity:
     name: Analyze Code Complexity
@@ -329,6 +351,8 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
+        # Continue even if cache restoration fails
+        continue-on-error: true
 
       - name: Set up Python environment
         run: |
@@ -421,6 +445,8 @@ jobs:
           key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
             ${{ runner.os }}-nix-
+        # Continue even if cache restoration fails
+        continue-on-error: true
       - name: Build package distributions using Nix environment
         run: |
           nix develop --command build

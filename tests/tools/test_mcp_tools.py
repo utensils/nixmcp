@@ -1,7 +1,11 @@
 """Tests for the MCP tools in the MCP-NixOS server."""
 
 import unittest
+import pytest
 from unittest.mock import MagicMock
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 from mcp_nixos.tools.nixos_tools import nixos_info, nixos_search
 from mcp_nixos.tools.home_manager_tools import home_manager_info, home_manager_search

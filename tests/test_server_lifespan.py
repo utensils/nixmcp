@@ -2,6 +2,9 @@ import logging
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
+
 # Import base test class from __init__.py
 from tests import MCPNixOSTestBase
 

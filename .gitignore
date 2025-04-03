@@ -70,6 +70,9 @@ uv-*.lock
 mcp-completion-docs.md
 TODO.md
 
+# Wily
+.wily/
+
 # Logs
 *.log
 *.DS_Store

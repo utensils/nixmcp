@@ -4,6 +4,9 @@ import pytest
 from unittest.mock import MagicMock
 from typing import Dict, Any, Optional
 
+# Mark all tests in this module as asyncio and integration tests
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+
 
 @pytest.mark.asyncio
 class TestRequestGating:

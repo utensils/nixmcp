@@ -1,5 +1,9 @@
 import unittest
+import pytest
 from unittest.mock import patch
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 from mcp_nixos import __version__
 from mcp_nixos.contexts.nixos_context import NixOSContext

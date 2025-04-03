@@ -1,7 +1,11 @@
 """Tests for the ElasticsearchClient in the MCP-NixOS server."""
 
 import unittest
+import pytest
 from unittest.mock import patch
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 # Import the ElasticsearchClient class
 from mcp_nixos.clients.elasticsearch_client import ElasticsearchClient

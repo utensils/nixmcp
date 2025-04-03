@@ -3,7 +3,12 @@ Tests for MCP-NixOS package documentation integration.
 """
 
 import unittest
+import pytest
 from unittest.mock import MagicMock, patch
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
+
 from mcp_nixos.tools.nixos_tools import nixos_info
 from mcp_nixos.contexts.nixos_context import NixOSContext
 

@@ -4,6 +4,9 @@ import pytest
 import asyncio
 from unittest.mock import MagicMock, AsyncMock
 
+# Mark all tests in this module as asyncio and integration tests
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+
 from mcp_nixos.clients.darwin.darwin_client import DarwinClient
 from mcp_nixos.contexts.darwin.darwin_context import DarwinContext
 

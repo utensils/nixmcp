@@ -36,6 +36,7 @@ dev = [
     "black>=25.1.0",
     "types-beautifulsoup4>=4.12.0.20240229",
     "types-requests>=2.32.0",
+    "wily>=1.25.0",
 ]
 win = [
     "pywin32>=306.0",

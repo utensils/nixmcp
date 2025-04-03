@@ -5,6 +5,9 @@ import unittest
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
+
 from mcp_nixos.run import find_and_kill_zombie_mcp_processes
 
 

@@ -132,6 +132,30 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - All tests must check for both default OS cache paths and test-specific paths
   - The gitignore file excludes `mcp_nixos_test_cache/` and `*test_cache*/` patterns
 
+### Code Complexity Analysis
+- Uses wily to track and report on code complexity metrics
+- Available locally via `nix develop -c complexity` command:
+  - Build cache: `complexity build`
+  - View report: `complexity report <file> <metric>`
+  - Generate graph: `complexity graph <file> <metric>`
+  - Rank files: `complexity rank [path] [metric]`
+  - Compare changes: `complexity diff [git_ref]`
+- Pre-commit hook to check complexity on every commit
+- Continuous Integration:
+  - Separate GitHub workflow for complexity analysis
+  - Runs on all PRs targeting main branch
+  - Posts complexity report as PR comment
+  - Archives detailed reports as artifacts
+- Key metrics tracked:
+  - Cyclomatic complexity
+  - Maintainability index
+  - Lines of code
+  - Comments and documentation
+- Code complexity thresholds:
+  - Functions should maintain cyclomatic complexity < 10
+  - Files should maintain maintainability index > 65
+  - Keep module sizes reasonable (< 500 lines preferred)
+
 ### Logging Tests
 - Prefer direct behavior verification over implementation details
 - When testing log level filtering:

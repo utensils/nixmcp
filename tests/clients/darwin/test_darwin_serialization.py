@@ -5,6 +5,9 @@ import shutil
 import tempfile
 import pytest
 
+# Mark as integration test by default
+pytestmark = pytest.mark.integration
+
 from mcp_nixos.clients.darwin.darwin_client import DarwinClient
 
 

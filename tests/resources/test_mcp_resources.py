@@ -1,5 +1,9 @@
 import logging
 from unittest.mock import patch
+import pytest
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 # Import base test class
 from tests import MCPNixOSTestBase

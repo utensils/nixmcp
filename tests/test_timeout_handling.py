@@ -12,6 +12,9 @@ import os
 from unittest.mock import patch, MagicMock, AsyncMock
 import pytest
 
+# Mark all tests in this module as asyncio and integration tests
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+
 # Skip tests that are known to be problematic in CI environments
 skip_in_ci = pytest.mark.skipif(
     "CI" in os.environ or "GITHUB_ACTIONS" in os.environ,

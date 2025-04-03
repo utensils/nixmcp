@@ -6,6 +6,9 @@ import unittest
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
+
 # Import the setup_logging function from mcp_nixos.server.py
 from mcp_nixos.server import setup_logging
 

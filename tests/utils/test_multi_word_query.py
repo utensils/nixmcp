@@ -3,7 +3,11 @@ Test multi-word query handling in MCP-NixOS.
 """
 
 import unittest
+import pytest
 from unittest.mock import patch, MagicMock
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 from mcp_nixos.utils.helpers import create_wildcard_query, extract_hierarchical_paths, parse_multi_word_query
 from mcp_nixos.tools.nixos_tools import nixos_search

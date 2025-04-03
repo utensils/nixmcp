@@ -3,7 +3,11 @@
 import json
 import logging
 import unittest
+import pytest
 from unittest.mock import patch
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 # Import the server module
 from mcp_nixos.server import ElasticsearchClient, create_wildcard_query

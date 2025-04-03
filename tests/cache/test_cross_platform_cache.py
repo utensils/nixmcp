@@ -10,6 +10,9 @@ from unittest import mock
 
 import pytest
 
+# By default mark as integration tests
+pytestmark = pytest.mark.integration
+
 from mcp_nixos.cache.html_cache import HTMLCache
 from mcp_nixos.clients.home_manager_client import HomeManagerClient
 from mcp_nixos.clients.html_client import HTMLClient

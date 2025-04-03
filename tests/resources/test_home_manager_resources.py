@@ -1,6 +1,10 @@
 import logging
 import unittest  # Import explicitly for the main block
+import pytest
 from unittest.mock import Mock
+
+# Mark as unit tests
+pytestmark = pytest.mark.unit
 
 # Import base test class
 from tests import MCPNixOSTestBase
