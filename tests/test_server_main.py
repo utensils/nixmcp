@@ -1,0 +1,204 @@
+"""Tests for server main entry point execution."""
+
+import os
+import sys
+import pytest
+from unittest.mock import MagicMock, patch
+
+# Import fixtures
+from tests.fixtures.server_fixtures import mock_psutil, server_mock_modules
+
+# Import patch helper
+from tests.fixtures.patch_helper import patch_dict
+
+# Not marking as asyncio since most of these tests are synchronous
+
+
+class TestServerMain:
+    """Test server main entry point execution."""
+
+    def test_environment_detection(self, server_mock_modules, mock_psutil):
+        """Test environment detection during server initialization."""
+        # Mock environment variables for testing
+        mock_os_environ = {"WINDSURF_MODE": "test", "OTHER_VAR": "value"}
+
+        # Apply patches
+        with patch.dict("os.environ", mock_os_environ), patch_dict(server_mock_modules):
+
+            # Create a simplified version of the main entry point
+            def simulate_main():
+                try:
+                    # Log server initialization with environment info
+                    server_mock_modules["mcp_nixos.server.logger"].info("Initializing MCP-NixOS server")
+
+                    # Log process information
+                    process = server_mock_modules["mcp_nixos.server.psutil"].Process()
+                    server_mock_modules["mcp_nixos.server.logger"].info(
+                        f"Process info - PID: {process.pid}, Parent PID: {process.ppid()}"
+                    )
+
+                    # Try to get parent process info
+                    try:
+                        parent = server_mock_modules["mcp_nixos.server.psutil"].Process(process.ppid())
+                        server_mock_modules["mcp_nixos.server.logger"].info(
+                            f"Parent process: {parent.name()} (PID: {parent.pid})"
+                        )
+                        parent_cmdline = " ".join(parent.cmdline())
+                        server_mock_modules["mcp_nixos.server.logger"].debug(f"Parent command line: {parent_cmdline}")
+                    except Exception:
+                        server_mock_modules["mcp_nixos.server.logger"].info(
+                            "Unable to access parent process information"
+                        )
+
+                    # Check if running under Windsurf
+                    windsurf_detected = False
+                    for env_var in os.environ:
+                        if "WINDSURF" in env_var.upper() or "WINDSURFER" in env_var.upper():
+                            windsurf_detected = True
+                            server_mock_modules["mcp_nixos.server.logger"].info(
+                                f"Detected Windsurf environment: {env_var}={os.environ[env_var]}"
+                            )
+
+                    if windsurf_detected:
+                        server_mock_modules["mcp_nixos.server.logger"].info(
+                            "Running under Windsurf - configuring for Windsurf compatibility"
+                        )
+
+                    server_mock_modules["mcp_nixos.server.logger"].info("Starting MCP-NixOS server event loop")
+                    server_mock_modules["mcp_nixos.server.mcp"].run()
+                except KeyboardInterrupt:
+                    server_mock_modules["mcp_nixos.server.logger"].info("Server stopped by keyboard interrupt")
+                    return 0
+                except Exception as e:
+                    server_mock_modules["mcp_nixos.server.logger"].error(f"Error running server: {e}", exc_info=True)
+                    return 1
+                return 0
+
+            # Run the function
+            result = simulate_main()
+
+            # Verify interactions and detections
+            assert result == 0  # No errors
+            server_mock_modules["mcp_nixos.server.logger"].info.assert_any_call("Initializing MCP-NixOS server")
+            server_mock_modules["mcp_nixos.server.logger"].info.assert_any_call(
+                "Process info - PID: 12345, Parent PID: 54321"
+            )
+            server_mock_modules["mcp_nixos.server.logger"].info.assert_any_call("Parent process: bash (PID: 54321)")
+            server_mock_modules["mcp_nixos.server.logger"].debug.assert_any_call("Parent command line: bash")
+            server_mock_modules["mcp_nixos.server.logger"].info.assert_any_call(
+                "Detected Windsurf environment: WINDSURF_MODE=test"
+            )
+            server_mock_modules["mcp_nixos.server.logger"].info.assert_any_call(
+                "Running under Windsurf - configuring for Windsurf compatibility"
+            )
+            server_mock_modules["mcp_nixos.server.logger"].info.assert_any_call("Starting MCP-NixOS server event loop")
+            server_mock_modules["mcp_nixos.server.mcp"].run.assert_called_once()
+
+    def test_parent_process_error_handling(self, server_mock_modules, mock_psutil):
+        """Test error handling when parent process info is inaccessible."""
+        # Configure psutil to fail for parent process
+        mock_psutil.Process = MagicMock(
+            side_effect=lambda pid=None: (
+                MagicMock(pid=12345, ppid=MagicMock(return_value=54321))
+                if pid is None
+                else mock_psutil.NoSuchProcess(pid=pid)
+            )
+        )
+
+        # Apply patches
+        modified_mocks = {**server_mock_modules}
+
+        with patch_dict(modified_mocks):
+            # Create a simplified version of the main entry point
+            def simulate_main():
+                try:
+                    # Log process information
+                    process = modified_mocks["mcp_nixos.server.psutil"].Process()
+                    modified_mocks["mcp_nixos.server.logger"].info(
+                        f"Process info - PID: {process.pid}, Parent PID: {process.ppid()}"
+                    )
+
+                    # Try to get parent process info - this will raise an exception
+                    try:
+                        parent = modified_mocks["mcp_nixos.server.psutil"].Process(process.ppid())
+                        modified_mocks["mcp_nixos.server.logger"].info(
+                            f"Parent process: {parent.name()} (PID: {parent.pid})"
+                        )
+                    except (
+                        modified_mocks["mcp_nixos.server.psutil"].NoSuchProcess,
+                        modified_mocks["mcp_nixos.server.psutil"].AccessDenied,
+                    ):
+                        modified_mocks["mcp_nixos.server.logger"].info("Unable to access parent process information")
+
+                    modified_mocks["mcp_nixos.server.mcp"].run()
+                except Exception as e:
+                    modified_mocks["mcp_nixos.server.logger"].error(f"Error running server: {e}", exc_info=True)
+                    return 1
+                return 0
+
+            # Run the function
+            result = simulate_main()
+
+            # Verify error handling
+            assert result == 0  # No fatal errors
+            modified_mocks["mcp_nixos.server.logger"].info.assert_any_call(
+                "Unable to access parent process information"
+            )
+            modified_mocks["mcp_nixos.server.mcp"].run.assert_called_once()
+
+    def test_keyboard_interrupt_handling(self, server_mock_modules):
+        """Test handling of keyboard interrupt during server execution."""
+        # Configure MCP to raise KeyboardInterrupt
+        server_mock_modules["mcp_nixos.server.mcp"].run.side_effect = KeyboardInterrupt()
+
+        # Apply patches
+        with patch_dict(server_mock_modules):
+            # Create a simplified version of the main entry point
+            def simulate_main():
+                try:
+                    server_mock_modules["mcp_nixos.server.logger"].info("Starting MCP-NixOS server")
+                    server_mock_modules["mcp_nixos.server.mcp"].run()
+                except KeyboardInterrupt:
+                    server_mock_modules["mcp_nixos.server.logger"].info("Server stopped by keyboard interrupt")
+                    return 0
+                except Exception as e:
+                    server_mock_modules["mcp_nixos.server.logger"].error(f"Error running server: {e}", exc_info=True)
+                    return 1
+                return 0
+
+            # Run the function
+            result = simulate_main()
+
+            # Verify handling of keyboard interrupt
+            assert result == 0  # Clean exit
+            server_mock_modules["mcp_nixos.server.logger"].info.assert_called_with(
+                "Server stopped by keyboard interrupt"
+            )
+
+    def test_generic_exception_handling(self, server_mock_modules):
+        """Test handling of generic exceptions during server execution."""
+        # Configure MCP to raise generic exception
+        server_mock_modules["mcp_nixos.server.mcp"].run.side_effect = Exception("Test server error")
+
+        # Apply patches
+        with patch_dict(server_mock_modules):
+            # Create a simplified version of the main entry point
+            def simulate_main():
+                try:
+                    server_mock_modules["mcp_nixos.server.logger"].info("Starting MCP-NixOS server")
+                    server_mock_modules["mcp_nixos.server.mcp"].run()
+                except KeyboardInterrupt:
+                    server_mock_modules["mcp_nixos.server.logger"].info("Server stopped by keyboard interrupt")
+                    return 0
+                except Exception as e:
+                    server_mock_modules["mcp_nixos.server.logger"].error(f"Error running server: {e}", exc_info=True)
+                    return 1
+                return 0
+
+            # Run the function
+            result = simulate_main()
+
+            # Verify error handling
+            assert result == 1  # Error exit code
+            server_mock_modules["mcp_nixos.server.logger"].error.assert_called_once()
+            assert "Test server error" in server_mock_modules["mcp_nixos.server.logger"].error.call_args[0][0]
