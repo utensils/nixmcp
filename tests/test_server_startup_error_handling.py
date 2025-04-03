@@ -2,10 +2,7 @@
 
 import asyncio
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
-
-# Use fixtures
-from tests.fixtures.server_fixtures import mock_darwin_context, server_mock_modules
+from unittest.mock import MagicMock, AsyncMock
 
 # Import patch helper
 from tests.fixtures.patch_helper import patch_dict

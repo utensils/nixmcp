@@ -3,16 +3,7 @@
 import asyncio
 import pytest
 import time
-from unittest.mock import MagicMock, patch, AsyncMock
-
-# Import fixtures
-from tests.fixtures.server_fixtures import (
-    mock_home_manager_context,
-    mock_darwin_context,
-    mock_nixos_context,
-    mock_state_persistence,
-    server_mock_modules,
-)
+from unittest.mock import AsyncMock
 
 # Import patch helper
 from tests.fixtures.patch_helper import patch_dict
