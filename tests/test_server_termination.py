@@ -7,7 +7,6 @@ import sys
 import time
 import queue
 import logging
-from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
@@ -288,13 +287,12 @@ class TestServerTermination:
     @pytest.mark.asyncio
     async def test_shutdown_timeout_handling(self, temp_cache_dir):
         """Test that shutdown operations have proper timeout handling."""
-        # Check if running on CI - need more generous timeouts
-        ci_environment = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
-        
+        # No need for special CI handling with the simplified test
+
         # Skip this test on Windows - different threading model causes problems with this test
         if sys.platform == "win32" or os.name == "nt":
             pytest.skip("Skipping test on Windows due to different threading behavior")
-            
+
         # Mock server
         mock_server = MagicMock()
 
@@ -318,16 +316,16 @@ class TestServerTermination:
                 # Create the context manager and enter it
                 context_manager = app_lifespan(mock_server)
                 await context_manager.__aenter__()
-                
+
                 # Directly trigger the exit to simulate shutdown
                 await context_manager.__aexit__(None, None, None)
-                
+
                 # No ThreadPoolExecutor needed - we're directly calling the exit
                 # so we can just verify the shutdown was called
-                
+
                 # Verify the shutdown method was called exactly once
                 mock_shutdown.assert_called_once()
-                
+
                 # Ideal behavior: even with a hung component, shutdown should eventually
                 # complete with appropriate error handling
 
