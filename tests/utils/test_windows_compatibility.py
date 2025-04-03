@@ -49,7 +49,7 @@ class TestWindowsPathHandling:
                 # The path should preserve the Unicode characters
                 assert "Тест" in cache_dir
 
-    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific test")
+    @pytest.mark.windows
     def test_real_windows_paths(self):
         """Test with the actual Windows environment (only runs on Windows)."""
         # This test only runs on Windows machines
@@ -62,11 +62,23 @@ class TestWindowsPathHandling:
         try:
             actual_dir = ensure_cache_dir(temp_cache_dir)
             assert os.path.isdir(actual_dir)
-            assert os.path.samefile(actual_dir, temp_cache_dir)
+            # On Windows, check paths with case-insensitive comparison
+            assert os.path.normcase(actual_dir) == os.path.normcase(temp_cache_dir)
+        except AssertionError as e:
+            # Enhanced error reporting for Windows path issues
+            print(f"Test failed with paths: \nactual_dir: {actual_dir} \ntemp_cache_dir: {temp_cache_dir}")
+            raise e
         finally:
-            # Clean up
-            if os.path.exists(temp_cache_dir):
-                os.rmdir(temp_cache_dir)
+            # Clean up more safely with better error handling
+            try:
+                if os.path.exists(temp_cache_dir):
+                    if os.path.isdir(temp_cache_dir):
+                        # Use shutil.rmtree with ignore_errors for safer directory removal
+                        shutil.rmtree(temp_cache_dir, ignore_errors=True)
+                    else:
+                        os.unlink(temp_cache_dir)
+            except Exception as e:
+                print(f"Warning: Failed to clean up temp directory {temp_cache_dir}: {str(e)}")
 
 
 class TestWindowsFallbackCache:
@@ -139,21 +151,30 @@ class TestWindowsFileLocking:
         with open(test_file, "r") as f:
             assert f.read() == content
 
-    @pytest.mark.skipif(sys.platform != "win32", reason="Skip on non-Windows platforms")
+    @pytest.mark.windows
     def test_windows_file_locking_on_windows(self, tmp_path):
         """Test file locking on real Windows systems."""
-        if sys.platform == "win32":
-            test_file = tmp_path / "lock_test.txt"
+        test_file = tmp_path / "lock_test.txt"
 
-            # Create test file
+        # Create test file with more robust error handling
+        try:
             with open(test_file, "w") as f:
                 f.write("Initial content")
 
             # On Windows, this should work without mocking
             with open(test_file, "r+") as f:
                 # Should be able to acquire and release lock
-                assert lock_file(f, exclusive=True, blocking=True)
-                assert unlock_file(f)
+                lock_result = lock_file(f, exclusive=True, blocking=True)
+                assert lock_result, "Failed to acquire file lock on Windows"
+                unlock_result = unlock_file(f)
+                assert unlock_result, "Failed to release file lock on Windows"
+        except Exception as e:
+            # Provide better diagnostic information for Windows-specific errors
+            pytest.fail(f"Windows file locking test failed: {e}")
+            
+        # Ensure file is properly closed before leaving the test
+        import gc
+        gc.collect()  # Force garbage collection to release any file handles
 
     def test_cross_platform_locking_simulation(self, tmp_path):
         """Test platform-agnostic locking behavior."""
