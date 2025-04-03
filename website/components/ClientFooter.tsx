@@ -9,7 +9,7 @@ export default function ClientFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Column 1 - About */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">MCP-NixOS</h3>
+            <h3 className="text-lg font-semibold mb-4 text-nix-dark">MCP-NixOS</h3>
             <p className="text-gray-600 mb-4">
               Model Context Protocol resources and tools for NixOS, Home Manager, and nix-darwin.
             </p>
@@ -17,7 +17,7 @@ export default function ClientFooter() {
 
           {/* Column 2 - Documentation */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Documentation</h3>
+            <h3 className="text-lg font-semibold mb-4 text-nix-dark">Documentation</h3>
             <ul className="space-y-2 text-gray-600">
               <li>
                 <Link href="/docs" className="hover:text-nix-primary">
@@ -39,7 +39,7 @@ export default function ClientFooter() {
 
           {/* Column 3 - Resources */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Resources</h3>
+            <h3 className="text-lg font-semibold mb-4 text-nix-dark">Resources</h3>
             <ul className="space-y-2 text-gray-600">
               <li>
                 <a 
@@ -76,7 +76,7 @@ export default function ClientFooter() {
 
           {/* Column 4 - Connect */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Connect</h3>
+            <h3 className="text-lg font-semibold mb-4 text-nix-dark">Connect</h3>
             <ul className="space-y-2 text-gray-600">
               <li>
                 <a 
