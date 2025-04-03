@@ -146,6 +146,15 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Use platform-aware assertions (e.g., normcase for Windows paths)
   - Never let platform-specific test failures cascade to other test jobs
   - See detailed guide in `docs/WINDOWS_TESTING.md`
+  - IMPORTANT: When comparing file paths in tests, use `os.path.normcase()` or the `compare_paths` fixture
+  - When mocking modules like `tempfile`, mock the entire module rather than specific functions
+  - For assertions involving paths, use platform-specific expectations:
+    ```python
+    if os.name == "nt":  # Windows
+        assert os.path.normcase(path) == os.path.normcase(r"\windows\style\path")
+    else:  # Unix
+        assert path == "/unix/style/path"
+    ```
 - Run specific test categories:
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`

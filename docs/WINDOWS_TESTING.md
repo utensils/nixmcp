@@ -33,8 +33,9 @@ When writing tests that should run on Windows:
 1. **Platform detection**:
    ```python
    import sys
+   import os
    
-   is_windows = sys.platform == "win32"
+   is_windows = sys.platform == "win32" or os.name == "nt"
    ```
 
 2. **Use platform markers**:
@@ -56,6 +57,14 @@ When writing tests that should run on Windows:
    - Always use `pathlib.Path` or `os.path.join()` for platform-agnostic paths
    - Use `os.path.normcase()` for case-insensitive path comparisons on Windows 
    - Never use `os.path.samefile()` in tests that need to run on Windows
+   - When comparing paths in assertions, use the `compare_paths` fixture or normalize paths:
+     ```python
+     # BAD (Windows-incompatible)
+     assert actual_path == expected_path
+     
+     # GOOD (Works on Windows)
+     assert os.path.normcase(actual_path) == os.path.normcase(expected_path)
+     ```
 
 4. **File operations**:
    - Handle different file locking mechanisms (Windows uses msvcrt, Unix uses fcntl)
@@ -66,6 +75,27 @@ When writing tests that should run on Windows:
 5. **Environment variables**:
    - On Windows, use `LOCALAPPDATA` for cache directories instead of XDG variables
    - Provide fallbacks when environment variables aren't found
+
+6. **Path separators in tests**:
+   - When writing tests with path assertions, make them platform-aware:
+   ```python
+   if os.name == "nt":
+       assert os.path.normcase(path) == os.path.normcase(r"\path\with\backslash")
+   else:
+       assert path == "/path/with/forward/slash"
+   ```
+
+7. **Mocking Implementations**:
+   - When mocking modules, patch the entire module rather than specific functions that might not exist in your test environment:
+   ```python
+   # BAD (might fail if running tests on Windows):
+   patch("mcp_nixos.utils.cache_helpers.tempfile.NamedTemporaryFile", mock_named_temp)
+   
+   # GOOD (works cross-platform):
+   mock_tempfile = MagicMock()
+   mock_tempfile.NamedTemporaryFile.return_value = mock_temp_file
+   patch("mcp_nixos.utils.cache_helpers.tempfile", mock_tempfile)
+   ```
 
 ## Common Issues and Solutions
 
@@ -86,7 +116,7 @@ with tempfile.TemporaryDirectory() as temp_dir:
 
 ### Path Comparison
 
-On Windows, paths are case-insensitive:
+On Windows, paths are case-insensitive and use backslashes:
 
 ```python
 # BAD (Windows-incompatible)
@@ -96,33 +126,40 @@ assert actual_path == expected_path
 assert os.path.normcase(actual_path) == os.path.normcase(expected_path)
 ```
 
-### File Locking
-
-Different platforms use different locking mechanisms:
+Use the `compare_paths` fixture in `conftest.py` for path comparisons:
 
 ```python
-if sys.platform == "win32":
-    # Windows-specific locking (msvcrt)
-    import msvcrt
-    msvcrt.locking(file_handle.fileno(), msvcrt.LK_LOCK, 1)
-else:
-    # Unix-specific locking (fcntl)
-    import fcntl
-    fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX)
+def test_example(compare_paths):
+    # The fixture handles cross-platform path comparison
+    assert compare_paths("/path/to/file", r"\path\to\file")
 ```
 
-The project uses a cross-platform `lock_file()` helper that abstracts these differences.
+### File Locking
+
+Different platforms use different locking mechanisms. Our codebase provides helpers:
+
+```python
+from mcp_nixos.utils.cache_helpers import lock_file, unlock_file
+
+# Platform-agnostic locking
+with open(file_path, "r") as f:
+    if lock_file(f, exclusive=False):
+        try:
+            # Read from file
+            content = f.read()
+        finally:
+            unlock_file(f)
+```
 
 ## CI/CD for Windows Tests
 
 The project uses GitHub Actions to run tests on Windows:
-- Separate workflow for Windows tests
-- Installs pywin32 and other Windows-specific dependencies
-- Runs the same test suite as on Linux/macOS
-- Typechecks with pyright
+- Tests run on Windows, macOS, and Linux to ensure cross-platform compatibility
+- Windows testing includes the Windows-specific dependencies (pywin32)
+- Type checking with pyright ensures code compatibility
 
 When fixing Windows-specific test failures:
 1. Identify if the issue is a platform compatibility problem
 2. Use platform-specific code with proper conditionals
 3. Add appropriate tests with platform markers
-4. Verify the fix works on multiple platforms
+4. Verify the fix works on multiple platforms by checking CI results

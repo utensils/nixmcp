@@ -236,9 +236,6 @@ class TestAtomicWrite:
         mock_temp_file = MagicMock()
         mock_temp_file.name = r"C:\temp\tempfile"
 
-        # Mock NamedTemporaryFile to return our mock
-        mock_named_temp = MagicMock(return_value=mock_temp_file)
-
         # Mock lock_file to return True (lock succeeded)
         mock_lock_file = MagicMock(return_value=True)
 
@@ -251,11 +248,15 @@ class TestAtomicWrite:
         mock_windll.kernel32 = mock_kernel32
         mock_kernel32.MoveFileExW.return_value = 1  # Indicates success
 
+        # Mock tempfile module
+        mock_tempfile = MagicMock()
+        mock_tempfile.NamedTemporaryFile.return_value = mock_temp_file
+
         # Mock file operations
         m = mock_open()
 
         with (
-            patch("mcp_nixos.utils.cache_helpers.tempfile.NamedTemporaryFile", mock_named_temp),
+            patch("mcp_nixos.utils.cache_helpers.tempfile", mock_tempfile),
             patch("mcp_nixos.utils.cache_helpers.lock_file", mock_lock_file),
             patch("mcp_nixos.utils.cache_helpers.os.replace", mock_os_replace),
             patch("mcp_nixos.utils.cache_helpers.ctypes.windll", mock_windll),
@@ -280,9 +281,6 @@ class TestAtomicWrite:
         mock_temp_file = MagicMock()
         mock_temp_file.name = r"C:\temp\tempfile"
 
-        # Mock NamedTemporaryFile to return our mock
-        mock_named_temp = MagicMock(return_value=mock_temp_file)
-
         # Mock lock_file to return True (lock succeeded)
         mock_lock_file = MagicMock(return_value=True)
 
@@ -301,8 +299,12 @@ class TestAtomicWrite:
         # Mock the logger
         mock_logger = MagicMock()
 
+        # Mock tempfile module
+        mock_tempfile = MagicMock()
+        mock_tempfile.NamedTemporaryFile.return_value = mock_temp_file
+
         with (
-            patch("mcp_nixos.utils.cache_helpers.tempfile.NamedTemporaryFile", mock_named_temp),
+            patch("mcp_nixos.utils.cache_helpers.tempfile", mock_tempfile),
             patch("mcp_nixos.utils.cache_helpers.lock_file", mock_lock_file),
             patch("mcp_nixos.utils.cache_helpers.os.replace", mock_os_replace),
             patch("mcp_nixos.utils.cache_helpers.ctypes.windll", mock_windll),
@@ -385,7 +387,11 @@ class TestMetadataOperations:
                 assert data is None
                 assert isinstance(metadata, dict)
                 assert "file_path" in metadata
-                assert metadata["file_path"] == "/tmp/file.json"
+                # Use os.path.normcase for cross-platform path comparison
+                if os.name == "nt":
+                    assert os.path.normcase(metadata["file_path"]) == os.path.normcase(r"\tmp\file.json")
+                else:
+                    assert metadata["file_path"] == "/tmp/file.json"
                 assert "metadata_exists" in metadata
 
                 # The file's open method shouldn't be called when lock fails
@@ -403,7 +409,11 @@ class TestMetadataOperations:
             assert data is None
             # Assert that metadata contains expected keys
             assert "file_path" in metadata
-            assert metadata["file_path"] == "/tmp/nonexistent.json"
+            # Use os.path.normcase for cross-platform path comparison
+            if os.name == "nt":
+                assert os.path.normcase(metadata["file_path"]) == os.path.normcase(r"\tmp\nonexistent.json")
+            else:
+                assert metadata["file_path"] == "/tmp/nonexistent.json"
             assert "metadata_exists" in metadata
             assert metadata["metadata_exists"] is False
 
