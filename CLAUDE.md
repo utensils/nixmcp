@@ -66,6 +66,12 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Check sys.platform before using platform-specific features
   - Handle file operations with appropriate platform-specific adjustments
   - Use os.path.join() instead of string concatenation for paths
+  - For Windows compatibility:
+    - Use os.path.normcase() for case-insensitive path comparisons
+    - Never use os.path.samefile() in Windows tests (use normcase comparison instead)
+    - Provide robust fallbacks for environment variables like LOCALAPPDATA
+    - Properly clean up file handles with explicit close or context managers
+  - Use platform-specific test markers (@pytest.mark.windows, @pytest.mark.skipwindows)
   - Ensure tests work consistently across Windows, macOS, and Linux
 
 ## API Reference
@@ -113,11 +119,17 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Integration tests: `@pytest.mark.integration`
   - Slow tests: `@pytest.mark.slow`
   - Async tests: `@pytest.mark.asyncio`
+  - Platform-specific tests:
+    - Windows-only tests: `@pytest.mark.windows`
+    - Skip on Windows: `@pytest.mark.skipwindows`
 - Cross-platform testing:
   - CI runs tests on Linux, macOS, and Windows
   - Linux and macOS tests use flake.nix for development environment
   - Windows tests use Python's venv with special dependencies (pywin32)
   - All tests must be platform-agnostic or include platform-specific handling
+  - Enhance error messages with platform-specific diagnostic information
+  - Use platform-aware assertions (e.g., normcase for Windows paths)
+  - Never let platform-specific test failures cascade to other test jobs
 - Run specific test categories:
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`
@@ -181,12 +193,14 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 ### Installation & Usage
 - Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
 - Claude Code configuration: Add to `~/.config/claude/config.json`
-- Interactive shell: `python mcp_shell.py` (manual testing and tool exploration)
 - Docker deployment:
   - Standard use: `docker run --rm ghcr.io/utensils/mcp-nixos`
   - Docker image includes pre-cached data for immediate startup
   - Build with pre-cache: `docker build -t mcp-nixos .`
   - Deployed on Smithery.ai as a hosted service
+- Interactive CLI (deprecated from v0.3.0):
+  - For manual testing, use a JSON-capable HTTP client like HTTPie or curl
+  - Example: `echo '{"type":"call","tool":"nixos_search","params":{"query":"python"}}' | nc localhost 8080`
 - Development:
   - Environment: `nix develop`
   - Run server: `run`
