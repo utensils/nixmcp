@@ -53,11 +53,32 @@ def get_default_cache_dir(app_name: str = "mcp_nixos") -> str:
     elif sys.platform == "win32":
         # Windows: %LOCALAPPDATA%\app_name\Cache
         local_app_data = os.environ.get("LOCALAPPDATA")
-        if local_app_data:
+        if local_app_data and os.path.exists(local_app_data):
             base_dir = pathlib.Path(local_app_data)
         else:
-            # Fallback if LOCALAPPDATA is not available
-            base_dir = pathlib.Path.home() / "AppData" / "Local"
+            # More robust fallback if LOCALAPPDATA is not available/valid
+            try:
+                # First try using the home directory
+                home = pathlib.Path.home()
+                # Ensure the path exists and construct AppData path
+                if home.exists():
+                    base_dir = home / "AppData" / "Local"
+                    # Create it if it doesn't exist
+                    if not base_dir.exists() and home.exists():
+                        base_dir.mkdir(parents=True, exist_ok=True)
+                else:
+                    # Ultimate fallback - use temp directory
+                    import tempfile
+
+                    base_dir = pathlib.Path(tempfile.gettempdir()) / "AppData" / "Local"
+                    base_dir.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                # If all else fails, use the temp directory
+                logger.warning(f"Error finding Windows cache dir: {e}, using temp directory")
+                import tempfile
+
+                base_dir = pathlib.Path(tempfile.gettempdir())
+
         cache_dir = base_dir / app_name / "Cache"
 
     else:

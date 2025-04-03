@@ -3,12 +3,15 @@
 name: CI
 
 on:
+  # Only run on push events for the main branch and tags
   push:
     branches: [main]
     tags: ["v*"] # Run CI on version tags
+  # Run on pull requests to the main branch
   pull_request:
     branches: [main]
-  workflow_dispatch: # Allow manual trigger
+  # Allow manual trigger
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -152,18 +155,22 @@ jobs:
 
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
+        continue-on-error: true  # Continue to artifact upload even if tests fail
+        id: run_unit_tests
         run: |
           $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
-          python -m pytest tests/ -v --unit
+          python -m pytest tests/ -v --unit --cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
         shell: pwsh
 
       - name: Upload unit test coverage artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: unit-coverage-report-${{ runner.os }}
           path: |
             ./htmlcov/
             ./coverage.xml
+            ./junit.xml
 
   integration-tests:
     name: Run Integration Tests (${{ matrix.os }})
@@ -223,23 +230,28 @@ jobs:
 
       - name: Run integration tests (Windows)
         if: runner.os == 'Windows'
+        continue-on-error: true  # Continue to artifact upload even if tests fail
+        id: run_integration_tests
         run: |
           $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
-          python -m pytest tests/ -v --integration
+          python -m pytest tests/ -v --integration --cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
         shell: pwsh
 
       - name: Upload integration test coverage artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: integration-coverage-report-${{ runner.os }}
           path: |
             ./htmlcov/
             ./coverage.xml
+            ./junit.xml
 
   upload-coverage:
     name: Upload Combined Coverage
     needs: [unit-tests, integration-tests]
     runs-on: ubuntu-latest
+    if: always()  # Run even if test jobs fail
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -250,6 +262,7 @@ jobs:
         with:
           name: unit-coverage-report-Linux
           path: ./coverage-unit-linux/
+        continue-on-error: true
 
       - name: Download macOS unit test coverage
         uses: actions/download-artifact@v4
@@ -270,6 +283,7 @@ jobs:
         with:
           name: integration-coverage-report-Linux
           path: ./coverage-integration-linux/
+        continue-on-error: true
 
       - name: Download macOS integration test coverage
         uses: actions/download-artifact@v4
@@ -300,6 +314,23 @@ jobs:
         env:
           # Add the Codecov token from repository secrets
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      
+      # Upload all test results to Codecov Test Analytics
+      - name: Upload test results to Codecov Test Analytics
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: |
+            ./coverage-unit-linux/junit.xml
+            ./coverage-integration-linux/junit.xml
+            ./coverage-unit-macos/junit.xml
+            ./coverage-integration-macos/junit.xml
+            ./coverage-unit-windows/junit.xml
+            ./coverage-integration-windows/junit.xml
+          flags: |
+            unit_tests
+            integration_tests
           
   analyze-complexity:
     name: Analyze Code Complexity

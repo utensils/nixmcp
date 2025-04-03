@@ -24,6 +24,26 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - PRs follow the pattern: commit to `develop` → open PR to `main` → merge once approved
 - Branch deletion on merge is disabled to preserve branch history
 
+## CI/CD Configuration
+
+- **IMPORTANT**: Only use the single `.github/workflows/ci.yml` file for all CI/CD workflows
+- Never create additional workflow files as it leads to duplicate/conflicting CI runs
+- The main workflow already includes cross-platform testing (Linux, macOS, Windows)
+- Update the existing ci.yml file when adding new CI steps instead of creating new files
+- Includes Codecov integration for both coverage reporting and test analytics:
+  - Generates coverage reports in XML format for Codecov upload
+  - Creates JUnit XML test results for Codecov Test Analytics
+  - Uses `continue-on-error` and `if: always()` to ensure reports are uploaded even when tests fail
+  - Configured with appropriate flags to categorize different test types
+- When working with PRs:
+  - The CI workflow is configured to run only on:
+    - Pushes to `main` branch
+    - Pull requests targeting the `main` branch
+    - Version tag pushes
+  - Pushes to `develop` branch will not trigger CI unless there's an open PR to `main`
+  - CI may run twice for PR updates - this is controlled by the concurrency settings
+  - The `cancel-in-progress: true` setting ensures older runs are cancelled when new commits are pushed
+
 ## Architecture
 
 ### Core Components
@@ -66,6 +86,12 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Check sys.platform before using platform-specific features
   - Handle file operations with appropriate platform-specific adjustments
   - Use os.path.join() instead of string concatenation for paths
+  - For Windows compatibility:
+    - Use os.path.normcase() for case-insensitive path comparisons
+    - Never use os.path.samefile() in Windows tests (use normcase comparison instead)
+    - Provide robust fallbacks for environment variables like LOCALAPPDATA
+    - Properly clean up file handles with explicit close or context managers
+  - Use platform-specific test markers (@pytest.mark.windows, @pytest.mark.skipwindows)
   - Ensure tests work consistently across Windows, macOS, and Linux
 
 ## API Reference
@@ -105,6 +131,11 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 
 ### Testing
 - 80%+ code coverage with pytest
+- Codecov Test Analytics integration:
+  - JUnit XML reports generated during all test runs
+  - Uploaded to Codecov for insights on test performance and failures
+  - Configured to upload results even when tests fail
+  - Results displayed in PR comments with failure details
 - Static type checking (zero-tolerance policy)
 - Linting with Black and Flake8
 - Test organization mirrors module structure
@@ -113,15 +144,32 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Integration tests: `@pytest.mark.integration`
   - Slow tests: `@pytest.mark.slow`
   - Async tests: `@pytest.mark.asyncio`
+  - Platform-specific tests:
+    - Windows-only tests: `@pytest.mark.windows`
+    - Skip on Windows: `@pytest.mark.skipwindows`
 - Cross-platform testing:
   - CI runs tests on Linux, macOS, and Windows
   - Linux and macOS tests use flake.nix for development environment
   - Windows tests use Python's venv with special dependencies (pywin32)
   - All tests must be platform-agnostic or include platform-specific handling
+  - Enhance error messages with platform-specific diagnostic information
+  - Use platform-aware assertions (e.g., normcase for Windows paths)
+  - Never let platform-specific test failures cascade to other test jobs
+  - See detailed guide in `docs/WINDOWS_TESTING.md`
+  - IMPORTANT: When comparing file paths in tests, use `os.path.normcase()` or the `compare_paths` fixture
+  - When mocking modules like `tempfile`, mock the entire module rather than specific functions
+  - For assertions involving paths, use platform-specific expectations:
+    ```python
+    if os.name == "nt":  # Windows
+        assert os.path.normcase(path) == os.path.normcase(r"\windows\style\path")
+    else:  # Unix
+        assert path == "/unix/style/path"
+    ```
 - Run specific test categories:
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`
   - All tests: `nix run .#run-tests`
+  - With JUnit XML (for local test analytics): `python -m pytest --junitxml=junit.xml -o junit_family=legacy`
 - Test Cache Configuration:
   - Tests use structured cache directory with separate areas for unit and integration tests
   - Automatic subdirectory: `./mcp_nixos_test_cache/{unit|integration|mixed}`
@@ -181,12 +229,14 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 ### Installation & Usage
 - Install: `pip install mcp-nixos`, `uv pip install mcp-nixos`, `uvx mcp-nixos`
 - Claude Code configuration: Add to `~/.config/claude/config.json`
-- Interactive shell: `python mcp_shell.py` (manual testing and tool exploration)
 - Docker deployment:
   - Standard use: `docker run --rm ghcr.io/utensils/mcp-nixos`
   - Docker image includes pre-cached data for immediate startup
   - Build with pre-cache: `docker build -t mcp-nixos .`
   - Deployed on Smithery.ai as a hosted service
+- Interactive CLI (deprecated from v0.3.0):
+  - For manual testing, use a JSON-capable HTTP client like HTTPie or curl
+  - Example: `echo '{"type":"call","tool":"nixos_search","params":{"query":"python"}}' | nc localhost 8080`
 - Development:
   - Environment: `nix develop`
   - Run server: `run`

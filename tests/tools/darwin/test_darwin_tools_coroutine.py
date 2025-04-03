@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, AsyncMock
 import inspect
 
 # Mark all tests in this module as asyncio and integration tests
-pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+pytestmark = [pytest.mark.integration]
 
 from mcp_nixos.tools.darwin.darwin_tools import (
     darwin_search,
