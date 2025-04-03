@@ -1,6 +1,6 @@
 """Tests for proper termination behavior of the MCP-NixOS server."""
 
-import asyncio
+import asyncio  # noqa: F401 - needed for pytest.mark.asyncio
 import os
 import signal
 import sys
