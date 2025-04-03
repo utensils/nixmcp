@@ -278,3 +278,13 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Black formatting, 120 char line limit
 - Strict null safety practices
 - Zero-tolerance for type errors
+
+### Licensing and Attribution
+- Project code is licensed under MIT License
+- The NixOS snowflake logo is used with attribution to the NixOS project
+- Logo attribution must be maintained in:
+  - README.md attribution section
+  - Website footer with link to attribution details
+  - Attribution document in website/public/images/attribution.md
+- Attribution document must specify both "NixOS" and "NixOS snowflake logo" 
+- Update all attribution locations when making changes

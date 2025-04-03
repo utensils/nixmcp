@@ -115,6 +115,11 @@ export default function ClientFooter() {
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-gray-200 text-center text-gray-500">
           <p>© {new Date().getFullYear()} MCP-NixOS. MIT License.</p>
+          <p className="mt-2 text-sm">
+            <Link href="/images/attribution.md" className="hover:text-nix-primary">
+              Logo Attribution
+            </Link>
+          </p>
         </div>
       </div>
     </footer>

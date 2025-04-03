@@ -1,12 +1,12 @@
 # Attribution
 
-## NixOS Logo
+## NixOS and NixOS Snowflake Logo
 
-The NixOS logo and artwork are used with attribution to the NixOS project (https://github.com/NixOS/nixos-artwork).
+The NixOS snowflake logo is used with attribution to the NixOS project. The logo is sourced from the official NixOS artwork repository at https://github.com/NixOS/nixos-artwork.
 
-While no explicit license was found for the NixOS logo, we are using it under fair use for the purpose of indicating compatibility and integration with the NixOS ecosystem. The logo is used to accurately represent the project's connection to NixOS.
+While no explicit license was found for the NixOS snowflake logo, we are using it under fair use for the purpose of indicating compatibility and integration with the NixOS ecosystem. The logo is used to accurately represent this project's connection to NixOS and its package ecosystem.
 
-If you are the copyright holder of the NixOS logo and have concerns about its usage in this project, please contact us and we will address your concerns promptly.
+If you are the copyright holder of the NixOS snowflake logo and have concerns about its usage in this project, please contact us and we will address your concerns promptly.
 
 ## Our Project
 
