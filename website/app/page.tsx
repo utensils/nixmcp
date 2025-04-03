@@ -66,22 +66,13 @@ export default function Home() {
       <section className="py-16 bg-nix-light">
         <div className="container-custom">
           <h2 className="text-3xl font-bold text-center mb-12 text-nix-dark">Getting Started</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div>
-              <h3 className="text-2xl font-bold mb-4 text-nix-primary">Installation</h3>
-              <p className="mb-6 text-gray-800 font-medium">
-                You can install MCP-NixOS using pip, uv, or add it to your Claude configuration:
-              </p>
-              <CodeBlock code="pip install mcp-nixos" language="bash" />
-              <CodeBlock code="uv pip install mcp-nixos" language="bash" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold mb-4 text-nix-primary">Configuration</h3>
-              <p className="mb-6 text-gray-800 font-medium">
-                Add to your Claude Code configuration file:
-              </p>
-              <CodeBlock 
-                code={`{
+          <div className="max-w-2xl mx-auto">
+            <h3 className="text-2xl font-bold mb-4 text-nix-primary">Configuration</h3>
+            <p className="mb-6 text-gray-800 font-medium">
+              Add to your Claude Code configuration file:
+            </p>
+            <CodeBlock 
+              code={`{
   "mcpServers": {
     "nixos": {
       "command": "uvx",
@@ -89,17 +80,16 @@ export default function Home() {
     }
   }
 }`} 
-                language="json" 
-              />
-              <p className="mt-6 text-gray-800 font-medium">
-                Then start asking Claude about NixOS packages and configuration options!
-              </p>
+              language="json" 
+            />
+            <p className="mt-6 text-gray-800 font-medium">
+              Then start asking Claude about NixOS packages and configuration options!
+            </p>
+            <div className="text-center mt-12">
+              <Link href="/docs" className="btn-primary">
+                View Full Documentation
+              </Link>
             </div>
-          </div>
-          <div className="text-center mt-12">
-            <Link href="/docs" className="btn-primary">
-              View Full Documentation
-            </Link>
           </div>
         </div>
       </section>
