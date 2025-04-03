@@ -82,12 +82,12 @@ export default function Home() {
               </p>
               <CodeBlock 
                 code={`{
-  "tools": [
-    {
-      "path": "mcp-nixos",
-      "enabled": true
+  "mcpServers": {
+    "nixos": {
+      "command": "uvx",
+      "args": ["mcp-nixos"]
     }
-  ]
+  }
 }`} 
                 language="json" 
               />
