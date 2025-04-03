@@ -1,7 +1,6 @@
 """Common fixtures for server-related tests."""
 
 import pytest
-import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 
 
@@ -88,7 +87,7 @@ def mock_psutil():
 @pytest.fixture
 def server_mock_modules():
     """Create all necessary mocks for server module testing, to be used with patch_dict.
-    
+
     This function creates only the mocks for the modules that actually exist and
     are needed for our tests.
     """
@@ -155,7 +154,7 @@ def server_mock_modules():
     mock_prompt = MagicMock()
     mock_prompt.return_value = """
     # NixOS, Home Manager, and nix-darwin MCP Guide
-    
+
     This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about:
     1. NixOS packages, system options, and service configurations
     2. Home Manager options for user configuration

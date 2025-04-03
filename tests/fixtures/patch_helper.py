@@ -7,10 +7,10 @@ from unittest.mock import patch
 @contextlib.contextmanager
 def patch_dict(patch_dict):
     """Apply multiple patches from a dictionary.
-    
+
     Args:
         patch_dict: A dictionary of {target: mock_value} pairs to patch
-        
+
     Yields:
         None: Just provides a context manager
     """
@@ -25,11 +25,11 @@ def patch_dict(patch_dict):
             patchers.append(patcher)
         except (AttributeError, ImportError) as e:
             print(f"Warning: Could not patch {target}: {e}")
-    
+
     # Start all patchers
     for patcher in patchers:
         patcher.start()
-    
+
     try:
         # Yield control back to the context
         yield
