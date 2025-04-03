@@ -24,36 +24,34 @@ class TestServerStartupErrorHandling:
         mock_protocol_initialized.wait = AsyncMock()
         mock_lifespan_context = {}
 
-        # Create a function that simulates an error
+        # Create a self-contained mock function to avoid importing server modules
         async def mock_async_timeout_function(**kwargs):
             raise Exception("Darwin startup failed")
 
-        # Patch the relevant modules
+        # Patch only the logger for verification
         with patch("mcp_nixos.server.logger", mock_logger):
-            with patch("mcp_nixos.server.darwin_context", mock_darwin_context):
-                with patch("mcp_nixos.server.async_with_timeout", side_effect=mock_async_timeout_function):
-                    # Create a simplified version of the startup function
-                    async def simulate_startup():
-                        try:
-                            # This will raise the exception we defined
-                            await mock_async_timeout_function(operation_name="Darwin context startup")
-                        except Exception as e:
-                            mock_logger.error(f"Error starting Darwin context: {e}")
+            # Create a simplified version of the startup function
+            async def simulate_startup():
+                try:
+                    # This will raise the exception we defined
+                    await mock_async_timeout_function(operation_name="Darwin context startup")
+                except Exception as e:
+                    mock_logger.error(f"Error starting Darwin context: {e}")
 
-                        # Mark app as ready despite error
-                        mock_app_ready.set()
+                # Mark app as ready despite error
+                mock_app_ready.set()
 
-                        # Wait for protocol init (simulate success)
-                        await mock_protocol_initialized.wait()
-                        mock_lifespan_context["is_ready"] = True
+                # Wait for protocol init (simulate success)
+                await mock_protocol_initialized.wait()
+                mock_lifespan_context["is_ready"] = True
 
-                    # Execute the function
-                    await simulate_startup()
+            # Execute the function
+            await simulate_startup()
 
-                    # Verify error was logged but startup continued
-                    mock_logger.error.assert_called_with("Error starting Darwin context: Darwin startup failed")
-                    mock_app_ready.set.assert_called_once()
-                    assert mock_lifespan_context["is_ready"] is True
+            # Verify error was logged but startup continued
+            mock_logger.error.assert_called_with("Error starting Darwin context: Darwin startup failed")
+            mock_app_ready.set.assert_called_once()
+            assert mock_lifespan_context["is_ready"] is True
 
     @pytest.mark.asyncio
     async def test_protocol_initialization_timeout(self):
