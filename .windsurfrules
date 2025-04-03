@@ -129,6 +129,12 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - The website is built with Next.js 15.2 and Tailwind CSS in the `/website` directory
 - Uses TypeScript, App Router, and static export for AWS S3/CloudFront hosting
 - NixOS color scheme is used throughout: primary #5277C3, secondary #7EBAE4
+- Directory structure:
+  - `/app` - Next.js App Router pages
+  - `/components` - React components with client/server separation
+  - `/public` - Static assets including favicon and images
+  - `/public/favicon` - Website favicon files
+  - `/public/images` - Logo images and attribution information
 - Nested shell architecture:
   - Main shell has single command: `web-dev` - Launch website development shell
   - Website shell (`nix develop .#web`) provides dedicated commands:
@@ -136,6 +142,12 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
     - `dev` - Start development server
     - `build` - Build for production
     - `lint` - Lint code
+    - `lint:fix` - Fix linting issues
+    - `type-check` - Run TypeScript type checking
+- Code quality tools:
+  - ESLint for code linting with TypeScript and React plugins
+  - Prettier for code formatting with tailwind plugin
+  - TypeScript for type checking
 - Follows responsive design principles and accessibility guidelines (WCAG 2.1 AA)
 
 ### C Extension Compilation Support
@@ -278,3 +290,18 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Black formatting, 120 char line limit
 - Strict null safety practices
 - Zero-tolerance for type errors
+
+### Licensing and Attribution
+- Project code is licensed under MIT License
+- The NixOS snowflake logo is used with attribution to the NixOS project
+- Project assets include:
+  - `nixos-flake.svg`: NixOS snowflake logo in blue (monochrome)
+  - `nixos-snowflake-colour.svg`: NixOS snowflake logo with gradient colors
+  - `mcp-nixos.png`: Project logo incorporating the NixOS snowflake design
+  - Favicon files derived from the project logo
+- Logo attribution must be maintained in:
+  - README.md attribution section
+  - Website footer with link to attribution details
+  - Attribution document in website/public/images/attribution.md
+- Attribution document must specify both "NixOS" and "NixOS snowflake logo"
+- When adding or modifying logo files, update all attribution locations
