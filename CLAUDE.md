@@ -24,6 +24,13 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - PRs follow the pattern: commit to `develop` → open PR to `main` → merge once approved
 - Branch deletion on merge is disabled to preserve branch history
 
+## CI/CD Configuration
+
+- **IMPORTANT**: Only use the single `.github/workflows/ci.yml` file for all CI/CD workflows
+- Never create additional workflow files as it leads to duplicate/conflicting CI runs
+- The main workflow already includes cross-platform testing (Linux, macOS, Windows)
+- Update the existing ci.yml file when adding new CI steps instead of creating new files
+
 ## Architecture
 
 ### Core Components
