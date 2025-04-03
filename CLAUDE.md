@@ -30,6 +30,11 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Never create additional workflow files as it leads to duplicate/conflicting CI runs
 - The main workflow already includes cross-platform testing (Linux, macOS, Windows)
 - Update the existing ci.yml file when adding new CI steps instead of creating new files
+- Includes Codecov integration for both coverage reporting and test analytics:
+  - Generates coverage reports in XML format for Codecov upload
+  - Creates JUnit XML test results for Codecov Test Analytics
+  - Uses `continue-on-error` and `if: always()` to ensure reports are uploaded even when tests fail
+  - Configured with appropriate flags to categorize different test types
 - When working with PRs:
   - The CI workflow is configured to run only on:
     - Pushes to `main` branch
@@ -126,6 +131,11 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 
 ### Testing
 - 80%+ code coverage with pytest
+- Codecov Test Analytics integration:
+  - JUnit XML reports generated during all test runs
+  - Uploaded to Codecov for insights on test performance and failures
+  - Configured to upload results even when tests fail
+  - Results displayed in PR comments with failure details
 - Static type checking (zero-tolerance policy)
 - Linting with Black and Flake8
 - Test organization mirrors module structure
@@ -159,6 +169,7 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`
   - All tests: `nix run .#run-tests`
+  - With JUnit XML (for local test analytics): `python -m pytest --junitxml=junit.xml -o junit_family=legacy`
 - Test Cache Configuration:
   - Tests use structured cache directory with separate areas for unit and integration tests
   - Automatic subdirectory: `./mcp_nixos_test_cache/{unit|integration|mixed}`
