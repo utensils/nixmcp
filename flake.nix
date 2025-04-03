@@ -205,19 +205,21 @@
                 
                 # Check if running in CI environment
                 COVERAGE_ARGS=""
+                JUNIT_ARGS=""
                 if [ "$(printenv CI 2>/dev/null)" != "" ] || [ "$(printenv GITHUB_ACTIONS 2>/dev/null)" != "" ]; then
-                  # In CI, use coverage
+                  # In CI, use coverage and generate JUnit XML for Codecov Test Analytics
                   COVERAGE_ARGS="--cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml"
-                  echo "Using coverage (CI environment)"
+                  JUNIT_ARGS="--junitxml=junit.xml -o junit_family=legacy"
+                  echo "Using coverage and JUnit XML (CI environment)"
                 fi
                 
                 # Simple and direct test execution
                 if [ -n "$TEST_ARGS" ]; then
-                  echo "Running: pytest tests/ -v $TEST_ARGS $COVERAGE_ARGS $@"
-                  eval "pytest tests/ -v $TEST_ARGS $COVERAGE_ARGS $@"
+                  echo "Running: pytest tests/ -v $TEST_ARGS $COVERAGE_ARGS $JUNIT_ARGS $@"
+                  eval "pytest tests/ -v $TEST_ARGS $COVERAGE_ARGS $JUNIT_ARGS $@"
                 else
-                  echo "Running: pytest tests/ -v $COVERAGE_ARGS $@"
-                  pytest tests/ -v $COVERAGE_ARGS "$@"
+                  echo "Running: pytest tests/ -v $COVERAGE_ARGS $JUNIT_ARGS $@"
+                  pytest tests/ -v $COVERAGE_ARGS $JUNIT_ARGS "$@"
                 fi
                 
                 # Show coverage report message if applicable
