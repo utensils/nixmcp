@@ -122,8 +122,8 @@ class TestFileLocking:
             patch("mcp_nixos.utils.cache_helpers.fcntl.flock"),
         ):
 
-            # Should return True for a successful lock with None timeout
-            result = lock_file(mock_file, timeout=None)
+            # Should return True for a successful lock with unlimited timeout
+            result = lock_file(mock_file, timeout=0)  # 0 means unlimited
             assert result is True
             # Should have used LOCK_EX without LOCK_NB
             mock_fcntl.flock.assert_called_once_with(mock_file, mock_fcntl.LOCK_EX)
@@ -216,7 +216,7 @@ class TestAtomicWrite:
         ):
 
             # Call atomic_write - should not raise an error but return False
-            result = atomic_write("/tmp/target.txt", "test content")
+            result = atomic_write("/tmp/target.txt", lambda f: f.write("test content"))
             assert result is False
 
             # Verify no replace was called
@@ -260,7 +260,7 @@ class TestAtomicWrite:
         ):
 
             # Call atomic_write
-            result = atomic_write(r"C:\temp\target.txt", "test content")
+            result = atomic_write(r"C:\temp\target.txt", lambda f: f.write("test content"))
             assert result is True
 
             # Verify MoveFileExW was called
@@ -308,7 +308,7 @@ class TestAtomicWrite:
         ):
 
             # Call atomic_write
-            result = atomic_write(r"C:\temp\target.txt", "test content")
+            result = atomic_write(r"C:\temp\target.txt", lambda f: f.write("test content"))
             assert result is False
 
             # Verify error was logged
@@ -350,7 +350,7 @@ class TestAtomicWrite:
         ):
 
             # Call atomic_write - should succeed on the second try
-            result = atomic_write("/tmp/target.txt", "test content", retries=1)
+            result = atomic_write("/tmp/target.txt", lambda f: f.write("test content"), max_retries=1)
             assert result is True
 
             # Verify replace was called with the second temp file
