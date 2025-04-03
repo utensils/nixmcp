@@ -39,7 +39,7 @@ dev = [
     "wily>=1.25.0",
 ]
 win = [
-    "pywin32>=306.0",
+    "pywin32>=306.0",  # Required for Windows-specific file operations and tests
 ]
 
 [project.scripts]

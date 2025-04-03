@@ -359,3 +359,30 @@ def is_windows():
     import sys
 
     return sys.platform == "win32"
+
+
+@pytest.fixture
+def compare_paths():
+    """Return a function to safely compare paths across platforms.
+
+    This handles Windows case-insensitivity and path separator differences.
+    """
+    import os
+    import pathlib
+
+    def _compare(path1, path2):
+        """Compare two paths in a platform-agnostic way."""
+        # Convert to string if paths are Path objects
+        if isinstance(path1, pathlib.Path):
+            path1 = str(path1)
+        if isinstance(path2, pathlib.Path):
+            path2 = str(path2)
+
+        # Normalize path separators
+        path1 = os.path.normpath(path1)
+        path2 = os.path.normpath(path2)
+
+        # Use normcase for case-insensitive comparison on Windows
+        return os.path.normcase(path1) == os.path.normcase(path2)
+
+    return _compare

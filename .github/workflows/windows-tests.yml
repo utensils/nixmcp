@@ -1,0 +1,39 @@
+name: Windows Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install pywin32
+        python -m pip install ".[dev,win]"
+    
+    - name: Run tests
+      run: |
+        python -m pytest tests/
+    
+    - name: Run typechecking
+      run: |
+        python -m pip install pyright
+        pyright

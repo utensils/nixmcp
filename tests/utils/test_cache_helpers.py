@@ -51,16 +51,22 @@ class TestCacheHelpers:
         with mock.patch("sys.platform", "win32"):
             # Test with LOCALAPPDATA set
             with mock.patch.dict(os.environ, {"LOCALAPPDATA": "C:\\Users\\user\\AppData\\Local"}):
-                cache_dir = get_default_cache_dir()
-                expected = os.path.join("C:\\Users\\user\\AppData\\Local", "mcp_nixos", "Cache")
-                assert cache_dir == expected
+                # We need to also mock the existence check for the path
+                with mock.patch("os.path.exists", return_value=True):
+                    cache_dir = get_default_cache_dir()
+                    expected = os.path.join("C:\\Users\\user\\AppData\\Local", "mcp_nixos", "Cache")
+                    # Use normcase for cross-platform path comparison
+                    assert os.path.normcase(cache_dir) == os.path.normcase(expected)
 
             # Test without LOCALAPPDATA (fallback)
             with mock.patch.dict(os.environ, {}, clear=True):
                 with mock.patch("pathlib.Path.home", return_value=pathlib.Path("C:\\Users\\user")):
-                    cache_dir = get_default_cache_dir()
-                    expected = os.path.join("C:\\Users\\user", "AppData", "Local", "mcp_nixos", "Cache")
-                    assert cache_dir == expected
+                    # Mock the home.exists() call
+                    with mock.patch("pathlib.Path.exists", return_value=True):
+                        cache_dir = get_default_cache_dir()
+                        expected = os.path.join("C:\\Users\\user", "AppData", "Local", "mcp_nixos", "Cache")
+                        # Use normcase for cross-platform path comparison
+                        assert os.path.normcase(cache_dir) == os.path.normcase(expected)
 
     def test_get_default_cache_dir_unsupported(self):
         """Test fallback for unsupported platforms."""

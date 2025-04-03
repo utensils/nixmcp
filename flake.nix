@@ -122,8 +122,8 @@
             # Linters & Formatters
             ps.black
             ps.flake8
-            # Standalone pyright package
-            pyright # <--- CORRECTED REFERENCE
+            # Standalone pyright package for cross-platform type checking
+            pyright
 
             # Testing
             ps.pytest
@@ -329,7 +329,7 @@
             {
               name = "complexity";
               category = "development";
-              help = "Run wily to analyze code complexity";
+              help = "Run wily to analyze code complexity (requires command argument: build|report|graph|rank|diff)";
               command = ''
                 if [ -z "$VIRTUAL_ENV" ]; then source .venv/bin/activate; fi
                 
@@ -341,6 +341,28 @@
                   else
                     python -m pip install wily
                   fi
+                fi
+                
+                # Check if argument is provided
+                if [ $# -eq 0 ]; then
+                  echo "=== Wily Code Complexity Analysis ==="
+                  echo "Error: Missing required command argument"
+                  echo ""
+                  echo "Usage: complexity <command> [args]"
+                  echo ""
+                  echo "Commands:"
+                  echo "  build         - Build the wily cache (run this first)"
+                  echo "  report <file> <metric> - Show metrics for a file"
+                  echo "  graph <file> <metric>  - Generate graph visualization"
+                  echo "  rank [path] [metric]   - Rank files by complexity"
+                  echo "  diff [git_ref]         - Show complexity changes (default: HEAD^1)"
+                  echo "  list-metrics  - List available metrics"
+                  echo ""
+                  echo "Examples:"
+                  echo "  complexity build"
+                  echo "  complexity report mcp_nixos/server.py mi"
+                  echo "  complexity diff origin/main"
+                  exit 1
                 fi
                 
                 # Subcommands
@@ -404,6 +426,8 @@
                     ;;
                   *)
                     echo "=== Wily Code Complexity Analysis ==="
+                    echo "Error: Missing required command argument"
+                    echo ""
                     echo "Usage: complexity <command> [args]"
                     echo ""
                     echo "Commands:"
@@ -418,6 +442,7 @@
                     echo "  complexity build"
                     echo "  complexity report mcp_nixos/server.py mi"
                     echo "  complexity diff origin/main"
+                    exit 1
                     ;;
                 esac
               '';

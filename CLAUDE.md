@@ -130,6 +130,7 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Enhance error messages with platform-specific diagnostic information
   - Use platform-aware assertions (e.g., normcase for Windows paths)
   - Never let platform-specific test failures cascade to other test jobs
+  - See detailed guide in `docs/WINDOWS_TESTING.md`
 - Run specific test categories:
   - Unit tests only: `nix run .#run-tests -- --unit`
   - Integration tests only: `nix run .#run-tests -- --integration`
