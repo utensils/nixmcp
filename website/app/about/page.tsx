@@ -36,7 +36,7 @@ export default function AboutPage() {
           <p className="mb-6">
             MCP-NixOS aims to make the NixOS ecosystem more accessible to users through AI assistance. 
             By providing structured access to package information, configuration options, and documentation, 
-            it helps bridge the gap between NixOS's powerful but complex ecosystem and users of all skill levels.
+            it helps bridge the gap between NixOS&apos;s powerful but complex ecosystem and users of all skill levels.
           </p>
           
           <h2 className="text-2xl font-bold mt-10 mb-4">Contributing</h2>

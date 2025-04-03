@@ -84,3 +84,43 @@ pnpm build
 - Designed to be fully responsive for mobile, tablet, and desktop
 - SEO optimized with proper metadata
 - Follows accessibility guidelines (WCAG 2.1 AA)
+
+## Code Quality
+
+The project includes comprehensive linting and type checking:
+
+```bash
+# Run ESLint to check for issues
+npm run lint
+
+# Fix automatically fixable ESLint issues
+npm run lint:fix
+
+# Run TypeScript type checking
+npm run type-check
+```
+
+VS Code settings are included for automatic formatting and linting.
+
+## Next.js 15.2 Component Model
+
+Next.js 15.2 enforces a stricter separation between client and server components:
+
+### Client Components
+- Must include `"use client";` at the top of the file
+- Can use React hooks (useState, useEffect, etc.)
+- Can include event handlers (onClick, onChange, etc.)
+- Can access browser APIs
+
+### Server Components (Default)
+- Cannot use React hooks
+- Cannot include event handlers
+- Cannot access browser APIs
+- Can access backend resources directly
+- Keep sensitive information secure
+
+### Best Practices
+- Mark components with interactive elements as client components
+- Use dynamic imports with `{ ssr: false }` for components with useLayoutEffect
+- Keep server components as the default when possible for better performance
+- Use client components only when necessary for interactivity
