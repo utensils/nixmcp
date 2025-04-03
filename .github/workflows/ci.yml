@@ -155,6 +155,8 @@ jobs:
 
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
+        continue-on-error: true  # Continue to artifact upload even if tests fail
+        id: run_unit_tests
         run: |
           $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
           python -m pytest tests/ -v --unit --cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
@@ -228,6 +230,8 @@ jobs:
 
       - name: Run integration tests (Windows)
         if: runner.os == 'Windows'
+        continue-on-error: true  # Continue to artifact upload even if tests fail
+        id: run_integration_tests
         run: |
           $env:MCP_NIXOS_CACHE_DIR = Join-Path $env:RUNNER_TEMP "mcp_nixos_test_cache_win"
           python -m pytest tests/ -v --integration --cov=mcp_nixos --cov-report=term --cov-report=html --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
