@@ -166,7 +166,7 @@ def pytest_configure(config):
     """
     # Register markers to avoid warnings
     config.addinivalue_line("markers", "timeout(seconds): mark test to timeout after given seconds")
-    config.addinivalue_line("markers", "skipwindows: mark test to be skipped on Windows platforms") 
+    config.addinivalue_line("markers", "skipwindows: mark test to be skipped on Windows platforms")
     config.addinivalue_line("markers", "windows: mark test that should only run on Windows")
 
     # Add the current_test_type attribute to pytest module if it doesn't exist
@@ -348,7 +348,7 @@ def pytest_runtest_setup(item):
 
     if sys.platform == "win32" and item.get_closest_marker("skipwindows"):
         pytest.skip("Test not supported on Windows")
-    
+
     if sys.platform != "win32" and item.get_closest_marker("windows"):
         pytest.skip("Test only supported on Windows")
 

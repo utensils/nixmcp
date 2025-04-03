@@ -171,9 +171,10 @@ class TestWindowsFileLocking:
         except Exception as e:
             # Provide better diagnostic information for Windows-specific errors
             pytest.fail(f"Windows file locking test failed: {e}")
-            
+
         # Ensure file is properly closed before leaving the test
         import gc
+
         gc.collect()  # Force garbage collection to release any file handles
 
     def test_cross_platform_locking_simulation(self, tmp_path):

@@ -69,14 +69,16 @@ def get_default_cache_dir(app_name: str = "mcp_nixos") -> str:
                 else:
                     # Ultimate fallback - use temp directory
                     import tempfile
+
                     base_dir = pathlib.Path(tempfile.gettempdir()) / "AppData" / "Local"
                     base_dir.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 # If all else fails, use the temp directory
                 logger.warning(f"Error finding Windows cache dir: {e}, using temp directory")
                 import tempfile
+
                 base_dir = pathlib.Path(tempfile.gettempdir())
-                
+
         cache_dir = base_dir / app_name / "Cache"
 
     else:
