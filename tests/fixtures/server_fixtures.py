@@ -150,17 +150,9 @@ def server_mock_modules():
         # Add a minimal set of mocks that definitely exist in the server module
     }
 
-    # Add a mock for the mcp_nixos_prompt function
-    mock_prompt = MagicMock()
-    mock_prompt.return_value = """
-    # NixOS, Home Manager, and nix-darwin MCP Guide
-
-    This Model Context Protocol (MCP) provides tools to search and retrieve detailed information about:
-    1. NixOS packages, system options, and service configurations
-    2. Home Manager options for user configuration
-    3. nix-darwin options for macOS configuration
-    """
-    mods["mcp_nixos.server.mcp_nixos_prompt"] = mock_prompt
+    # Since the mcp_nixos_prompt function is not exposed at the module level,
+    # we don't include it in the mocks. It's only used as a method within server.py
+    # and is not imported by other modules.
 
     return mods
 

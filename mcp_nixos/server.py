@@ -34,6 +34,8 @@ Home Manager and nix-darwin documentation.
 """
 
 import asyncio
+import os
+import psutil
 import signal
 import sys
 import time
@@ -847,9 +849,6 @@ if __name__ == "__main__":
 
         # Log process and environment information for debugging
         try:
-            import psutil
-            import os
-
             process = psutil.Process()
             # Log basic process info
             logger.info(f"Process info - PID: {process.pid}, Parent PID: {process.ppid()}")

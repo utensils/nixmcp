@@ -120,12 +120,31 @@ class TestServerMain:
         mock_psutil = MagicMock()
         mock_process = MagicMock(pid=12345, ppid=MagicMock(return_value=54321))
 
-        mock_psutil.NoSuchProcess = type("NoSuchProcess", (Exception,), {"pid": None})
-        mock_psutil.AccessDenied = type("AccessDenied", (Exception,), {})
+        # Create NoSuchProcess exception class with proper pid attribute
+        class MockNoSuchProcess(Exception):
+            def __init__(self, pid=None):
+                self.pid = pid
+                super().__init__(f"No process found with pid {pid}")
 
-        mock_psutil.Process = MagicMock(
-            side_effect=lambda pid=None: (mock_process if pid is None else mock_psutil.NoSuchProcess(pid=pid))
-        )
+        # Create AccessDenied exception class
+        class MockAccessDenied(Exception):
+            pass
+
+        # Configure the psutil mock
+        mock_psutil.NoSuchProcess = MockNoSuchProcess
+        mock_psutil.AccessDenied = MockAccessDenied
+
+        # Define a function that raises the exception for parent process
+        def mock_process_factory(pid=None):
+            if pid is None:
+                return mock_process
+            elif pid == 54321:  # This is the parent pid from mock_process.ppid()
+                raise MockNoSuchProcess(pid=pid)
+            else:
+                parent_mock = MagicMock(pid=pid)
+                return parent_mock
+
+        mock_psutil.Process = MagicMock(side_effect=mock_process_factory)
 
         # Apply patches
         modified_mocks = {
@@ -153,14 +172,16 @@ class TestServerMain:
                     except (
                         modified_mocks["mcp_nixos.server.psutil"].NoSuchProcess,
                         modified_mocks["mcp_nixos.server.psutil"].AccessDenied,
-                    ):
+                    ) as e:
+                        print(f"Caught expected exception: {type(e).__name__}")
                         modified_mocks["mcp_nixos.server.logger"].info("Unable to access parent process information")
 
                     modified_mocks["mcp_nixos.server.mcp"].run()
+                    return 0
                 except Exception as e:
+                    print(f"Unexpected exception: {type(e).__name__}: {e}")
                     modified_mocks["mcp_nixos.server.logger"].error(f"Error running server: {e}", exc_info=True)
                     return 1
-                return 0
 
             # Run the function
             result = simulate_main()

@@ -2,23 +2,21 @@
 
 import asyncio
 import pytest
-from unittest.mock import MagicMock, AsyncMock
-
-# Import patch helper
-from tests.fixtures.patch_helper import patch_dict
 
 
 class TestServerStartupErrorHandling:
     """Test error handling during server startup."""
 
     @pytest.mark.asyncio
-    async def test_darwin_context_startup_error(self, server_mock_modules):
+    async def test_darwin_context_startup_error(self):
         """Test recovery from Darwin context startup error."""
-        # Create a custom async_with_timeout that raises an exception
-        mock_async_with_timeout = AsyncMock(side_effect=Exception("Darwin startup failed"))
+        # Use direct mocking
+        from unittest.mock import patch, MagicMock, AsyncMock
 
-        # Update mock modules
-        modified_mocks = {**server_mock_modules, "mcp_nixos.server.async_with_timeout": mock_async_with_timeout}
+        # Create mock objects
+        mock_logger = MagicMock()
+        mock_darwin_context = MagicMock()
+        mock_darwin_context.startup = AsyncMock()
 
         # Test event and lifespan context
         mock_app_ready = MagicMock()
@@ -26,45 +24,51 @@ class TestServerStartupErrorHandling:
         mock_protocol_initialized.wait = AsyncMock()
         mock_lifespan_context = {}
 
-        with patch_dict(modified_mocks):
-            # Create a simplified version of the startup function
-            async def simulate_startup():
-                try:
-                    await modified_mocks["mcp_nixos.server.async_with_timeout"](
-                        lambda: modified_mocks["mcp_nixos.server.darwin_context"].startup(),
-                        timeout_seconds=10.0,
-                        operation_name="Darwin context startup",
-                    )
-                except Exception as e:
-                    modified_mocks["mcp_nixos.server.logger"].error(f"Error starting Darwin context: {e}")
+        # Create a function that simulates an error
+        async def mock_async_timeout_function(**kwargs):
+            raise Exception("Darwin startup failed")
 
-                # Mark app as ready despite error
-                mock_app_ready.set()
+        # Patch the relevant modules
+        with patch("mcp_nixos.server.logger", mock_logger):
+            with patch("mcp_nixos.server.darwin_context", mock_darwin_context):
+                with patch("mcp_nixos.server.async_with_timeout", side_effect=mock_async_timeout_function):
+                    # Create a simplified version of the startup function
+                    async def simulate_startup():
+                        try:
+                            # This will raise the exception we defined
+                            await mock_async_timeout_function(operation_name="Darwin context startup")
+                        except Exception as e:
+                            mock_logger.error(f"Error starting Darwin context: {e}")
 
-                # Wait for protocol init (simulate success)
-                await mock_protocol_initialized.wait()
-                mock_lifespan_context["is_ready"] = True
+                        # Mark app as ready despite error
+                        mock_app_ready.set()
 
-            # Execute the function
-            await simulate_startup()
+                        # Wait for protocol init (simulate success)
+                        await mock_protocol_initialized.wait()
+                        mock_lifespan_context["is_ready"] = True
 
-            # Verify error was logged but startup continued
-            modified_mocks["mcp_nixos.server.logger"].error.assert_called_with(
-                "Error starting Darwin context: Darwin startup failed"
-            )
-            mock_app_ready.set.assert_called_once()
-            assert mock_lifespan_context["is_ready"] is True
+                    # Execute the function
+                    await simulate_startup()
+
+                    # Verify error was logged but startup continued
+                    mock_logger.error.assert_called_with("Error starting Darwin context: Darwin startup failed")
+                    mock_app_ready.set.assert_called_once()
+                    assert mock_lifespan_context["is_ready"] is True
 
     @pytest.mark.asyncio
-    async def test_protocol_initialization_timeout(self, server_mock_modules):
+    async def test_protocol_initialization_timeout(self):
         """Test recovery from MCP protocol initialization timeout."""
+        from unittest.mock import patch, MagicMock, AsyncMock
+
         # Set up test objects
+        mock_logger = MagicMock()
         mock_app_ready = MagicMock()
         mock_protocol_initialized = MagicMock()
         mock_protocol_initialized.wait = AsyncMock(side_effect=asyncio.TimeoutError())
         mock_lifespan_context = {}
 
-        with patch_dict(server_mock_modules):
+        # Patch the logger
+        with patch("mcp_nixos.server.logger", mock_logger):
             # Create a simplified version of the protocol init timeout handler
             async def simulate_protocol_timeout():
                 # Mark app as ready
@@ -73,12 +77,10 @@ class TestServerStartupErrorHandling:
                 # Wait for MCP protocol initialization (with timeout)
                 try:
                     await asyncio.wait_for(mock_protocol_initialized.wait(), timeout=5.0)
-                    server_mock_modules["mcp_nixos.server.logger"].info("MCP protocol initialization complete")
+                    mock_logger.info("MCP protocol initialization complete")
                     mock_lifespan_context["is_ready"] = True
                 except asyncio.TimeoutError:
-                    server_mock_modules["mcp_nixos.server.logger"].warning(
-                        "Timeout waiting for MCP initialize request. Server will proceed anyway."
-                    )
+                    mock_logger.warning("Timeout waiting for MCP initialize request. Server will proceed anyway.")
                     # Still mark as ready to avoid hanging
                     mock_lifespan_context["is_ready"] = True
 
@@ -86,15 +88,19 @@ class TestServerStartupErrorHandling:
             await simulate_protocol_timeout()
 
             # Verify timeout was handled and server continued
-            server_mock_modules["mcp_nixos.server.logger"].warning.assert_called_with(
+            mock_logger.warning.assert_called_with(
                 "Timeout waiting for MCP initialize request. Server will proceed anyway."
             )
             mock_app_ready.set.assert_called_once()
             assert mock_lifespan_context["is_ready"] is True
 
-    def test_prompt_function(self, server_mock_modules):
-        """Test that the prompt configuration function returns expected content."""
-        with patch_dict(server_mock_modules):
-            # Verify the function was called and returns expected content
-            mock_prompt_func = server_mock_modules["mcp_nixos.server.mcp_nixos_prompt"]
-            assert "Model Context Protocol (MCP)" in mock_prompt_func()
+    def test_prompt_function(self):
+        """Test that the prompt configuration uses expected decorator pattern."""
+        # This test verifies that the prompt function is defined with the @prompt decorator
+        # which we can test by checking for the pattern in the source code
+        import inspect
+        import mcp_nixos.server
+
+        source = inspect.getsource(mcp_nixos.server)
+        assert "@mcp_server.prompt()" in source
+        assert "def mcp_nixos_prompt():" in source

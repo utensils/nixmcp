@@ -3,9 +3,7 @@
 import os
 import time
 import pytest
-import tempfile
-import pathlib
-from unittest.mock import MagicMock, patch, mock_open, PropertyMock
+from unittest.mock import MagicMock, patch, mock_open
 
 from mcp_nixos.utils.cache_helpers import lock_file, unlock_file, atomic_write, write_with_metadata, read_with_metadata
 
@@ -369,8 +367,7 @@ class TestMetadataOperations:
         # Mock necessary components
         m = mock_open()
 
-        # Create a custom metadata dictionary and make metadata contain lock_error=True
-        metadata_to_return = {"file_path": "/tmp/file.json", "metadata_exists": False}
+        # Setup metadata check
 
         # Instead of testing implementation details, we'll manually verify that:
         # 1. The file exists check works
