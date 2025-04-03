@@ -10,7 +10,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 # Mark all tests in this module as asyncio and integration tests
 pytestmark = [pytest.mark.integration]
@@ -261,8 +261,11 @@ class TestServerTermination:
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
 
+        # Create a proper AsyncMock for run_precache_async to avoid warnings
+        mock_run_precache = AsyncMock(return_value=True)
+
         # Import server module with patched env
-        with patch("mcp_nixos.server.logger"):
+        with patch("mcp_nixos.server.logger"), patch("mcp_nixos.server.run_precache_async", mock_run_precache):
             from mcp_nixos.server import app_lifespan, darwin_context
 
             # Set up darwin_context.shutdown to raise exception
@@ -292,8 +295,11 @@ class TestServerTermination:
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
 
+        # Create a proper AsyncMock for run_precache_async to avoid warnings
+        mock_run_precache = AsyncMock(return_value=True)
+
         # Import server module with patched env
-        with patch("mcp_nixos.server.logger"):
+        with patch("mcp_nixos.server.logger"), patch("mcp_nixos.server.run_precache_async", mock_run_precache):
             from mcp_nixos.server import app_lifespan, darwin_context
 
             # Create a sleep function that simulates a hung operation
@@ -353,8 +359,11 @@ class TestResourceCleanupOnTermination:
         if "mcp_nixos.server" in sys.modules:
             del sys.modules["mcp_nixos.server"]
 
+        # Create a proper AsyncMock for run_precache_async to avoid warnings
+        mock_run_precache = AsyncMock(return_value=True)
+
         # Set up signal handling mocks
-        with patch("mcp_nixos.server.logger"):
+        with patch("mcp_nixos.server.logger"), patch("mcp_nixos.server.run_precache_async", mock_run_precache):
             from mcp_nixos.server import app_lifespan, darwin_context
 
             # Create mock resources that we expect to be cleaned up
