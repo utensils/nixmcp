@@ -3,12 +3,15 @@
 name: CI
 
 on:
+  # Only run on push events for the main branch and tags
   push:
     branches: [main]
     tags: ["v*"] # Run CI on version tags
+  # Run on pull requests to the main branch
   pull_request:
     branches: [main]
-  workflow_dispatch: # Allow manual trigger
+  # Allow manual trigger
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

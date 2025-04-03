@@ -30,6 +30,14 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Never create additional workflow files as it leads to duplicate/conflicting CI runs
 - The main workflow already includes cross-platform testing (Linux, macOS, Windows)
 - Update the existing ci.yml file when adding new CI steps instead of creating new files
+- When working with PRs:
+  - The CI workflow is configured to run only on:
+    - Pushes to `main` branch
+    - Pull requests targeting the `main` branch
+    - Version tag pushes
+  - Pushes to `develop` branch will not trigger CI unless there's an open PR to `main`
+  - CI may run twice for PR updates - this is controlled by the concurrency settings
+  - The `cancel-in-progress: true` setting ensures older runs are cancelled when new commits are pushed
 
 ## Architecture
 
