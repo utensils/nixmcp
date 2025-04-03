@@ -5,7 +5,6 @@ that might contain unresolved coroutines.
 """
 
 import pytest
-import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 
 
@@ -73,9 +72,8 @@ class TestServerShutdown:
         mock_logger = Mock()
         mock_logger.warning = Mock()
 
-        # Define the mock run_precache_async function
-        # We'll use a synchronous function internally to avoid coroutine warnings
-        mock_run_precache_async = Mock(return_value=True)
+        # Define a synchronous function to mimic the server's behavior
+        # avoiding asyncio-related coroutine warnings
 
         # Create a simplified stand-alone test function that mimics the timeout behavior
         def simulate_server_shutdown_with_timeout():
@@ -139,28 +137,28 @@ class TestPrecacheIntegration:
     @pytest.mark.asyncio
     async def test_run_precache_async_integration(self):
         """Test run_precache_async function properly awaited in shutdown context.
-        
+
         This test creates a mock for the actual run_precache_async coroutine
         and properly awaits it to prevent asyncio warnings.
         """
         # Create a proper mock for the async function
         mock_run_precache_async = AsyncMock(return_value=True)
-        
+
         # Create mocks for the context
         mock_logger = Mock()
-        
+
         # Apply patches to avoid importing real modules
-        with patch("asyncio.create_task") as mock_create_task:
+        with patch("asyncio.create_task"):
             # Create a test coroutine that properly awaits
             async def test_coro():
                 # Call the mocked async function and await it properly
                 result = await mock_run_precache_async()
                 mock_logger.info("Precache completed with result: {result}")
                 return result
-                
+
             # Run the test coroutine
             result = await test_coro()
-            
+
             # Verify behavior
             assert result is True
             assert mock_run_precache_async.called

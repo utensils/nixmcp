@@ -5,8 +5,6 @@ This module tests the version detection mechanisms in the mcp_nixos/__init__.py 
 """
 
 import sys
-import pytest
-import importlib
 from unittest.mock import patch, MagicMock
 
 
@@ -24,12 +22,12 @@ def test_version_from_metadata(mock_version):
     """Test version detection using importlib.metadata.version."""
     # Mock the behavior of importlib.metadata.version
     mock_version.return_value = "1.2.3"
-    
+
     # Force reload of the module
     if "mcp_nixos" in sys.modules:
         del sys.modules["mcp_nixos"]
     import mcp_nixos
-    
+
     # Check that the correct version is set
     assert mcp_nixos.__version__ == "1.2.3"
     mock_version.assert_called_once_with("mcp-nixos")
@@ -40,13 +38,14 @@ def test_version_fallback_package_not_found(mock_version):
     """Test version fallback when package is not found."""
     # Mock the behavior when package is not found
     from importlib.metadata import PackageNotFoundError
+
     mock_version.side_effect = PackageNotFoundError("mcp-nixos")
-    
+
     # Force reload of the module
     if "mcp_nixos" in sys.modules:
         del sys.modules["mcp_nixos"]
     import mcp_nixos
-    
+
     # Check that the default version is used
     assert mcp_nixos.__version__ == "0.2.3"
     mock_version.assert_called_once_with("mcp-nixos")
@@ -60,12 +59,12 @@ def test_version_fallback_for_older_python(mock_get_distribution, _):
     mock_dist = MagicMock()
     mock_dist.version = "3.4.5"
     mock_get_distribution.return_value = mock_dist
-    
+
     # Force reload of the module
     if "mcp_nixos" in sys.modules:
         del sys.modules["mcp_nixos"]
     import mcp_nixos
-    
+
     # Check that the version from pkg_resources is used
     assert mcp_nixos.__version__ == "3.4.5"
     mock_get_distribution.assert_called_once_with("mcp-nixos")
@@ -79,7 +78,7 @@ def test_version_ultimate_fallback(mock_get_distribution, _):
     if "mcp_nixos" in sys.modules:
         del sys.modules["mcp_nixos"]
     import mcp_nixos
-    
+
     # Check that the default version is used when everything fails
     assert mcp_nixos.__version__ == "0.2.3"
     mock_get_distribution.assert_called_once()
