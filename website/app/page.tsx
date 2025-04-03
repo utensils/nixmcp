@@ -6,10 +6,10 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-nix-primary to-nix-dark text-white py-20">
+      <section className="bg-gradient-to-b from-nix-primary to-nix-dark text-white py-20 shadow-lg">
         <div className="container-custom text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">MCP-NixOS</h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto font-medium drop-shadow-sm">
             Model Context Protocol resources and tools for NixOS, Home Manager, and nix-darwin
           </p>
           <div className="flex flex-col md:flex-row gap-4 justify-center">
@@ -26,7 +26,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">Key Features</h2>
+          <h2 className="text-3xl font-bold text-center mb-12 text-nix-dark">Key Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard 
               title="NixOS Packages & Options" 
@@ -65,23 +65,19 @@ export default function Home() {
       {/* Getting Started Section */}
       <section className="py-16 bg-nix-light">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">Getting Started</h2>
+          <h2 className="text-3xl font-bold text-center mb-12 text-nix-dark">Getting Started</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
-              <h3 className="text-2xl font-bold mb-4">Installation</h3>
-              <p className="mb-6">
+              <h3 className="text-2xl font-bold mb-4 text-nix-primary">Installation</h3>
+              <p className="mb-6 text-gray-800 font-medium">
                 You can install MCP-NixOS using pip, uv, or add it to your Claude configuration:
               </p>
               <CodeBlock code="pip install mcp-nixos" language="bash" />
               <CodeBlock code="uv pip install mcp-nixos" language="bash" />
-              <p className="mt-6">
-                Or use Docker:
-              </p>
-              <CodeBlock code="docker run --rm ghcr.io/utensils/mcp-nixos" language="bash" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold mb-4">Configuration</h3>
-              <p className="mb-6">
+              <h3 className="text-2xl font-bold mb-4 text-nix-primary">Configuration</h3>
+              <p className="mb-6 text-gray-800 font-medium">
                 Add to your Claude Code configuration file:
               </p>
               <CodeBlock 
@@ -95,7 +91,7 @@ export default function Home() {
 }`} 
                 language="json" 
               />
-              <p className="mt-6">
+              <p className="mt-6 text-gray-800 font-medium">
                 Then start asking Claude about NixOS packages and configuration options!
               </p>
             </div>
