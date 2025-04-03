@@ -125,6 +125,19 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 
 ## Development
 
+### Website 
+- The website is built with Next.js 15.2 and Tailwind CSS in the `/website` directory
+- Uses TypeScript, App Router, and static export for AWS S3/CloudFront hosting
+- NixOS color scheme is used throughout: primary #5277C3, secondary #7EBAE4
+- Nested shell architecture:
+  - Main shell has single command: `web-dev` - Launch website development shell
+  - Website shell (`nix develop .#web`) provides dedicated commands:
+    - `install` - Install dependencies 
+    - `dev` - Start development server
+    - `build` - Build for production
+    - `lint` - Lint code
+- Follows responsive design principles and accessibility guidelines (WCAG 2.1 AA)
+
 ### C Extension Compilation Support
 - Fully supports building C extensions via native libffi support
 - Environment setup managed by flake.nix for build tools and headers
@@ -214,6 +227,17 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Add clear error messages to assertions
 - Prevent test flakiness by avoiding sleep/timing dependencies
 - Use clean logger fixtures to prevent test interaction
+
+### Development Shells
+- Project uses a nested shell architecture for development environments:
+  - `devShells.default`: Main Python development shell
+  - `devShells.web`: Dedicated Node.js shell for website development
+- Separation prevents dependency conflicts between Python and Node.js
+- Each shell has purpose-specific commands via `pkgs.devshell.mkShell`
+- Shell navigation:
+  - From host system: `nix develop` (main) or `nix develop .#web` (website)
+  - From main shell: `web-dev` launches website shell
+  - Each shell shows commands via menu interface
 
 ### Dependency Management
 - Project uses `pyproject.toml` for dependency specification (PEP 621)
