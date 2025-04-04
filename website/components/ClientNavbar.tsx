@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function ClientNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,7 +15,14 @@ export default function ClientNavbar() {
       <div className="container-custom mx-auto py-4">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center space-x-2">
+            <Image 
+              src="/images/nixos-snowflake-colour.svg" 
+              alt="NixOS Snowflake" 
+              width={32} 
+              height={32} 
+              className="h-8 w-8"
+            />
             <Link href="/" className="text-2xl font-bold text-nix-primary">
               MCP-NixOS
             </Link>

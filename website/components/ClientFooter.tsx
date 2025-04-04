@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function ClientFooter() {
   return (
@@ -114,12 +115,27 @@ export default function ClientFooter() {
 
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-gray-200 text-center text-gray-500">
-          <p>© {new Date().getFullYear()} MCP-NixOS. MIT License.</p>
-          <p className="mt-2 text-sm">
-            <Link href="/images/attribution.md" className="hover:text-nix-primary">
-              Logo Attribution
-            </Link>
-          </p>
+          <div className="flex flex-col items-center justify-center">
+            <p>© {new Date().getFullYear()} MCP-NixOS. MIT License.</p>
+            <div className="flex items-center mt-4 mb-2">
+              <Link href="https://utensils.io" target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-nix-primary mr-2">
+                <Image 
+                  src="/images/utensils-logo.png" 
+                  alt="Utensils Logo" 
+                  width={24} 
+                  height={24} 
+                  className="mr-1" 
+                />
+                <span className="font-medium">Utensils</span>
+              </Link>
+              <span>project</span>
+            </div>
+            <p className="mt-2 text-sm">
+              <Link href="/images/attribution.md" className="hover:text-nix-primary">
+                Logo Attribution
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

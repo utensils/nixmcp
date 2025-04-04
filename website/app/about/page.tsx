@@ -1,4 +1,6 @@
 
+import Image from 'next/image';
+
 export default function AboutPage() {
   return (
     <div className="py-12 bg-white">
@@ -34,6 +36,23 @@ export default function AboutPage() {
               various AI assistants and applications. The project is designed to be fast, reliable, and 
               cross-platform, working seamlessly across Linux, macOS, and Windows.
             </p>
+            
+            <div className="mt-8 p-4 bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center mb-2">
+                <Image 
+                  src="/images/utensils-logo.png" 
+                  alt="Utensils Logo" 
+                  width={36} 
+                  height={36} 
+                  className="mr-2" 
+                />
+                <h3 className="font-semibold text-nix-dark">Utensils Project</h3>
+              </div>
+              <p className="text-gray-700">
+                MCP-NixOS is developed and maintained by <a href="https://utensils.io" target="_blank" rel="noopener noreferrer" className="text-nix-primary hover:underline">Utensils</a>, 
+                an organization focused on creating high-quality tools and utilities for developers and system engineers.
+              </p>
+            </div>
           </section>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
