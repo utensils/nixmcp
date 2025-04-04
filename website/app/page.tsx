@@ -16,7 +16,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-nix-primary to-nix-dark text-white py-20 shadow-lg">
-        <div className="container-custom text-center">
+        <div className="container-custom text-center pl-6">
           <AnchorHeading level={1} className="text-4xl md:text-6xl font-bold mb-6">MCP-NixOS</AnchorHeading>
           <div className="mb-8 max-w-3xl mx-auto">
             <p className="text-xl md:text-2xl font-medium mb-2">
@@ -76,7 +76,7 @@ export default function Home() {
 
       {/* Features Section */}
       <section className="py-16 bg-white">
-        <div className="container-custom">
+        <div className="container-custom pl-6">
           <AnchorHeading level={2} className="text-3xl font-bold text-center mb-12 text-nix-dark">Key Features</AnchorHeading>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard 
@@ -115,7 +115,7 @@ export default function Home() {
 
       {/* Getting Started Section */}
       <section id="getting-started" className="py-16 bg-nix-light">
-        <div className="container-custom">
+        <div className="container-custom pl-6">
           <AnchorHeading level={2} className="text-3xl font-bold text-center mb-12 text-nix-dark">Getting Started</AnchorHeading>
           <div className="max-w-2xl mx-auto">
             <AnchorHeading level={3} className="text-2xl font-bold mb-4 text-nix-primary">Configuration</AnchorHeading>

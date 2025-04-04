@@ -21,7 +21,7 @@ const AnchorHeading: React.FC<AnchorHeadingProps> = ({
   // Generate an ID from the children if none is provided
   const headingId = id || (typeof children === 'string' 
     ? children.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') 
-    : '');
+    : `heading-${Math.random().toString(36).substring(2, 9)}`);
   
   const handleAnchorClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -35,16 +35,16 @@ const AnchorHeading: React.FC<AnchorHeadingProps> = ({
   const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
   
   return (
-    <HeadingTag id={headingId} className={`group relative ${className}`}>
-      {children}
+    <HeadingTag id={headingId} className={`group relative flex items-center ${className}`}>
       <a
         href={`#${headingId}`}
         onClick={handleAnchorClick}
-        className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-nix-primary hover:text-nix-dark"
+        className="absolute -left-6 w-6 text-center opacity-30 group-hover:opacity-100 transition-opacity text-nix-primary hover:text-nix-dark font-semibold"
         aria-label={`Link to ${typeof children === 'string' ? children : 'this heading'}`}
       >
         #
       </a>
+      {children}
     </HeadingTag>
   );
 };
