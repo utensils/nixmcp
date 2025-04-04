@@ -1,16 +1,17 @@
 import CodeBlock from '@/components/CodeBlock';
+import AnchorHeading from '@/components/AnchorHeading';
 
 export default function DocsPage() {
   return (
     <div className="py-12 bg-white">
       <div className="container-custom">
-        <h1 className="text-4xl font-bold mb-8 text-nix-dark">Documentation</h1>
+        <AnchorHeading level={1} className="text-4xl font-bold mb-8 text-nix-dark">Documentation</AnchorHeading>
         
         <div className="prose prose-lg max-w-none">
-          <h2 className="text-2xl font-bold mt-8 mb-6 text-nix-primary border-b border-nix-light pb-2">API Reference</h2>
+          <AnchorHeading level={2} className="text-2xl font-bold mt-8 mb-6 text-nix-primary border-b border-nix-light pb-2">API Reference</AnchorHeading>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-4 text-nix-dark">NixOS Resources & Tools</h3>
+            <AnchorHeading level={3} className="text-xl font-bold mb-4 text-nix-dark">NixOS Resources & Tools</AnchorHeading>
             <ul className="grid gap-3 mb-6">
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 rounded-full bg-nix-primary mt-2 mr-3 flex-shrink-0"></span>
@@ -37,12 +38,12 @@ export default function DocsPage() {
             </ul>
             
             <div className="mt-6">
-              <h4 className="text-lg font-semibold mb-3 text-nix-primary flex items-center">
+              <AnchorHeading level={4} className="text-lg font-semibold mb-3 text-nix-primary flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                 </svg>
                 Example: Search for a package
-              </h4>
+              </AnchorHeading>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -59,7 +60,7 @@ export default function DocsPage() {
           </section>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-4 text-nix-dark">Home Manager Resources & Tools</h3>
+            <AnchorHeading level={3} className="text-xl font-bold mb-4 text-nix-dark">Home Manager Resources & Tools</AnchorHeading>
             <ul className="grid gap-3 mb-6">
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 rounded-full bg-nix-primary mt-2 mr-3 flex-shrink-0"></span>
@@ -82,12 +83,12 @@ export default function DocsPage() {
             </ul>
             
             <div className="mt-6">
-              <h4 className="text-lg font-semibold mb-3 text-nix-primary flex items-center">
+              <AnchorHeading level={4} className="text-lg font-semibold mb-3 text-nix-primary flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                 </svg>
                 Example: Get options by prefix
-              </h4>
+              </AnchorHeading>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -102,7 +103,7 @@ export default function DocsPage() {
           </section>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-4 text-nix-dark">nix-darwin Resources & Tools</h3>
+            <AnchorHeading level={3} className="text-xl font-bold mb-4 text-nix-dark">nix-darwin Resources & Tools</AnchorHeading>
             <ul className="grid gap-3 mb-6">
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 rounded-full bg-nix-primary mt-2 mr-3 flex-shrink-0"></span>
@@ -125,12 +126,12 @@ export default function DocsPage() {
             </ul>
             
             <div className="mt-6">
-              <h4 className="text-lg font-semibold mb-3 text-nix-primary flex items-center">
+              <AnchorHeading level={4} className="text-lg font-semibold mb-3 text-nix-primary flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                 </svg>
                 Example: Search for darwin options
-              </h4>
+              </AnchorHeading>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -145,7 +146,7 @@ export default function DocsPage() {
             </div>
           </section>
           
-          <h2 className="text-2xl font-bold mt-12 mb-6 text-nix-primary border-b border-nix-light pb-2">Configuration</h2>
+          <AnchorHeading level={2} className="text-2xl font-bold mt-12 mb-6 text-nix-primary border-b border-nix-light pb-2">Configuration</AnchorHeading>
           <p className="mb-6 text-gray-800 font-medium">MCP-NixOS can be configured through environment variables:</p>
           
           <div className="overflow-x-auto mb-12 rounded-lg shadow-sm">
