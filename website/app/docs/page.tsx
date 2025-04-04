@@ -66,18 +66,18 @@ export default function DocsPage() {
                     </div>
                     <p className="text-gray-700 mb-3 pl-8">Access the vast NixOS ecosystem with tools for searching packages, exploring options, and retrieving detailed information.</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pl-8">
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      <a href="#nixos_search" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">nixos_search</code>
                         <span className="text-sm text-gray-600">Find packages, options, or programs</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#nixos_info" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">nixos_info</code>
                         <span className="text-sm text-gray-600">Get detailed information about specific items</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#nixos_stats" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">nixos_stats</code>
                         <span className="text-sm text-gray-600">View statistics about available packages and options</span>
-                      </div>
+                      </a>
                     </div>
                   </div>
                   
@@ -91,22 +91,22 @@ export default function DocsPage() {
                     </div>
                     <p className="text-gray-700 mb-3 pl-8">Configure and manage your user environment with tools specifically for Home Manager options and settings.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-8">
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      <a href="#home_manager_search" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">home_manager_search</code>
                         <span className="text-sm text-gray-600">Search Home Manager options</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#home_manager_info" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">home_manager_info</code>
                         <span className="text-sm text-gray-600">Get details about specific options</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#home_manager_options_by_prefix" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">home_manager_options_by_prefix</code>
                         <span className="text-sm text-gray-600">Browse options by category</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#home_manager_stats" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">home_manager_stats</code>
                         <span className="text-sm text-gray-600">View statistics about available options</span>
-                      </div>
+                      </a>
                     </div>
                   </div>
                   
@@ -120,26 +120,26 @@ export default function DocsPage() {
                     </div>
                     <p className="text-gray-700 mb-3 pl-8">Configure macOS systems with tools for exploring and understanding nix-darwin options and configurations.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pl-8">
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      <a href="#darwin_search" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">darwin_search</code>
                         <span className="text-sm text-gray-600">Search nix-darwin options</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#darwin_info" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">darwin_info</code>
                         <span className="text-sm text-gray-600">Get details about specific options</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#darwin_list_options" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">darwin_list_options</code>
                         <span className="text-sm text-gray-600">View all top-level categories</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#darwin_options_by_prefix" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">darwin_options_by_prefix</code>
                         <span className="text-sm text-gray-600">Browse options by category</span>
-                      </div>
-                      <div className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors">
+                      </a>
+                      <a href="#darwin_stats" className="border border-gray-200 rounded p-3 hover:bg-nix-light hover:bg-opacity-20 transition-colors cursor-pointer no-underline">
                         <code className="font-mono text-nix-dark block mb-1">darwin_stats</code>
                         <span className="text-sm text-gray-600">View statistics about available options</span>
-                      </div>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -167,12 +167,14 @@ export default function DocsPage() {
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <div className="flex items-center">
+                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
                 </svg>
-                Example: Search for packages
-              </AnchorHeading>
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Example: Search for packages
+                </h5>
+              </div>
               <CodeBlock
                 code={`{
   &quot;type&quot;: &quot;call&quot;,
@@ -227,12 +229,14 @@ export default function DocsPage() {
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <div className="flex items-center">
+                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
                 </svg>
-                Example: Search for options
-              </AnchorHeading>
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Example: Search for options
+                </h5>
+              </div>
               <CodeBlock
                 code={`{
   &quot;type&quot;: &quot;call&quot;,
@@ -260,12 +264,14 @@ export default function DocsPage() {
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get package info
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get package info
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -319,12 +325,14 @@ used in a wide variety of application domains...
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get NixOS stats
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get NixOS stats
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -378,12 +386,14 @@ Total options: 21,496
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <div className="flex items-center">
+                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
                 </svg>
-                Example: Search for options
-              </AnchorHeading>
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Example: Search for options
+                </h5>
+              </div>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -395,6 +405,43 @@ Total options: 21,496
 }`}
                 language="json"
               />
+              <div className="mt-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                <h6 className="font-semibold text-nix-dark mb-2">Sample Response:</h6>
+                <CodeBlock
+                  code={`# Search Results for 'programs.neovim' (5 of 12 results)
+
+## programs.neovim.enable
+
+**Type**: boolean
+**Default**: false
+**Description**: Whether to enable Neovim.
+
+## programs.neovim.defaultEditor
+
+**Type**: boolean
+**Default**: false
+**Description**: Whether to configure the EDITOR environment variable to use Neovim.
+
+## programs.neovim.package
+
+**Type**: package
+**Default**: pkgs.neovim
+**Description**: The Neovim package to use.
+
+## programs.neovim.viAlias
+
+**Type**: boolean
+**Default**: false
+**Description**: Symlink 'vi' to 'nvim' binary.
+
+## programs.neovim.vimAlias
+
+**Type**: boolean
+**Default**: false
+**Description**: Symlink 'vim' to 'nvim' binary.`}
+                  language="markdown"
+                />
+              </div>
             </div>
             
             <AnchorHeading level={4} className="text-lg font-semibold mt-8 mb-3 text-nix-primary">home_manager_info()</AnchorHeading>
@@ -408,12 +455,14 @@ Total options: 21,496
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get option info
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get option info
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -424,6 +473,41 @@ Total options: 21,496
 }`}
                 language="json"
               />
+              <div className="mt-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                <h6 className="font-semibold text-nix-dark mb-2">Sample Response:</h6>
+                <CodeBlock
+                  code={`# programs.git.enable
+
+## Type
+boolean
+
+## Default
+false
+
+## Description
+Whether to install and configure Git.
+
+## Declared In
+/nix/store/...-source/modules/programs/git.nix:15
+
+## Defined In
+/nix/store/...-source/modules/programs/git.nix:15
+
+## Example
+{
+  programs.git.enable = true;
+}
+
+## Related Options
+- programs.git.package
+- programs.git.userName
+- programs.git.userEmail
+- programs.git.aliases
+- programs.git.signing
+- programs.git.extraConfig`}
+                  language="markdown"
+                />
+              </div>
             </div>
             
             <AnchorHeading level={4} className="text-lg font-semibold mt-8 mb-3 text-nix-primary">home_manager_list_options()</AnchorHeading>
@@ -435,12 +519,14 @@ Total options: 21,496
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: List option categories
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: List option categories
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -487,12 +573,14 @@ Total options: 2456
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get options by prefix
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get options by prefix
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -562,12 +650,14 @@ To see all options in this group, use:
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get Home Manager stats
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get Home Manager stats
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -636,12 +726,14 @@ Option types: 391
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Search for darwin options
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Search for darwin options
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -692,12 +784,14 @@ Option types: 391
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get option info
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get option info
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -737,12 +831,14 @@ system activation.
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: List option categories
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: List option categories
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -835,12 +931,14 @@ To view options in a specific category, use the \`darwin_options_by_prefix\` too
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get options by prefix
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get options by prefix
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
@@ -923,12 +1021,14 @@ For more details, use \`darwin_info("homebrew.whalebrews")\`
             </div>
             
             <div className="mt-4 mb-6">
-              <AnchorHeading level={5} className="text-md font-semibold mb-2 text-nix-primary flex items-center">
-                <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
-                </svg>
-                Example: Get Darwin stats
-              </AnchorHeading>
+              <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <div className="flex items-center">
+                  <svg xmlns={"http://www.w3.org/2000/svg"} className="h-5 w-5 mr-2 text-nix-primary" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d={"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"} clipRule="evenodd" />
+                  </svg>
+                  Example: Get Darwin stats
+                </div>
+              </h5>
               <CodeBlock
                 code={`{
   "type": "call",
