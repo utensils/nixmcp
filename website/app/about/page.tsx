@@ -292,8 +292,9 @@ export default function AboutPage() {
                   Sean is the unsung hero who never actually wrote any code for this project but was absolutely
                   essential to its success. His contributions include saying &quot;that looks cool&quot; during demos,
                   suggesting features that were impossible to implement, and occasionally sending encouraging
-                  emojis in pull request comments. Without his moral support, this project would have been
-                  completed months earlier.
+                  emojis in pull request comments. Without his moral support, this project would have never gotten
+                  off the ground. Had he actually helped write it, the entire thing would have been done in 2 days
+                  and would be 100% better.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a 
