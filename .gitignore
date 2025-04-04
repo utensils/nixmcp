@@ -63,7 +63,7 @@ venv.bak/
 # Misc
 temp
 tmp
-uv.lock
+# Explicitly don't ignore uv.lock (we need to track it)
 uv-*.lock
 .aider*
 .pypirc
