@@ -3,8 +3,7 @@ Tests for the NixOS tools module.
 """
 
 import unittest
-import importlib
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 # Import the module to test
 from mcp_nixos.tools.nixos_tools import (

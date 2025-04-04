@@ -1,7 +1,5 @@
 """Tests for error handling in the Home Manager context."""
 
-import asyncio
-import logging
 import pytest
 from unittest import mock
 
@@ -20,13 +18,13 @@ class TestHomeManagerErrorHandling:
         """Test search_options when client is still loading."""
         # Create a context with loading in progress
         context = HomeManagerContext()
-        
+
         # Mock the client to show loading in progress
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = True
         mock_client.loading_error = None
         context.hm_client = mock_client
-        
+
         # Search should return loading information
         results = context.search_options("test")
         assert results["found"] is False
@@ -37,13 +35,13 @@ class TestHomeManagerErrorHandling:
         """Test search_options when client has a loading error."""
         # Create a context with a loading error
         context = HomeManagerContext()
-        
+
         # Mock the client to have a loading error
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = False
         mock_client.loading_error = "Test loading error"
         context.hm_client = mock_client
-        
+
         # Search should return error information
         results = context.search_options("test")
         assert results["found"] is False
@@ -56,11 +54,11 @@ class TestHomeManagerErrorHandling:
         mock_client.loading_in_progress = False
         mock_client.loading_error = None
         mock_client.search_options.side_effect = Exception("Test search error")
-        
+
         # Create context with our mock client
         context = HomeManagerContext()
         context.hm_client = mock_client
-        
+
         # Search should handle the exception and return error info
         results = context.search_options("test")
         assert results["found"] is False
@@ -70,13 +68,13 @@ class TestHomeManagerErrorHandling:
         """Test get_option when client is still loading."""
         # Create a context with loading in progress
         context = HomeManagerContext()
-        
+
         # Mock the client to show loading in progress
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = True
         mock_client.loading_error = None
         context.hm_client = mock_client
-        
+
         # get_option should return loading information
         result = context.get_option("programs.git.enable")
         assert result["found"] is False
@@ -87,13 +85,13 @@ class TestHomeManagerErrorHandling:
         """Test get_option when client has a loading error."""
         # Create a context with a loading error
         context = HomeManagerContext()
-        
+
         # Mock the client to have a loading error
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = False
         mock_client.loading_error = "Test loading error"
         context.hm_client = mock_client
-        
+
         # get_option should return error information
         result = context.get_option("programs.git.enable")
         assert result["found"] is False
@@ -106,11 +104,11 @@ class TestHomeManagerErrorHandling:
         mock_client.loading_in_progress = False
         mock_client.loading_error = None
         mock_client.get_option.side_effect = Exception("Test get_option error")
-        
+
         # Create context with our mock client
         context = HomeManagerContext()
         context.hm_client = mock_client
-        
+
         # get_option should handle the exception and return error info
         result = context.get_option("programs.git.enable")
         assert result["found"] is False
@@ -122,12 +120,16 @@ class TestHomeManagerErrorHandling:
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = False
         mock_client.loading_error = None
-        mock_client.get_option.return_value = {"name": "nonexistent.option", "found": False, "error": "Option not found"}
-        
+        mock_client.get_option.return_value = {
+            "name": "nonexistent.option",
+            "found": False,
+            "error": "Option not found",
+        }
+
         # Create context with our mock client
         context = HomeManagerContext()
         context.hm_client = mock_client
-        
+
         # get_option should return not found
         result = context.get_option("programs.nonexistent.option")
         assert result["found"] is False
@@ -137,13 +139,13 @@ class TestHomeManagerErrorHandling:
         """Test get_options_by_prefix when client is still loading."""
         # Create a context with loading in progress
         context = HomeManagerContext()
-        
+
         # Mock the client to show loading in progress
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = True
         mock_client.loading_error = None
         context.hm_client = mock_client
-        
+
         # get_options_by_prefix should return loading information
         result = context.get_options_by_prefix("programs")
         assert result["found"] is False
@@ -154,13 +156,13 @@ class TestHomeManagerErrorHandling:
         """Test get_options_by_prefix when client has a loading error."""
         # Create a context with a loading error
         context = HomeManagerContext()
-        
+
         # Mock the client to have a loading error
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = False
         mock_client.loading_error = "Test loading error"
         context.hm_client = mock_client
-        
+
         # get_options_by_prefix should return error information
         result = context.get_options_by_prefix("programs")
         assert result["found"] is False
@@ -170,13 +172,13 @@ class TestHomeManagerErrorHandling:
         """Test get_options_list when client is still loading."""
         # Create a context with loading in progress
         context = HomeManagerContext()
-        
+
         # Mock the client to show loading in progress
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = True
         mock_client.loading_error = None
         context.hm_client = mock_client
-        
+
         # get_options_list should return loading information
         result = context.get_options_list()
         assert result["found"] is False
@@ -187,13 +189,13 @@ class TestHomeManagerErrorHandling:
         """Test get_stats when client is still loading."""
         # Create a context with loading in progress
         context = HomeManagerContext()
-        
+
         # Mock the client to show loading in progress
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = True
         mock_client.loading_error = None
         context.hm_client = mock_client
-        
+
         # get_stats should return loading information
         result = context.get_stats()
         assert result["found"] is False
@@ -204,13 +206,13 @@ class TestHomeManagerErrorHandling:
         """Test get_stats when client has a loading error."""
         # Create a context with a loading error
         context = HomeManagerContext()
-        
+
         # Mock the client to have a loading error
         mock_client = mock.MagicMock(spec=HomeManagerClient)
         mock_client.loading_in_progress = False
         mock_client.loading_error = "Test loading error"
         context.hm_client = mock_client
-        
+
         # get_stats should return error information
         result = context.get_stats()
         assert result["found"] is False

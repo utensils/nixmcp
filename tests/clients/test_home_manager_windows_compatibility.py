@@ -20,8 +20,9 @@ class TestHomeManagerWindowsCompatibility:
     def test_windows_file_path_handling(self):
         """Test Windows-specific path handling in Home Manager client."""
         # Test with Windows platform
-        with mock.patch("sys.platform", "win32"), mock.patch.dict(
-            os.environ, {"LOCALAPPDATA": r"C:\Users\testuser\AppData\Local"}
+        with (
+            mock.patch("sys.platform", "win32"),
+            mock.patch.dict(os.environ, {"LOCALAPPDATA": r"C:\Users\testuser\AppData\Local"}),
         ):
             # Create a test directory
             test_dir = tempfile.mkdtemp(prefix="mcp_nixos_test_")
@@ -29,12 +30,13 @@ class TestHomeManagerWindowsCompatibility:
                 # Override the actual cache directory to use our test directory
                 with mock.patch("mcp_nixos.utils.cache_helpers.ensure_cache_dir", return_value=test_dir):
                     client = HomeManagerClient()
-                    
+
                     # Test loading from cache - should handle Windows paths correctly
                     # We'll create a mock cache file with some test data
                     cache_file = Path(test_dir) / "home_manager_options.json"
                     with open(cache_file, "w") as f:
-                        f.write("""
+                        f.write(
+                            """
                         {
                             "timestamp": 1617235200,
                             "options": [
@@ -47,24 +49,27 @@ class TestHomeManagerWindowsCompatibility:
                                 }
                             ]
                         }
-                        """)
-                    
+                        """
+                        )
+
                     # Load from cache - should handle Windows paths
                     client._load_from_cache()
-                    
+
                     # Verify options were loaded
                     assert len(client._options) > 0
                     assert client._options[0]["name"] == "programs.git.enable"
             finally:
                 # Clean up
                 import shutil
+
                 shutil.rmtree(test_dir, ignore_errors=True)
 
     def test_windows_cache_write_operations(self):
         """Test cache write operations on Windows."""
         # Test with Windows platform
-        with mock.patch("sys.platform", "win32"), mock.patch.dict(
-            os.environ, {"LOCALAPPDATA": r"C:\Users\testuser\AppData\Local"}
+        with (
+            mock.patch("sys.platform", "win32"),
+            mock.patch.dict(os.environ, {"LOCALAPPDATA": r"C:\Users\testuser\AppData\Local"}),
         ):
             # Create a test directory
             test_dir = tempfile.mkdtemp(prefix="mcp_nixos_test_")
@@ -72,7 +77,7 @@ class TestHomeManagerWindowsCompatibility:
                 # Override the actual cache directory to use our test directory
                 with mock.patch("mcp_nixos.utils.cache_helpers.ensure_cache_dir", return_value=test_dir):
                     client = HomeManagerClient()
-                    
+
                     # Set up mock options
                     client._options = [
                         {
@@ -80,22 +85,23 @@ class TestHomeManagerWindowsCompatibility:
                             "description": "Whether to enable Git.",
                             "type": "boolean",
                             "default": "false",
-                            "source": "options"
+                            "source": "options",
                         }
                     ]
-                    
+
                     # Save to cache - should handle Windows paths
                     client._save_to_cache()
-                    
+
                     # Verify cache file was created
                     cache_file = Path(test_dir) / "home_manager_options.json"
                     assert os.path.exists(cache_file)
-                    
+
                     # Read back the cache to verify correct format
                     import json
+
                     with open(cache_file, "r") as f:
                         cache_data = json.load(f)
-                    
+
                     assert "timestamp" in cache_data
                     assert "options" in cache_data
                     assert len(cache_data["options"]) > 0
@@ -103,6 +109,7 @@ class TestHomeManagerWindowsCompatibility:
             finally:
                 # Clean up
                 import shutil
+
                 shutil.rmtree(test_dir, ignore_errors=True)
 
     def test_windows_file_locking_compatibility(self):
@@ -119,7 +126,7 @@ class TestHomeManagerWindowsCompatibility:
                         # Override the actual cache directory to use our test directory
                         with mock.patch("mcp_nixos.utils.cache_helpers.ensure_cache_dir", return_value=test_dir):
                             client = HomeManagerClient()
-                            
+
                             # Set up mock options
                             client._options = [
                                 {
@@ -127,18 +134,19 @@ class TestHomeManagerWindowsCompatibility:
                                     "description": "Whether to enable Git.",
                                     "type": "boolean",
                                     "default": "false",
-                                    "source": "options"
+                                    "source": "options",
                                 }
                             ]
-                            
+
                             # Save to cache - should use Windows locking
                             client._save_to_cache()
-                            
+
                             # Verify Windows locking was used
                             assert mock_locking.call_count > 0
                     finally:
                         # Clean up
                         import shutil
+
                         shutil.rmtree(test_dir, ignore_errors=True)
         else:
             # On actual Windows, test real locking behavior
@@ -148,7 +156,7 @@ class TestHomeManagerWindowsCompatibility:
                 # Override the actual cache directory to use our test directory
                 with mock.patch("mcp_nixos.utils.cache_helpers.ensure_cache_dir", return_value=test_dir):
                     client = HomeManagerClient()
-                    
+
                     # Set up mock options
                     client._options = [
                         {
@@ -156,10 +164,10 @@ class TestHomeManagerWindowsCompatibility:
                             "description": "Whether to enable Git.",
                             "type": "boolean",
                             "default": "false",
-                            "source": "options"
+                            "source": "options",
                         }
                     ]
-                    
+
                     # Save to cache - should work without errors on Windows
                     try:
                         client._save_to_cache()
@@ -170,6 +178,7 @@ class TestHomeManagerWindowsCompatibility:
             finally:
                 # Clean up
                 import shutil
+
                 shutil.rmtree(test_dir, ignore_errors=True)
 
     def test_windows_path_normalization(self):
@@ -182,10 +191,10 @@ class TestHomeManagerWindowsCompatibility:
                 r"c:\users\testuser\appdata\local\mcp_nixos\cache",
                 r"C:/Users/testuser/AppData/Local/mcp_nixos/Cache",
             ]
-            
+
             # Normalize all paths
             normalized_paths = [os.path.normcase(p) for p in paths]
-            
+
             # All should be equivalent on Windows
             assert len(set(normalized_paths)) == 1, "Windows path normalization failed"
 
@@ -197,20 +206,20 @@ class TestHomeManagerURLHandlingCrossPlatform:
         """Test URL handling works the same across platforms."""
         # Test with different platforms
         platforms = ["win32", "darwin", "linux"]
-        
+
         for platform in platforms:
             with mock.patch("sys.platform", platform):
                 # Create a client
                 client = HomeManagerClient()
-                
+
                 # Internal _fetch_url should work the same regardless of platform
                 # Mock the fetch to avoid actual network requests
                 with mock.patch.object(client._client, "fetch") as mock_fetch:
                     mock_fetch.return_value = "<html><body>Test</body></html>"
-                    
+
                     # Call fetch_url
                     client.fetch_url("https://example.com")
-                    
+
                     # URL should be passed unchanged regardless of platform
                     mock_fetch.assert_called_with("https://example.com", force_refresh=True)
 

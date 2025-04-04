@@ -349,7 +349,7 @@ class TestHomeManagerDocStructure(unittest.TestCase):
                 <p><span class="emphasis"><em>Default:</em></span> false</p>
                 <p><a href="#example-link">See example</a></p>
             </dd>
-            """
+            """,
         ]
 
         # Import the client function to test
@@ -360,15 +360,15 @@ class TestHomeManagerDocStructure(unittest.TestCase):
         for i, html in enumerate(html_samples):
             soup = BeautifulSoup(html, "html.parser")
             dt = soup.find("dt")
-            
+
             # Use the client's internal method to parse the option
             option = client._parse_single_option(dt, f"test-{i}")
-            
+
             # Verify that parsing was successful and returned valid data
             self.assertIsNotNone(option, f"Failed to parse sample {i}")
             self.assertIn("name", option, f"No name found in sample {i}")
             self.assertIn("description", option, f"No description found in sample {i}")
-            
+
             # Log the parsed option for debugging
             logger.info(f"Successfully parsed sample {i}:")
             logger.info(f"  Name: {option['name']}")

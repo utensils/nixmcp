@@ -1,6 +1,5 @@
 """Tests for the Windows-specific functionality in cache_helpers.py."""
 
-import os
 import sys
 import pytest
 from unittest.mock import MagicMock, patch, mock_open

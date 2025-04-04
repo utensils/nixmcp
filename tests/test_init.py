@@ -5,7 +5,6 @@ Tests for the mcp_nixos package initialization.
 import unittest
 from unittest.mock import patch, MagicMock
 import sys
-import importlib
 
 
 class TestPackageInit(unittest.TestCase):

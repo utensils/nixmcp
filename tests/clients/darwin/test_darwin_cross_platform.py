@@ -1,7 +1,6 @@
 """Tests for cross-platform compatibility of the Darwin client."""
 
 import os
-import sys
 import tempfile
 import pytest
 from unittest import mock
@@ -43,8 +42,9 @@ class TestDarwinCrossPlatformCompatibility:
         test_dir = tempfile.mkdtemp(prefix="mcp_nixos_test_")
         try:
             for platform_name, platform_info in platforms.items():
-                with mock.patch("sys.platform", platform_name), mock.patch.dict(
-                    os.environ, {platform_info["env_var"]: platform_info["env_value"]}
+                with (
+                    mock.patch("sys.platform", platform_name),
+                    mock.patch.dict(os.environ, {platform_info["env_var"]: platform_info["env_value"]}),
                 ):
                     # Override the actual cache directory to use our test directory
                     with mock.patch("mcp_nixos.utils.cache_helpers.ensure_cache_dir", return_value=test_dir):
@@ -57,6 +57,7 @@ class TestDarwinCrossPlatformCompatibility:
         finally:
             # Clean up test directory
             import shutil
+
             shutil.rmtree(test_dir, ignore_errors=True)
 
     def test_darwin_client_url_handling_cross_platform(self):
@@ -68,26 +69,27 @@ class TestDarwinCrossPlatformCompatibility:
             with mock.patch("mcp_nixos.clients.html_client.HTMLClient") as MockHTMLClient:
                 mock_client = MockHTMLClient.return_value
                 mock_client._cache = test_cache
-                
+
                 # Simulate a URL fetch without making an actual network request
                 url = "https://daiderd.com/nix-darwin/options/index.html"
                 html_content = "<html><body>Test Darwin Options</body></html>"
-                
+
                 # Mock the fetch method to return our test content
                 mock_client.fetch.return_value = html_content
-                
+
                 # Create the Darwin client with our mock
                 with mock.patch("mcp_nixos.clients.darwin.darwin_client.HTMLClient", return_value=mock_client):
                     client = DarwinClient()
-                    
+
                     # Call load_options which should use our mocked fetch
                     client.load_options()
-                    
+
                     # Verify the URL was correctly fetched
                     mock_client.fetch.assert_called_with(url, force_refresh=False)
         finally:
             # Clean up
             import shutil
+
             shutil.rmtree(test_cache._cache_dir, ignore_errors=True)
 
     def test_darwin_client_parse_options_with_various_html_structures(self):
@@ -136,17 +138,17 @@ class TestDarwinCrossPlatformCompatibility:
             with mock.patch("mcp_nixos.clients.html_client.HTMLClient") as MockHTMLClient:
                 mock_client = MockHTMLClient.return_value
                 mock_client.fetch.return_value = html
-                
+
                 # Create the Darwin client with our mock
                 with mock.patch("mcp_nixos.clients.darwin.darwin_client.HTMLClient", return_value=mock_client):
                     client = DarwinClient()
-                    
+
                     # Load and parse options
                     client.load_options()
-                    
+
                     # Verify that we parsed at least one option (structure may vary)
                     assert len(client._options) > 0, f"Failed to parse options from HTML variant {i}"
-                    
+
                     # Test search functionality with the parsed options
                     results = client.search_options("Touch ID")
                     assert len(results) > 0, f"Failed to search options from HTML variant {i}"
@@ -163,18 +165,18 @@ class TestDarwinClientErrorHandling:
             # Simulate various network errors
             for error_class in [ConnectionError, TimeoutError, ValueError]:
                 mock_client.fetch.side_effect = error_class("Test network error")
-                
+
                 # Create the Darwin client with our mock
                 with mock.patch("mcp_nixos.clients.darwin.darwin_client.HTMLClient", return_value=mock_client):
                     client = DarwinClient()
-                    
+
                     # Attempt to load options - should handle the error gracefully
                     with pytest.raises(Exception) as excinfo:
                         client.load_options()
-                    
+
                     # Verify error message contains appropriate info
                     assert "error" in str(excinfo.value).lower()
-                    
+
                     # Try a search - should handle gracefully with empty results
                     results = client.search_options("test")
                     assert len(results) == 0
@@ -187,12 +189,12 @@ class TestDarwinClientErrorHandling:
             # Set up a client with a test cache directory
             with mock.patch("mcp_nixos.utils.cache_helpers.ensure_cache_dir", return_value=test_dir):
                 client = DarwinClient()
-                
+
                 # Simulate a corrupt cache by writing invalid data
                 cache_file = Path(test_dir) / "darwin_options.json"
                 with open(cache_file, "w") as f:
                     f.write("NOT VALID JSON")
-                
+
                 # Client should handle corrupt cache gracefully
                 try:
                     # This should not raise an exception but log an error
@@ -204,6 +206,7 @@ class TestDarwinClientErrorHandling:
         finally:
             # Clean up
             import shutil
+
             shutil.rmtree(test_dir, ignore_errors=True)
 
 
