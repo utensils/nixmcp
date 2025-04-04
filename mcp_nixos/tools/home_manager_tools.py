@@ -973,6 +973,14 @@ def register_home_manager_tools(mcp) -> None:
 
         # Get context
         try:
+            # Handle string context from MCP
+            if isinstance(ctx, str):
+                # Access the correct function (not this decorated function)
+                from mcp_nixos.tools.home_manager_tools import home_manager_search as search_func
+                result = search_func(query, limit, ctx)
+                return result
+            
+            # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             # Access the correct function (not this decorated function)
             from mcp_nixos.tools.home_manager_tools import home_manager_search as search_func
@@ -1004,6 +1012,14 @@ def register_home_manager_tools(mcp) -> None:
 
         # Get context
         try:
+            # Handle string context from MCP
+            if isinstance(ctx, str):
+                # Access the correct function (not this decorated function)
+                from mcp_nixos.tools.home_manager_tools import home_manager_info as info_func
+                result = info_func(name, ctx)
+                return result
+            
+            # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_info as info_func
 
@@ -1031,6 +1047,14 @@ def register_home_manager_tools(mcp) -> None:
 
         # Get context
         try:
+            # Handle string context from MCP
+            if isinstance(ctx, str):
+                # Access the correct function (not this decorated function)
+                from mcp_nixos.tools.home_manager_tools import home_manager_stats as stats_func
+                result = stats_func(ctx)
+                return result
+            
+            # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_stats as stats_func
 
@@ -1058,6 +1082,14 @@ def register_home_manager_tools(mcp) -> None:
 
         # Get context
         try:
+            # Handle string context from MCP
+            if isinstance(ctx, str):
+                # Access the correct function (not this decorated function)
+                from mcp_nixos.tools.home_manager_tools import home_manager_list_options as list_options_func
+                result = list_options_func(ctx)
+                return result
+            
+            # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_list_options as list_options_func
 
@@ -1088,6 +1120,14 @@ def register_home_manager_tools(mcp) -> None:
 
         # Get context
         try:
+            # Handle string context from MCP
+            if isinstance(ctx, str):
+                # Access the correct function (not this decorated function)
+                from mcp_nixos.tools.home_manager_tools import home_manager_options_by_prefix as options_by_prefix_func
+                result = options_by_prefix_func(option_prefix, ctx)
+                return result
+            
+            # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_options_by_prefix as options_by_prefix_func
 
