@@ -23,6 +23,33 @@ export default function UsagePage() {
               tasks. Each example shows the JSON request format and the corresponding response,
               helping you understand how to effectively leverage MCP-NixOS in your workflows.
             </p>
+            
+            <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-primary p-5 mb-2">
+              <h3 className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Configuration
+              </h3>
+              <p className="mb-4 text-gray-700">
+                Before using these examples, you&apos;ll need to configure your MCP server. Add the following to your MCP configuration file:
+              </p>
+              <CodeBlock 
+                code={`{
+  "mcpServers": {
+    "nixos": {
+      "command": "uvx",
+      "args": ["mcp-nixos"]
+    }
+  }
+}`} 
+                language="json" 
+              />
+              <p className="mt-4 text-gray-700 text-sm">
+                This configuration enables your AI assistant to access NixOS package information and configuration options through the MCP protocol.
+              </p>
+            </div>
           </div>
 
           <AnchorHeading
