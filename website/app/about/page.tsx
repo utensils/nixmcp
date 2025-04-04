@@ -11,6 +11,28 @@ export default function AboutPage() {
         <div className="prose prose-lg max-w-none">
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
             <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Project Overview</AnchorHeading>
+            
+            <div className="mb-6 bg-gradient-to-br from-nix-light to-white rounded-lg shadow-md overflow-hidden border border-nix-light">
+              <div className="p-5 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <div className="flex-shrink-0 bg-white p-3 rounded-lg shadow-sm border border-nix-light/30">
+                  <Image 
+                    src="/images/utensils-logo.png" 
+                    alt="Utensils Logo" 
+                    width={64} 
+                    height={64} 
+                    className="object-contain" 
+                  />
+                </div>
+                <div className="flex-grow text-center sm:text-left">
+                  <h3 className="text-xl font-bold text-nix-primary mb-2">A Utensils Creation</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    MCP-NixOS is developed and maintained by <a href="https://utensils.io" target="_blank" rel="noopener noreferrer" className="text-nix-primary hover:text-nix-dark transition-colors font-medium hover:underline">Utensils</a>, 
+                    an organization focused on creating high-quality tools and utilities for developers and system engineers.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <p className="mb-6 text-gray-800">
               MCP-NixOS is a Model Context Protocol server that provides accurate information about NixOS packages and configuration options.
               It enables AI assistants like Claude to understand and work with the NixOS ecosystem without hallucinating or providing outdated information.
@@ -38,23 +60,10 @@ export default function AboutPage() {
               cross-platform, working seamlessly across Linux, macOS, and Windows.
             </p>
             
-            <div className="mt-8 p-4 bg-white rounded-lg border border-gray-200">
-              <div className="flex items-center mb-2">
-                <Image 
-                  src="/images/utensils-logo.png" 
-                  alt="Utensils Logo" 
-                  width={36} 
-                  height={36} 
-                  className="mr-2" 
-                />
-                <h3 className="font-semibold text-nix-dark">Utensils Project</h3>
-              </div>
-              <p className="text-gray-700">
-                MCP-NixOS is developed and maintained by <a href="https://utensils.io" target="_blank" rel="noopener noreferrer" className="text-nix-primary hover:underline">Utensils</a>, 
-                an organization focused on creating high-quality tools and utilities for developers and system engineers.
-              </p>
-            </div>
+
           </section>
+          
+
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
             <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Core Components</AnchorHeading>
