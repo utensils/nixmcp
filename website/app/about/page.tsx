@@ -1,15 +1,16 @@
 
 import Image from 'next/image';
+import AnchorHeading from '@/components/AnchorHeading';
 
 export default function AboutPage() {
   return (
     <div className="py-12 bg-white">
       <div className="container-custom">
-        <h1 className="text-4xl font-bold mb-8 text-nix-dark">About MCP-NixOS</h1>
+        <AnchorHeading level={1} className="text-4xl font-bold mb-8 text-nix-dark">About MCP-NixOS</AnchorHeading>
         
         <div className="prose prose-lg max-w-none">
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Project Overview</h2>
+            <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Project Overview</AnchorHeading>
             <p className="mb-6 text-gray-800">
               MCP-NixOS is a Model Context Protocol server that provides accurate information about NixOS packages and configuration options.
               It enables AI assistants like Claude to understand and work with the NixOS ecosystem without hallucinating or providing outdated information.
@@ -56,7 +57,7 @@ export default function AboutPage() {
           </section>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Core Components</h2>
+            <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Core Components</AnchorHeading>
             <ul className="grid gap-3 mb-6">
               {[
                 { name: 'Cache', description: 'In-memory and filesystem HTML caching with TTL-based expiration' },
@@ -101,7 +102,7 @@ export default function AboutPage() {
           </section>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">What is Model Context Protocol?</h2>
+            <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">What is Model Context Protocol?</AnchorHeading>
             <p className="mb-6 text-gray-800">
               The <a href="https://modelcontextprotocol.io" className="text-nix-primary hover:text-nix-dark" target="_blank" rel="noopener noreferrer">Model Context Protocol (MCP)</a> is an open protocol that connects LLMs to external data and tools using JSON messages over stdin/stdout. 
               This project implements MCP to give AI assistants access to NixOS, Home Manager, and nix-darwin resources, 
@@ -110,7 +111,7 @@ export default function AboutPage() {
           </section>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Authors</h2>
+            <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Authors</AnchorHeading>
             <div className="flex flex-col md:flex-row gap-8 items-start">
               <div className="flex-shrink-0">
                 <div className="relative w-48 h-48 rounded-lg overflow-hidden shadow-lg border-2 border-nix-light">
@@ -125,7 +126,7 @@ export default function AboutPage() {
                 </div>
               </div>
               <div className="flex-grow">
-                <h3 className="text-xl font-bold text-nix-dark mb-2">James Brink</h3>
+                <AnchorHeading level={3} className="text-xl font-bold text-nix-dark mb-2">James Brink</AnchorHeading>
                 <p className="text-gray-600 mb-1">Technology Architect</p>
                 <p className="text-gray-800 mb-4">
                   As the creator of MCP-NixOS, I&apos;ve focused on building a reliable bridge between AI assistants and the 
@@ -227,7 +228,7 @@ export default function AboutPage() {
                 </div>
               </div>
               <div className="flex-grow">
-                <h3 className="text-xl font-bold text-nix-dark">Claude</h3>
+                <AnchorHeading level={3} className="text-xl font-bold text-nix-dark">Claude</AnchorHeading>
                 <p className="text-gray-600 mb-1">AI Assistant (Did 99% of the Work)</p>
                 <p className="text-gray-800 mb-4">
                   I&apos;m the AI who actually wrote most of this code while James occasionally typed &quot;looks good&quot; and &quot;fix that bug.&quot;
@@ -286,7 +287,7 @@ export default function AboutPage() {
                 </div>
               </div>
               <div className="flex-grow">
-                <h3 className="text-xl font-bold text-nix-dark">Sean Callan</h3>
+                <AnchorHeading level={3} className="text-xl font-bold text-nix-dark">Sean Callan</AnchorHeading>
                 <p className="text-gray-600 mb-1">Moral Support Engineer</p>
                 <p className="text-gray-800 mb-4">
                   Sean is the unsung hero who never actually wrote any code for this project but was absolutely
@@ -347,7 +348,7 @@ export default function AboutPage() {
           </section>
 
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Contributing</h2>
+            <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Contributing</AnchorHeading>
             <p className="mb-6 text-gray-800">
               MCP-NixOS is an open-source project and welcomes contributions. The default development branch is{' '}
               <code className="bg-gray-100 px-1 py-0.5 rounded text-nix-dark">develop</code>, and the main release branch is{' '}

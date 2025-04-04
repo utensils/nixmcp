@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import FeatureCard from '@/components/FeatureCard';
 import CodeBlock from '@/components/CodeBlock';
+import AnchorHeading from '@/components/AnchorHeading';
 
 export default function Home() {
   const scrollToSection = (elementId: string) => {
@@ -16,7 +17,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-nix-primary to-nix-dark text-white py-20 shadow-lg">
         <div className="container-custom text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">MCP-NixOS</h1>
+          <AnchorHeading level={1} className="text-4xl md:text-6xl font-bold mb-6">MCP-NixOS</AnchorHeading>
           <div className="mb-8 max-w-3xl mx-auto">
             <p className="text-xl md:text-2xl font-medium mb-2">
               <span className="font-bold tracking-wide">Model Context Protocol</span>
@@ -76,7 +77,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-16 bg-white">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12 text-nix-dark">Key Features</h2>
+          <AnchorHeading level={2} className="text-3xl font-bold text-center mb-12 text-nix-dark">Key Features</AnchorHeading>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard 
               title="NixOS Packages & Options" 
@@ -115,9 +116,9 @@ export default function Home() {
       {/* Getting Started Section */}
       <section id="getting-started" className="py-16 bg-nix-light">
         <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12 text-nix-dark">Getting Started</h2>
+          <AnchorHeading level={2} className="text-3xl font-bold text-center mb-12 text-nix-dark">Getting Started</AnchorHeading>
           <div className="max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold mb-4 text-nix-primary">Configuration</h3>
+            <AnchorHeading level={3} className="text-2xl font-bold mb-4 text-nix-primary">Configuration</AnchorHeading>
             <p className="mb-6 text-gray-800 font-medium">
               Add to your Claude Code configuration file:
             </p>
