@@ -8,6 +8,60 @@ export default function DocsPage() {
         <AnchorHeading level={1} className="text-4xl font-bold mb-8 text-nix-dark">Documentation</AnchorHeading>
         
         <div className="prose prose-lg max-w-none">
+          <AnchorHeading level={2} className="text-2xl font-bold mt-8 mb-6 text-nix-primary border-b border-nix-light pb-2">Overview</AnchorHeading>
+          
+          <p className="mb-4 text-gray-800">
+            MCP-NixOS provides a set of tools to search, explore, and retrieve information about NixOS packages, options, and configurations. 
+            These tools are designed to make working with the Nix ecosystem more accessible and efficient through AI assistants and other interfaces.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-nix-primary mb-2">NixOS Tools</h3>
+              <p className="text-gray-700 mb-3">Access the vast NixOS ecosystem with tools for searching packages, exploring options, and retrieving detailed information.</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-600">
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">nixos_search</code>: Find packages, options, or programs</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">nixos_info</code>: Get detailed information about specific items</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">nixos_stats</code>: View statistics about available packages and options</li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-nix-primary mb-2">Home Manager Tools</h3>
+              <p className="text-gray-700 mb-3">Configure and manage your user environment with tools specifically for Home Manager options and settings.</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-600">
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">home_manager_search</code>: Search Home Manager options</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">home_manager_info</code>: Get details about specific options</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">home_manager_options_by_prefix</code>: Browse options by category</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">home_manager_stats</code>: View statistics about available options</li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-nix-primary mb-2">nix-darwin Tools</h3>
+              <p className="text-gray-700 mb-3">Configure macOS systems with tools for exploring and understanding nix-darwin options and configurations.</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-600">
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">darwin_search</code>: Search nix-darwin options</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">darwin_info</code>: Get details about specific options</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">darwin_list_options</code>: View all top-level categories</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">darwin_options_by_prefix</code>: Browse options by category</li>
+                <li><code className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">darwin_stats</code>: View statistics about available options</li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold text-nix-primary mb-2">Why Use MCP-NixOS?</h3>
+              <p className="text-gray-700 mb-3">MCP-NixOS enhances your Nix experience by providing:</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-600">
+                <li><span className="font-medium text-nix-dark">AI Integration</span>: Designed for AI assistants to provide accurate Nix information</li>
+                <li><span className="font-medium text-nix-dark">Unified Interface</span>: Consistent access to NixOS, Home Manager, and nix-darwin</li>
+                <li><span className="font-medium text-nix-dark">Rich Metadata</span>: Detailed information beyond what&apos;s available in standard documentation</li>
+                <li><span className="font-medium text-nix-dark">Fast Responses</span>: Optimized for quick retrieval with smart caching</li>
+                <li><span className="font-medium text-nix-dark">Markdown Formatting</span>: Human-readable responses that work well in chat interfaces</li>
+              </ul>
+            </div>
+          </div>
+
           <AnchorHeading level={2} className="text-2xl font-bold mt-8 mb-6 text-nix-primary border-b border-nix-light pb-2">API Reference</AnchorHeading>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
