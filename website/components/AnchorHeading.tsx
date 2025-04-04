@@ -66,15 +66,17 @@ const AnchorHeading: React.FC<AnchorHeadingProps> = ({
   
   return (
     <HeadingTag id={headingId} className={`group relative ${className} scroll-mt-16`}>
-      <a
-        href={`#${headingId}`}
-        onClick={handleAnchorClick}
-        className="absolute -left-5 w-5 text-center opacity-0 group-hover:opacity-100 transition-opacity text-nix-primary hover:text-nix-dark font-semibold"
-        aria-label={`Link to ${textContent || 'this heading'}`}
-      >
-        #
-      </a>
-      {children}
+      <span className="flex items-center">
+        {children}
+        <a
+          href={`#${headingId}`}
+          onClick={handleAnchorClick}
+          className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-nix-primary hover:text-nix-dark font-semibold"
+          aria-label={`Link to ${textContent || 'this heading'}`}
+        >
+          #
+        </a>
+      </span>
     </HeadingTag>
   );
 };
