@@ -134,7 +134,7 @@ export default function Home() {
               language="json" 
             />
             <p className="mt-6 text-gray-800 font-medium">
-              Start leveraging NixOS package information and configuration options in your workflow!
+              Start leveraging NixOS package information and configuration options in your workflow! For additional configuration options, see the <Link href="/docs#configuration" className="text-nix-primary hover:text-nix-dark underline transition-colors">configuration documentation</Link>.
             </p>
             <div className="text-center mt-12">
               <Link href="/docs" className="btn-primary">

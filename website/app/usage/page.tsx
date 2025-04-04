@@ -1,6 +1,7 @@
 import AnchorHeading from '@/components/AnchorHeading';
 import CodeBlock from '@/components/CodeBlock';
 import CollapsibleSection from '@/components/CollapsibleSection';
+import Link from 'next/link';
 
 export default function UsagePage() {
   return (
@@ -48,7 +49,7 @@ export default function UsagePage() {
                 language="json" 
               />
               <p className="mt-4 text-gray-700 text-sm">
-                This configuration enables your AI assistant to access NixOS package information and configuration options through the MCP protocol.
+                This configuration enables your AI assistant to access NixOS package information and configuration options through the MCP protocol. For additional configuration options, see the <Link href="/docs#configuration" className="text-nix-primary hover:text-nix-dark underline transition-colors">configuration documentation</Link>.
               </p>
             </div>
           </div>
@@ -57,7 +58,7 @@ export default function UsagePage() {
             level={2}
             className="text-2xl font-bold mt-8 mb-6 text-nix-primary border-b border-nix-light pb-2"
           >
-            Usage Examples
+            Example Scenarios
           </AnchorHeading>
 
           <div className="space-y-8">
@@ -200,7 +201,10 @@ rules entirely, you can use \`lib.mkForce\` in your module.
               </CollapsibleSection>
 
               <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary flex items-center">
+                  <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
                   AI Assistant Response:
                 </h5>
                 <p className="text-gray-700">
@@ -318,7 +322,10 @@ hunt through a man page for the correct flags.
               </CollapsibleSection>
 
               <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary flex items-center">
+                  <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
                   AI Assistant Response:
                 </h5>
                 <p className="text-gray-700">

@@ -1290,38 +1290,95 @@ For more details, use \`darwin_info("homebrew.whalebrews")\`
             </div>
           </section>
           
-          <AnchorHeading level={2} className="text-2xl font-bold mt-12 mb-6 text-nix-primary border-b border-nix-light pb-2">Configuration</AnchorHeading>
-          <p className="mb-6 text-gray-800 font-medium">MCP-NixOS can be configured through environment variables:</p>
+          <AnchorHeading id="configuration" level={2} className="text-2xl font-bold mt-12 mb-6 text-nix-primary border-b border-nix-light pb-2">Configuration</AnchorHeading>
+          <p className="mb-6 text-gray-800 font-medium">MCP-NixOS can be configured through environment variables, grouped by purpose:</p>
           
-          <div className="overflow-x-auto mb-12 rounded-lg shadow-sm">
+          <div className="overflow-x-auto mb-8 rounded-lg shadow-sm">
             <div className="min-w-full md:min-w-0">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-nix-primary">
-                    <th className="px-3 sm:px-6 py-3 text-left text-white font-semibold rounded-tl-lg">Variable</th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-white font-semibold rounded-tr-lg">Description</th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-white font-semibold" colSpan={3}>Essential Variables</th>
+                  </tr>
+                  <tr className="bg-nix-secondary bg-opacity-20">
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Variable</th>
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Description</th>
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Default Value</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
                     <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_LOG_LEVEL</td>
-                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Logging level (DEBUG, INFO, WARNING, ERROR)</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Logging level</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm font-mono text-gray-700">INFO</td>
                   </tr>
                   <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
                     <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_LOG_FILE</td>
                     <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Path to log file</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm font-mono text-gray-700">None (stdout)</td>
                   </tr>
                   <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
                     <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_CACHE_DIR</td>
                     <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Directory for cache files</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm font-mono text-gray-700">~/.cache/mcp_nixos/ (platform-specific)</td>
                   </tr>
                   <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
                     <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_CACHE_TTL</td>
                     <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Cache time-to-live in seconds</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm font-mono text-gray-700">600 (10 minutes)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto mb-8 rounded-lg shadow-sm">
+            <div className="min-w-full md:min-w-0">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-nix-primary">
+                    <th className="px-3 sm:px-6 py-3 text-left text-white font-semibold" colSpan={3}>Advanced Variables (Optional)</th>
+                  </tr>
+                  <tr className="bg-nix-secondary bg-opacity-20">
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Variable</th>
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Description</th>
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Default Value</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">ELASTICSEARCH_URL</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Custom Elasticsearch URL <span className="text-xs text-gray-500 italic">(only needed for custom deployments)</span></td>
+                    <td className="px-3 sm:px-6 py-4 text-sm font-mono text-gray-700">https://search.nixos.org/backend</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto mb-12 rounded-lg shadow-sm">
+            <div className="min-w-full md:min-w-0">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-nix-primary">
+                    <th className="px-3 sm:px-6 py-3 text-left text-white font-semibold" colSpan={3}>Development Variables</th>
+                  </tr>
+                  <tr className="bg-nix-secondary bg-opacity-20">
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Variable</th>
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Description</th>
+                    <th className="px-3 sm:px-6 py-2 text-left text-nix-dark font-semibold">Default Value</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_CLEANUP_ORPHANS</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Clean up orphaned cache files</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm font-mono text-gray-700">true</td>
                   </tr>
                   <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
-                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all rounded-bl-lg">ELASTICSEARCH_URL</td>
-                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700 rounded-br-lg">Custom Elasticsearch URL</td>
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">KEEP_TEST_CACHE</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Keep test cache directory for debugging</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm font-mono text-gray-700">false</td>
                   </tr>
                 </tbody>
               </table>
