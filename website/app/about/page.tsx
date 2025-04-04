@@ -81,7 +81,7 @@ export default function AboutPage() {
           </section>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
-            <h2 className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Features</h2>
+            <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Features</AnchorHeading>
             <ul className="grid gap-3 mb-6">
               {[
                 { name: 'NixOS Resources', description: 'Packages and system options via Elasticsearch API with multiple channel support (unstable, stable/24.11)' },

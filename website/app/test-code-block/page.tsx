@@ -2,6 +2,7 @@
 
 import React from 'react';
 import CodeBlock from '../../components/CodeBlock';
+import AnchorHeading from '@/components/AnchorHeading';
 
 export default function TestCodeBlockPage() {
   const pythonCode = `def hello_world():
@@ -81,20 +82,20 @@ export function useUserData(userId: number): User | null {
 
   return (
     <div className="container mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-nix-primary">Code Block Test Page</h1>
+      <AnchorHeading level={1} className="text-3xl font-bold mb-8 text-nix-primary">Code Block Test Page</AnchorHeading>
       
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4 text-nix-dark">Python Example</h2>
+        <AnchorHeading level={2} className="text-2xl font-semibold mb-4 text-nix-dark">Python Example</AnchorHeading>
         <CodeBlock code={pythonCode} language="python" showLineNumbers={true} />
       </section>
       
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4 text-nix-dark">Nix Example</h2>
+        <AnchorHeading level={2} className="text-2xl font-semibold mb-4 text-nix-dark">Nix Example</AnchorHeading>
         <CodeBlock code={nixCode} language="nix" />
       </section>
       
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4 text-nix-dark">TypeScript Example</h2>
+        <AnchorHeading level={2} className="text-2xl font-semibold mb-4 text-nix-dark">TypeScript Example</AnchorHeading>
         <CodeBlock code={typescriptCode} language="typescript" showLineNumbers={true} />
       </section>
     </div>

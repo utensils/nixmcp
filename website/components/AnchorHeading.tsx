@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 interface AnchorHeadingProps {
   level: 1 | 2 | 3 | 4 | 5 | 6;
@@ -16,7 +15,6 @@ const AnchorHeading: React.FC<AnchorHeadingProps> = ({
   className = '',
   id
 }) => {
-  const router = useRouter();
   
   // Generate an ID from the children if none is provided
   const headingId = id || (typeof children === 'string' 
@@ -26,16 +24,36 @@ const AnchorHeading: React.FC<AnchorHeadingProps> = ({
   const handleAnchorClick = (e: React.MouseEvent) => {
     e.preventDefault();
     const hash = `#${headingId}`;
-    router.push(hash);
     
     // Update URL without page reload
     window.history.pushState(null, '', hash);
+    
+    // Scroll to the element
+    const element = document.getElementById(headingId);
+    if (element) {
+      // Smooth scroll to the element
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
+  
+  // Handle initial load with hash in URL
+  useEffect(() => {
+    // Check if the current URL hash matches this heading
+    if (typeof window !== 'undefined' && window.location.hash === `#${headingId}`) {
+      // Add a small delay to ensure the page has fully loaded
+      setTimeout(() => {
+        const element = document.getElementById(headingId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [headingId]);
 
   const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
   
   return (
-    <HeadingTag id={headingId} className={`group ${className}`}>
+    <HeadingTag id={headingId} className={`group ${className} scroll-mt-16`}>
       <span className="relative inline-block">
         <a
           href={`#${headingId}`}
