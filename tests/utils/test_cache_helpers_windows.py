@@ -41,7 +41,7 @@ class TestWindowsAtomicWrite:
         original_import = __import__
 
         def mock_import(name, *args, **kwargs):
-            if name == 'tempfile':
+            if name == "tempfile":
                 return mock_tempfile_module
             return original_import(name, *args, **kwargs)
 
@@ -92,7 +92,7 @@ class TestWindowsAtomicWrite:
         original_import = __import__
 
         def mock_import(name, *args, **kwargs):
-            if name == 'tempfile':
+            if name == "tempfile":
                 return mock_tempfile_module
             return original_import(name, *args, **kwargs)
 

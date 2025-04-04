@@ -253,10 +253,7 @@ class TestNixOSTools(unittest.TestCase):
         self.assertEqual(_format_license({"fullName": "GPL-2.0-only", "shortName": "GPL-2.0"}), "GPL-2.0-only")
 
         # Test with list of licenses
-        self.assertEqual(
-            _format_license([{"fullName": "GPL-2.0-only"}, {"fullName": "MIT"}]),
-            "GPL-2.0-only, MIT"
-        )
+        self.assertEqual(_format_license([{"fullName": "GPL-2.0-only"}, {"fullName": "MIT"}]), "GPL-2.0-only, MIT")
 
         # Test with empty or None
         self.assertEqual(_format_license(None), "Unknown")
@@ -294,13 +291,13 @@ class TestNixOSTools(unittest.TestCase):
         # Test with valid position
         self.assertEqual(
             _create_github_link("pkgs/applications/version-management/git/default.nix:1"),
-            "https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/version-management/git/default.nix#L1"
+            "https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/version-management/git/default.nix#L1",
         )
 
         # Test with position without line number
         self.assertEqual(
             _create_github_link("pkgs/applications/version-management/git/default.nix"),
-            "https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/version-management/git/default.nix"
+            "https://github.com/NixOS/nixpkgs/blob/master/pkgs/applications/version-management/git/default.nix",
         )
 
     def test_simple_html_to_markdown(self):
@@ -342,7 +339,7 @@ class TestNixOSTools(unittest.TestCase):
         self.assertIn("services.nginx.package", result)
         self.assertIn("Example NixOS Configuration", result)
         # Check that it includes a suggestion to use nixos_search
-        self.assertIn("nixos_search(query=\"services.nginx\", type=\"options\", channel=\"unstable\")", result)
+        self.assertIn('nixos_search(query="services.nginx", type="options", channel="unstable")', result)
 
         # Test with nonexistent service
         result = _get_service_suggestion("nonexistent", "unstable")
@@ -388,9 +385,9 @@ class TestNixOSTools(unittest.TestCase):
     def test_nixos_search_with_context(self):
         """Test nixos_search with provided context."""
         # Mock the search methods to return our test data
-        self.mock_context.search_packages.return_value = {"packages": [
-            {"name": "git", "version": "2.39.2", "description": "Distributed version control system"}
-        ]}
+        self.mock_context.search_packages.return_value = {
+            "packages": [{"name": "git", "version": "2.39.2", "description": "Distributed version control system"}]
+        }
 
         # Test packages search
         result = nixos_search("git", "packages", 10, "unstable", self.mock_context)
@@ -399,18 +396,27 @@ class TestNixOSTools(unittest.TestCase):
 
         # Test options search
         self.mock_context.search_packages.reset_mock()
-        self.mock_context.search_options.return_value = {"options": [
-            {"name": "services.nginx", "description": "Nginx web server configuration"}
-        ]}
+        self.mock_context.search_options.return_value = {
+            "options": [{"name": "services.nginx", "description": "Nginx web server configuration"}]
+        }
         result = nixos_search("nginx", "options", 10, "unstable", self.mock_context)
-        self.mock_context.search_options.assert_called_once_with("nginx", limit=10, additional_terms=["nginx"], quoted_terms=[])
+        self.mock_context.search_options.assert_called_once_with(
+            "nginx", limit=10, additional_terms=["nginx"], quoted_terms=[]
+        )
         self.assertIn("services.nginx", result)
 
         # Test programs search
         self.mock_context.search_options.reset_mock()
-        self.mock_context.search_programs.return_value = {"packages": [
-            {"name": "git", "version": "2.39.2", "description": "Distributed version control system", "programs": ["git"]}
-        ]}
+        self.mock_context.search_programs.return_value = {
+            "packages": [
+                {
+                    "name": "git",
+                    "version": "2.39.2",
+                    "description": "Distributed version control system",
+                    "programs": ["git"],
+                }
+            ]
+        }
         result = nixos_search("git", "programs", 10, "unstable", self.mock_context)
         self.mock_context.search_programs.assert_called_once_with("git", limit=10)
         self.assertIn("git", result)
@@ -432,12 +438,12 @@ class TestNixOSTools(unittest.TestCase):
         mock_importlib.return_value = mock_server
 
         # Set up mock search results
-        mock_es_client.search_packages.return_value = {"packages": [
-            {"name": "git", "version": "2.39.2", "description": "Distributed version control system"}
-        ]}
-        mock_context.search_packages.return_value = {"packages": [
-            {"name": "git", "version": "2.39.2", "description": "Distributed version control system"}
-        ]}
+        mock_es_client.search_packages.return_value = {
+            "packages": [{"name": "git", "version": "2.39.2", "description": "Distributed version control system"}]
+        }
+        mock_context.search_packages.return_value = {
+            "packages": [{"name": "git", "version": "2.39.2", "description": "Distributed version control system"}]
+        }
 
         # Call the function without providing a context
         result = nixos_search("git", "packages", 10, "unstable")
@@ -478,7 +484,7 @@ class TestNixOSTools(unittest.TestCase):
             "found": True,
             "name": "git",
             "version": "2.39.2",
-            "description": "Distributed version control system"
+            "description": "Distributed version control system",
         }
 
         # Test package info
@@ -495,7 +501,7 @@ class TestNixOSTools(unittest.TestCase):
             "type": "attribute set",
             "default": {},
             "example": {"enable": True},
-            "declared_by": ["nixos/modules/services/web-servers/nginx.nix"]
+            "declared_by": ["nixos/modules/services/web-servers/nginx.nix"],
         }
         result = nixos_info("services.nginx", "option", "unstable", self.mock_context)
         self.mock_context.get_option.assert_called_once_with("services.nginx")
@@ -522,7 +528,7 @@ class TestNixOSTools(unittest.TestCase):
             "found": True,
             "name": "git",
             "version": "2.39.2",
-            "description": "Distributed version control system"
+            "description": "Distributed version control system",
         }
 
         # Call the function without providing a context
@@ -553,7 +559,7 @@ class TestNixOSTools(unittest.TestCase):
             "aggregations": {
                 "channels": {"buckets": [{"key": "unstable", "doc_count": 80000}]},
                 "licenses": {"buckets": [{"key": "MIT", "doc_count": 20000}]},
-                "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]}
+                "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]},
             }
         }
         self.mock_context.count_options.return_value = {"count": 10000}
@@ -581,7 +587,7 @@ class TestNixOSTools(unittest.TestCase):
             "aggregations": {
                 "channels": {"buckets": [{"key": "unstable", "doc_count": 80000}]},
                 "licenses": {"buckets": [{"key": "MIT", "doc_count": 20000}]},
-                "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]}
+                "platforms": {"buckets": [{"key": "x86_64-linux", "doc_count": 70000}]},
             }
         }
         mock_context.count_options.return_value = {"count": 10000}
