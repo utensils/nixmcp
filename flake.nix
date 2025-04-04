@@ -92,6 +92,7 @@
           name = "mcp-nixos-web";
           packages = with pkgs; [
             nodejs_20
+            awscli2
           ];
           commands = [
             {
@@ -118,6 +119,78 @@
               help = "Lint the website code";
               command = "cd website && npm run lint";
             }
+            {
+              name = "deploy";
+              category = "website";
+              help = "Deploy website to AWS S3 and invalidate CloudFront cache. Usage: deploy [profile-name]";
+              command = ''
+                echo "--- Building and deploying website to AWS S3 ---"
+                
+                # Set AWS profile flag if provided
+                PROFILE_FLAG=""
+                if [ $# -gt 0 ]; then
+                  PROFILE_FLAG="--profile $1"
+                  echo "Using AWS profile: $1"
+                else
+                  # Safely check if environment variables are set
+                  if ! env | grep -q "^AWS_ACCESS_KEY_ID=" || ! env | grep -q "^AWS_SECRET_ACCESS_KEY="; then
+                    echo "⚠️ Note: No AWS credentials in environment variables"
+                    echo ""
+                    echo "You can authenticate using one of these methods:"
+                    echo ""
+                    echo "1. AWS Profile (recommended):"
+                    echo "   deploy profile-name    # Example: deploy personal"
+                    echo ""
+                    echo "2. Environment Variables:"
+                    echo "   export AWS_ACCESS_KEY_ID=AKIAXXXXXXXX"
+                    echo "   export AWS_SECRET_ACCESS_KEY=XXXXXXXX"
+                    echo "   deploy"
+                    echo ""
+                    echo "3. Default AWS Config:"
+                    echo "   If you have default credentials in ~/.aws/config or ~/.aws/credentials"
+                    echo "   those will be used automatically"
+                    echo ""
+                    # Exit with error code
+                    echo "❌ No valid AWS credentials found. Please configure authentication and try again."
+                    exit 1
+                  fi
+                fi
+                
+                # Build the website
+                echo "Building website..."
+                cd website && npm run build
+                
+                # Return to the original directory
+                cd ..
+                
+                # Deploy to S3
+                echo "Deploying to S3 bucket urandom-mcp-nixos..."
+                
+                # Check if the out directory exists
+                if [ ! -d "website/out" ]; then
+                  echo "❌ Error: Output directory 'website/out' does not exist."
+                  echo "    This may indicate the build failed or ran in a different location."
+                  exit 1
+                fi
+                
+                # Deploy to S3
+                echo "Syncing files to S3..."
+                aws s3 sync website/out/ s3://urandom-mcp-nixos/ --delete $PROFILE_FLAG
+                
+                # Check if the previous command succeeded
+                if [ $? -ne 0 ]; then
+                  echo "❌ Error: S3 sync failed"
+                  exit 1
+                fi
+                
+                # Invalidate CloudFront cache
+                echo "Invalidating CloudFront cache..."
+                DISTRIBUTION_ID="E1QS1G7FYYJ6TL"
+                aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*" $PROFILE_FLAG
+                
+                echo "✅ Website deployment complete"
+              '';
+            }
           ];
           devshell.startup.initMessage.text = ''
             echo "Entering MCP-NixOS Website Dev Environment..."
@@ -127,6 +200,7 @@
             echo "  dev      - Start development server"
             echo "  build    - Build for production"
             echo "  lint     - Lint code"
+            echo "  deploy   - Deploy website to AWS S3/CloudFront"
             echo ""
             menu
           '';

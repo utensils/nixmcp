@@ -158,12 +158,17 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - `/public` - Static assets including favicon and images
   - `/public/favicon` - Website favicon files
   - `/public/images` - Logo images and attribution information
+- Component architecture:
+  - Uses reusable components like `CollapsibleSection` for managing interactive UI elements
+  - Maintains consistent styling across documentation and usage examples with shared components
+  - Implements client-side components with the 'use client' directive for interactive elements
 - Deployment:
   - Hosted on AWS S3 bucket `urandom-mcp-nixos` with CloudFront CDN distribution ID `E1QS1G7FYYJ6TL`
   - Automatically deployed via GitHub Actions when changes are detected in the website directory
   - Only deploys on pushes to the `main` branch, not on PRs or feature branches
   - Configured to skip deployment entirely if no website files have changed
   - Uses AWS credentials stored in the AWS environment in GitHub repository
+  - Manual deployment to development site: `TMPDIR="/tmp/" nix develop .#web -c deploy dev.urandom.io`
 - Nested shell architecture:
   - Main shell has single command: `web-dev` - Launch website development shell
   - Website shell (`nix develop .#web`) provides dedicated commands:
@@ -177,6 +182,15 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - ESLint for code linting with TypeScript and React plugins
   - Prettier for code formatting with tailwind plugin
   - TypeScript for type checking
+  - Run checks locally with these commands (inside the website directory):
+    - `npx tsc --noEmit` - Check for TypeScript errors without generating output files
+    - `npx prettier --check .` - Verify formatting without making changes
+    - `npx prettier --write .` - Apply formatting changes automatically
+- Troubleshooting website issues:
+  - For TypeScript errors: Run `npx tsc --noEmit` to identify type issues
+  - For formatting inconsistencies: Run `npx prettier --check .` to identify problems
+  - Before committing changes: Run both checks to ensure code quality
+  - Components with 'use client' directive must be properly structured for client-side rendering
 - Follows responsive design principles and accessibility guidelines (WCAG 2.1 AA)
 
 ### C Extension Compilation Support
