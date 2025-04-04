@@ -59,10 +59,8 @@ export default function UsagePage() {
             Usage Examples
           </AnchorHeading>
 
-          <div className="space-y-6">
-
-
-            <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-primary p-5 mb-6">
+          <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-primary p-5">
               <h3 className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
                 <svg
                   className="w-5 h-5 mr-2 text-nix-primary"
@@ -79,21 +77,26 @@ export default function UsagePage() {
                 Example 1: PostgreSQL Versions and Configuration
               </h3>
 
-              <p className="text-gray-700 mb-4">
-                These examples demonstrate simple use cases for MCP-NixOS tools and the type of
-                information they provide.
+              <p className="text-gray-700 mb-6 leading-relaxed">
+                These examples demonstrate practical use cases for MCP-NixOS tools and the type of
+                information they provide. Each example shows the complete workflow from user question to AI response.
               </p>
 
-              <div className="space-y-6">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-nix-primary mb-2">User Prompt</h4>
-                  <p className="text-gray-700 mb-3">
+              <div className="space-y-8">
+                <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
+                  <h4 className="font-semibold text-nix-dark mb-2 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    User Prompt
+                  </h4>
+                  <p className="text-gray-700 mb-4 italic">
                     &quot;What PostgreSQL versions are available in NixOS, and what are the
                     configuration options?&quot;
                   </p>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       Tool Call 1: Search for PostgreSQL Packages
                     </h5>
                     <CodeBlock
@@ -110,11 +113,11 @@ export default function UsagePage() {
                     />
                   </div>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       Available PostgreSQL Versions:
                     </h5>
-                    <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <CodeBlock
                         code={`Found 10 packages matching 'postgresql':
 
@@ -146,8 +149,8 @@ export default function UsagePage() {
                     </div>
                   </div>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       Tool Call 2: Get PostgreSQL Service Options
                     </h5>
                     <CodeBlock
@@ -163,11 +166,11 @@ export default function UsagePage() {
                     />
                   </div>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       PostgreSQL Configuration Options:
                     </h5>
-                    <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <CodeBlock
                         code={`# services.postgresql.authentication
 
@@ -199,8 +202,8 @@ rules entirely, you can use \`lib.mkForce\` in your module.
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-                    <h5 className="text-md font-semibold mb-1 text-blue-700">
+                  <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       AI Assistant Response:
                     </h5>
                     <p className="text-gray-700">
@@ -240,17 +243,25 @@ rules entirely, you can use \`lib.mkForce\` in your module.
                   </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg p-4 mt-6">
-                  <h4 className="font-semibold text-nix-primary mb-2">
+                <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
+                  <h4 className="font-semibold text-nix-dark mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                     Example 2: Checking Package Availability
                   </h4>
-                  <h4 className="font-semibold text-nix-primary mb-2">User Prompt</h4>
-                  <p className="text-gray-700 mb-3">
+                  <h4 className="font-semibold text-nix-dark mb-2 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    User Prompt
+                  </h4>
+                  <p className="text-gray-700 mb-4 italic">
                     &quot;Is the tldr package available in NixOS, and what variants exist?&quot;
                   </p>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       Tool Call 1: Search for tldr Package
                     </h5>
                     <CodeBlock
@@ -267,11 +278,11 @@ rules entirely, you can use \`lib.mkForce\` in your module.
                     />
                   </div>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       Search Results:
                     </h5>
-                    <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <CodeBlock
                         code={`Found 6 packages matching 'tldr':
 
@@ -295,8 +306,8 @@ rules entirely, you can use \`lib.mkForce\` in your module.
                     </div>
                   </div>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       Tool Call 2: Get Detailed Package Information
                     </h5>
                     <CodeBlock
@@ -312,11 +323,11 @@ rules entirely, you can use \`lib.mkForce\` in your module.
                     />
                   </div>
 
-                  <div className="mb-3">
-                    <h5 className="text-md font-semibold mb-2 text-nix-dark">
+                  <div className="mb-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       Package Details:
                     </h5>
-                    <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <CodeBlock
                         code={`# tldr
 
@@ -342,8 +353,8 @@ hunt through a man page for the correct flags.
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-                    <h5 className="text-md font-semibold mb-1 text-blue-700">
+                  <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
+                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
                       AI Assistant Response:
                     </h5>
                     <p className="text-gray-700">
