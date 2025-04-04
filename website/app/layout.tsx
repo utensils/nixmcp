@@ -7,6 +7,38 @@ export const metadata: Metadata = {
   title: 'MCP-NixOS | Model Context Protocol for NixOS',
   description: 'MCP resources and tools for NixOS packages, system options, Home Manager configuration, and nix-darwin macOS configuration.',
   keywords: ['NixOS', 'MCP', 'Model Context Protocol', 'Home Manager', 'nix-darwin', 'Claude', 'AI Assistant'],
+  authors: [{ name: 'Utensils', url: 'https://utensils.io' }],
+  creator: 'Utensils',
+  publisher: 'Utensils',
+  metadataBase: new URL('https://mcp-nixos.utensils.io'),
+  alternates: {
+    canonical: '/',
+  },
+  // Open Graph metadata
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://mcp-nixos.utensils.io',
+    siteName: 'MCP-NixOS',
+    title: 'MCP-NixOS | Model Context Protocol for NixOS',
+    description: 'MCP resources and tools for NixOS packages, system options, Home Manager configuration, and nix-darwin macOS configuration.',
+    images: [
+      {
+        url: '/images/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'MCP-NixOS - Model Context Protocol for NixOS',
+      },
+    ],
+  },
+  // Twitter Card metadata
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MCP-NixOS | Model Context Protocol for NixOS',
+    description: 'MCP resources and tools for NixOS packages, system options, Home Manager configuration, and nix-darwin macOS configuration.',
+    images: ['/images/og-image.png'],
+    creator: '@utensils_io',
+  },
   icons: {
     icon: [
       { url: '/favicon/favicon.ico' },
