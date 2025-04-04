@@ -815,44 +815,59 @@ def check_request_ready(ctx) -> bool:
     """Check if the server is ready to handle requests.
 
     Args:
-        ctx: The request context
+        ctx: The request context or context string from MCP
 
     Returns:
         True if ready, False if not
     """
-    return ctx.request_context.lifespan_context.get("is_ready", False)
+    # Handle case where ctx is a string (from MCP tool interface)
+    if isinstance(ctx, str):
+        return True  # Always ready when called from MCP outside server
+    
+    # Handle case where ctx is a request context (from our server)
+    if hasattr(ctx, 'request_context'):
+        return ctx.request_context.lifespan_context.get("is_ready", False)
+    
+    # Default to ready if we can't determine
+    logger.warning("Unknown context type, assuming ready")
+    return True
 
 
 def check_home_manager_ready(ctx) -> Optional[Dict[str, Any]]:
     """Check if Home Manager client is ready.
 
     Args:
-        ctx: The request context
+        ctx: The request context or context string from MCP
 
     Returns:
         Dict with error message if not ready, None if ready
     """
+    # Handle case where ctx is a string (from MCP tool interface)
+    if isinstance(ctx, str):
+        return None  # Always ready when called from MCP outside server
+    
     # First check if server is ready
     if not check_request_ready(ctx):
         return {"error": "The server is still initializing. Please try again in a few seconds.", "found": False}
 
     # Get Home Manager context and check if data is loaded
-    home_manager_context = ctx.request_context.lifespan_context.get("home_manager_context")
-    if home_manager_context and hasattr(home_manager_context, "hm_client"):
-        client = home_manager_context.hm_client
-        if not client.is_loaded:
-            if client.loading_in_progress:
-                return {
-                    "error": "Home Manager data is still loading. Please try again in a few seconds.",
-                    "found": False,
-                    "partial_init": True,
-                }
-            elif client.loading_error:
-                return {
-                    "error": f"Failed to load Home Manager data: {client.loading_error}",
-                    "found": False,
-                    "partial_init": True,
-                }
+    if hasattr(ctx, 'request_context'):
+        home_manager_context = ctx.request_context.lifespan_context.get("home_manager_context")
+        if home_manager_context and hasattr(home_manager_context, "hm_client"):
+            client = home_manager_context.hm_client
+            if not client.is_loaded:
+                if client.loading_in_progress:
+                    return {
+                        "error": "Home Manager data is still loading. Please try again in a few seconds.",
+                        "found": False,
+                        "partial_init": True,
+                    }
+                elif client.loading_error:
+                    return {
+                        "error": f"Failed to load Home Manager data: {client.loading_error}",
+                        "found": False,
+                        "partial_init": True,
+                    }
 
     # All good
     return None
