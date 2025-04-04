@@ -1,6 +1,6 @@
 # MCP-NixOS Website
 
-The official website for the MCP-NixOS project built with Next.js 15.2 and Tailwind CSS.
+The official website for the MCP-NixOS project built with Next.js 15.2 and Tailwind CSS. Deployed automatically via CI/CD to AWS S3 and CloudFront.
 
 ## Development
 
