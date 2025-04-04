@@ -19,17 +19,17 @@ export default function DocsPage() {
               </li>
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 rounded-full bg-nix-primary mt-2 mr-3 flex-shrink-0"></span>
-                <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
-                  nixos_search()
-                </span>
-                <span className="mx-2 text-gray-500">|</span>
-                <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
-                  nixos_info()
-                </span>
-                <span className="mx-2 text-gray-500">|</span>
-                <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
-                  nixos_stats()
-                </span>
+                <div className="flex flex-wrap gap-2 items-center w-full">
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
+                    nixos_search()
+                  </span>
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
+                    nixos_info()
+                  </span>
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
+                    nixos_stats()
+                  </span>
+                </div>
               </li>
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 rounded-full bg-nix-primary mt-2 mr-3 flex-shrink-0"></span>
@@ -68,14 +68,14 @@ export default function DocsPage() {
               </li>
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 rounded-full bg-nix-primary mt-2 mr-3 flex-shrink-0"></span>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
+                <div className="flex flex-wrap gap-2 items-center w-full">
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
                     home_manager_search()
                   </span>
-                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
                     home_manager_info()
                   </span>
-                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
                     home_manager_options_by_prefix()
                   </span>
                 </div>
@@ -111,14 +111,14 @@ export default function DocsPage() {
               </li>
               <li className="flex items-start">
                 <span className="inline-block w-2 h-2 rounded-full bg-nix-primary mt-2 mr-3 flex-shrink-0"></span>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
+                <div className="flex flex-wrap gap-2 items-center w-full">
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
                     darwin_search()
                   </span>
-                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
                     darwin_info()
                   </span>
-                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded">
+                  <span className="font-mono text-nix-dark bg-gray-100 px-1 py-0.5 rounded break-all">
                     darwin_options_by_prefix()
                   </span>
                 </div>
@@ -150,36 +150,38 @@ export default function DocsPage() {
           <p className="mb-6 text-gray-800 font-medium">MCP-NixOS can be configured through environment variables:</p>
           
           <div className="overflow-x-auto mb-12 rounded-lg shadow-sm">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr className="bg-nix-primary">
-                  <th className="px-6 py-3 text-left text-white font-semibold rounded-tl-lg">Variable</th>
-                  <th className="px-6 py-3 text-left text-white font-semibold rounded-tr-lg">Description</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
-                  <td className="px-6 py-4 font-mono text-sm font-semibold text-nix-dark">MCP_NIXOS_LOG_LEVEL</td>
-                  <td className="px-6 py-4 text-gray-700">Logging level (DEBUG, INFO, WARNING, ERROR)</td>
-                </tr>
-                <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
-                  <td className="px-6 py-4 font-mono text-sm font-semibold text-nix-dark">MCP_NIXOS_LOG_FILE</td>
-                  <td className="px-6 py-4 text-gray-700">Path to log file</td>
-                </tr>
-                <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
-                  <td className="px-6 py-4 font-mono text-sm font-semibold text-nix-dark">MCP_NIXOS_CACHE_DIR</td>
-                  <td className="px-6 py-4 text-gray-700">Directory for cache files</td>
-                </tr>
-                <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
-                  <td className="px-6 py-4 font-mono text-sm font-semibold text-nix-dark">MCP_NIXOS_CACHE_TTL</td>
-                  <td className="px-6 py-4 text-gray-700">Cache time-to-live in seconds</td>
-                </tr>
-                <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
-                  <td className="px-6 py-4 font-mono text-sm font-semibold text-nix-dark rounded-bl-lg">ELASTICSEARCH_URL</td>
-                  <td className="px-6 py-4 text-gray-700 rounded-br-lg">Custom Elasticsearch URL</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="min-w-full md:min-w-0">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-nix-primary">
+                    <th className="px-3 sm:px-6 py-3 text-left text-white font-semibold rounded-tl-lg">Variable</th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-white font-semibold rounded-tr-lg">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_LOG_LEVEL</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Logging level (DEBUG, INFO, WARNING, ERROR)</td>
+                  </tr>
+                  <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_LOG_FILE</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Path to log file</td>
+                  </tr>
+                  <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_CACHE_DIR</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Directory for cache files</td>
+                  </tr>
+                  <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all">MCP_NIXOS_CACHE_TTL</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700">Cache time-to-live in seconds</td>
+                  </tr>
+                  <tr className="hover:bg-nix-light bg-opacity-50 transition-colors duration-150">
+                    <td className="px-3 sm:px-6 py-4 font-mono text-xs sm:text-sm font-semibold text-nix-dark break-all rounded-bl-lg">ELASTICSEARCH_URL</td>
+                    <td className="px-3 sm:px-6 py-4 text-sm text-gray-700 rounded-br-lg">Custom Elasticsearch URL</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
