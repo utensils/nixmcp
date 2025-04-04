@@ -47,11 +47,26 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
             logger.info(f"Adding wildcards to query: {wildcard_query}")
             query = wildcard_query
 
-        # Ensure context is not None before accessing its attributes
-        if context is None:
-            return "Error: Home Manager context not available"
-
-        results = context.search_options(query, limit)
+        # Handle case where context is a string (from MCP tool interface)
+        if isinstance(context, str):
+            # Import get_home_manager_context dynamically when we have a string context
+            try:
+                server_module = importlib.import_module("mcp_nixos.server")
+                get_home_manager_context = getattr(server_module, "get_home_manager_context")
+                real_context = get_home_manager_context()
+                if real_context is None:
+                    return "Error: Home Manager context not available"
+                results = real_context.search_options(query, limit)
+            except Exception as e:
+                logger.error(f"Error getting Home Manager context when called with string context: {e}")
+                return f"Error: Could not search for '{query}': {str(e)}"
+        else:
+            # Ensure context is not None before accessing its attributes
+            if context is None:
+                return "Error: Home Manager context not available"
+            
+            results = context.search_options(query, limit)
+        
         options = results.get("options", [])
 
         if not options:
@@ -223,11 +238,25 @@ def home_manager_info(name: str, context=None) -> str:
             context = None
 
     try:
-        # Ensure context is not None before accessing its attributes
-        if context is None:
-            return f"Error: Home Manager context not available for option '{name}'"
-
-        info = context.get_option(name)
+        # Handle case where context is a string (from MCP tool interface)
+        if isinstance(context, str):
+            # Import get_home_manager_context dynamically when we have a string context
+            try:
+                server_module = importlib.import_module("mcp_nixos.server")
+                get_home_manager_context = getattr(server_module, "get_home_manager_context")
+                real_context = get_home_manager_context()
+                if real_context is None:
+                    return f"Error: Home Manager context not available for option '{name}'"
+                info = real_context.get_option(name)
+            except Exception as e:
+                logger.error(f"Error getting Home Manager context when called with string context: {e}")
+                return f"Error: Could not obtain information for '{name}': {str(e)}"
+        else:
+            # Ensure context is not None before accessing its attributes
+            if context is None:
+                return f"Error: Home Manager context not available for option '{name}'"
+            
+            info = context.get_option(name)
 
         if not info.get("found", False):
             output = f"# Option '{name}' not found\n\n"
@@ -398,11 +427,25 @@ def home_manager_stats(context=None) -> str:
             context = None
 
     try:
-        # Ensure context is not None before accessing its attributes
-        if context is None:
-            return "Error: Home Manager context not available"
-
-        stats = context.get_stats()
+        # Handle case where context is a string (from MCP tool interface)
+        if isinstance(context, str):
+            # Import get_home_manager_context dynamically when we have a string context
+            try:
+                server_module = importlib.import_module("mcp_nixos.server")
+                get_home_manager_context = getattr(server_module, "get_home_manager_context")
+                real_context = get_home_manager_context()
+                if real_context is None:
+                    return "Error: Home Manager context not available"
+                stats = real_context.get_stats()
+            except Exception as e:
+                logger.error(f"Error getting Home Manager context when called with string context: {e}")
+                return f"Error: Could not obtain Home Manager statistics: {str(e)}"
+        else:
+            # Ensure context is not None before accessing its attributes
+            if context is None:
+                return "Error: Home Manager context not available"
+            
+            stats = context.get_stats()
 
         if "error" in stats:
             return f"Error getting statistics: {stats['error']}"
@@ -490,11 +533,25 @@ def home_manager_list_options(context=None) -> str:
             context = None
 
     try:
-        # Ensure context is not None before accessing its attributes
-        if context is None:
-            return "Error: Home Manager context not available"
-
-        result = context.get_options_list()
+        # Handle case where context is a string (from MCP tool interface)
+        if isinstance(context, str):
+            # Import get_home_manager_context dynamically when we have a string context
+            try:
+                server_module = importlib.import_module("mcp_nixos.server")
+                get_home_manager_context = getattr(server_module, "get_home_manager_context")
+                real_context = get_home_manager_context()
+                if real_context is None:
+                    return "Error: Home Manager context not available"
+                result = real_context.get_options_list()
+            except Exception as e:
+                logger.error(f"Error getting Home Manager context when called with string context: {e}")
+                return f"Error: Could not list Home Manager options: {str(e)}"
+        else:
+            # Ensure context is not None before accessing its attributes
+            if context is None:
+                return "Error: Home Manager context not available"
+            
+            result = context.get_options_list()
 
         if not result.get("found", False):
             if "error" in result:
@@ -609,11 +666,25 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
             context = None
 
     try:
-        # Ensure context is not None before accessing its attributes
-        if context is None:
-            return f"Error: Home Manager context not available for prefix '{option_prefix}'"
-
-        result = context.get_options_by_prefix(option_prefix)
+        # Handle case where context is a string (from MCP tool interface)
+        if isinstance(context, str):
+            # Import get_home_manager_context dynamically when we have a string context
+            try:
+                server_module = importlib.import_module("mcp_nixos.server")
+                get_home_manager_context = getattr(server_module, "get_home_manager_context")
+                real_context = get_home_manager_context()
+                if real_context is None:
+                    return f"Error: Home Manager context not available for prefix '{option_prefix}'"
+                result = real_context.get_options_by_prefix(option_prefix)
+            except Exception as e:
+                logger.error(f"Error getting Home Manager context when called with string context: {e}")
+                return f"Error: Could not get options by prefix '{option_prefix}': {str(e)}"
+        else:
+            # Ensure context is not None before accessing its attributes
+            if context is None:
+                return f"Error: Home Manager context not available for prefix '{option_prefix}'"
+            
+            result = context.get_options_by_prefix(option_prefix)
 
         if not result.get("found", False):
             if "error" in result:
