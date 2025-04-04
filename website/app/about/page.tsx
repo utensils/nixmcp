@@ -128,7 +128,6 @@ export default function AboutPage() {
                 <h3 className="text-xl font-bold text-nix-dark mb-2">James Brink</h3>
                 <p className="text-gray-600 mb-1">Technology Architect</p>
                 <p className="text-gray-800 mb-4">
-                  My passion for learning is second only to that of solving complex problems with elegant solutions. 
                   As the creator of MCP-NixOS, I&apos;ve focused on building a reliable bridge between AI assistants and the 
                   NixOS ecosystem, ensuring accurate and up-to-date information is always available.
                 </p>
