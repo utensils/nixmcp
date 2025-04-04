@@ -76,3 +76,17 @@ TODO.md
 # Logs
 *.log
 *.DS_Store
+
+# Website (Next.js)
+/website/node_modules/
+/website/.next/
+/website/out/
+/website/.vercel/
+/website/.env*.local
+/website/npm-debug.log*
+/website/yarn-debug.log*
+/website/yarn-error.log*
+/website/pnpm-debug.log*
+/website/.pnpm-store/
+/website/.DS_Store
+/website/*.pem

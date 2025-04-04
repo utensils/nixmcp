@@ -424,6 +424,79 @@ jobs:
             For more details, check the complexity-report artifact in the workflow run.
           comment_tag: complexity-analysis
 
+  check-website-changes:
+    name: Check for Website Changes
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      website_changed: ${{ steps.changes.outputs.website_changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Check for changes in website directory
+        id: changes
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q "^website/"; then
+            echo "website_changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in website directory"
+          else
+            echo "website_changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected in website directory"
+          fi
+
+  deploy-website:
+    name: Deploy Website to AWS S3
+    needs: [build, check-website-changes]
+    if: github.ref == 'refs/heads/main' && needs.check-website-changes.outputs.website_changed == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: AWS
+      url: https://mcp-nixos.utensils.io
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: website/package-lock.json
+      
+      - name: Install website dependencies
+        run: cd website && npm install
+      
+      - name: Build website
+        run: cd website && npm run build
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Deploy to S3
+        run: |
+          aws s3 sync website/out/ s3://mcp-nixos.utensils.io/ --delete
+      
+      - name: Invalidate CloudFront cache
+        run: |
+          # Get the CloudFront distribution ID
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items!=null] | [?contains(Aliases.Items, 'mcp-nixos.utensils.io')].Id" --output text)
+          
+          if [ -n "$DISTRIBUTION_ID" ]; then
+            echo "Invalidating CloudFront distribution: $DISTRIBUTION_ID"
+            aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+          else
+            echo "Warning: Could not find CloudFront distribution for mcp-nixos.utensils.io"
+          fi
+
   publish:
     name: Build and Publish to PyPI
     if: startsWith(github.ref, 'refs/tags/v')

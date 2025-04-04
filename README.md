@@ -334,6 +334,8 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open p
 
 MIT (Because I'm not a monster)
 
+*The NixOS snowflake logo is used with attribution to the NixOS project. See [attribution information](website/public/images/attribution.md) for details.*
+
 ---
 
 _Created by James Brink, self-proclaimed Tinkerer of Terror, who somehow manages to make things work despite himself._

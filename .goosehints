@@ -35,6 +35,16 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Creates JUnit XML test results for Codecov Test Analytics
   - Uses `continue-on-error` and `if: always()` to ensure reports are uploaded even when tests fail
   - Configured with appropriate flags to categorize different test types
+- Website deployment to AWS S3/CloudFront:
+  - Automatic deployment only when changes are detected in the website directory
+  - Only runs on pushes to `main` branch (not on PRs)
+  - Uses AWS environment credentials for S3 sync and CloudFront cache invalidation
+  - Independent of other jobs like testing or type checking
+  - Configured to skip deployment entirely if no website files have changed
+- PyPI package deployment:
+  - Only runs on version tag pushes (v*)
+  - Depends on successful completion of all test and quality jobs
+  - Uses the PyPI trusted publishing workflow
 - When working with PRs:
   - The CI workflow is configured to run only on:
     - Pushes to `main` branch
@@ -124,6 +134,37 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - `ELASTICSEARCH_URL`, `ELASTICSEARCH_USER`, `ELASTICSEARCH_PASSWORD`
 
 ## Development
+
+### Website 
+- The website is built with Next.js 15.2 and Tailwind CSS in the `/website` directory
+- Uses TypeScript, App Router, and static export for AWS S3/CloudFront hosting
+- NixOS color scheme is used throughout: primary #5277C3, secondary #7EBAE4
+- Directory structure:
+  - `/app` - Next.js App Router pages
+  - `/components` - React components with client/server separation
+  - `/public` - Static assets including favicon and images
+  - `/public/favicon` - Website favicon files
+  - `/public/images` - Logo images and attribution information
+- Deployment:
+  - Hosted on AWS S3 with CloudFront CDN at https://mcp-nixos.utensils.io
+  - Automatically deployed via GitHub Actions when changes are detected in the website directory
+  - Only deploys on pushes to the `main` branch, not on PRs or feature branches
+  - Configured to skip deployment entirely if no website files have changed
+  - Uses AWS credentials stored in the AWS environment in GitHub repository
+- Nested shell architecture:
+  - Main shell has single command: `web-dev` - Launch website development shell
+  - Website shell (`nix develop .#web`) provides dedicated commands:
+    - `install` - Install dependencies 
+    - `dev` - Start development server
+    - `build` - Build for production
+    - `lint` - Lint code
+    - `lint:fix` - Fix linting issues
+    - `type-check` - Run TypeScript type checking
+- Code quality tools:
+  - ESLint for code linting with TypeScript and React plugins
+  - Prettier for code formatting with tailwind plugin
+  - TypeScript for type checking
+- Follows responsive design principles and accessibility guidelines (WCAG 2.1 AA)
 
 ### C Extension Compilation Support
 - Fully supports building C extensions via native libffi support
@@ -215,6 +256,17 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Prevent test flakiness by avoiding sleep/timing dependencies
 - Use clean logger fixtures to prevent test interaction
 
+### Development Shells
+- Project uses a nested shell architecture for development environments:
+  - `devShells.default`: Main Python development shell
+  - `devShells.web`: Dedicated Node.js shell for website development
+- Separation prevents dependency conflicts between Python and Node.js
+- Each shell has purpose-specific commands via `pkgs.devshell.mkShell`
+- Shell navigation:
+  - From host system: `nix develop` (main) or `nix develop .#web` (website)
+  - From main shell: `web-dev` launches website shell
+  - Each shell shows commands via menu interface
+
 ### Dependency Management
 - Project uses `pyproject.toml` for dependency specification (PEP 621)
 - Core dependencies:
@@ -254,3 +306,18 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Black formatting, 120 char line limit
 - Strict null safety practices
 - Zero-tolerance for type errors
+
+### Licensing and Attribution
+- Project code is licensed under MIT License
+- The NixOS snowflake logo is used with attribution to the NixOS project
+- Project assets include:
+  - `nixos-flake.svg`: NixOS snowflake logo in blue (monochrome)
+  - `nixos-snowflake-colour.svg`: NixOS snowflake logo with gradient colors
+  - `mcp-nixos.png`: Project logo incorporating the NixOS snowflake design
+  - Favicon files derived from the project logo
+- Logo attribution must be maintained in:
+  - README.md attribution section
+  - Website footer with link to attribution details
+  - Attribution document in website/public/images/attribution.md
+- Attribution document must specify both "NixOS" and "NixOS snowflake logo"
+- When adding or modifying logo files, update all attribution locations

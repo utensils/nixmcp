@@ -87,6 +87,51 @@
 
       in
       {
+        # Create a separate shell for website development
+        devShells.web = pkgs.devshell.mkShell {
+          name = "mcp-nixos-web";
+          packages = with pkgs; [
+            nodejs_20
+          ];
+          commands = [
+            {
+              name = "install";
+              category = "website";
+              help = "Install website dependencies";
+              command = "cd website && npm install";
+            }
+            {
+              name = "dev";
+              category = "website";
+              help = "Start the development server";
+              command = "cd website && npm run dev";
+            }
+            {
+              name = "build";
+              category = "website";
+              help = "Build the static website for production";
+              command = "cd website && npm run build";
+            }
+            {
+              name = "lint";
+              category = "website";
+              help = "Lint the website code";
+              command = "cd website && npm run lint";
+            }
+          ];
+          devshell.startup.initMessage.text = ''
+            echo "Entering MCP-NixOS Website Dev Environment..."
+            echo ""
+            echo "Available commands:"
+            echo "  install  - Install dependencies"
+            echo "  dev      - Start development server"
+            echo "  build    - Build for production"
+            echo "  lint     - Lint code"
+            echo ""
+            menu
+          '';
+        };
+        
         devShells.default = pkgs.devshell.mkShell {
           name = "mcp-nixos";
           motd = ''
@@ -138,6 +183,8 @@
             # AI Tools
             code2prompt
             llm
+
+            # Remove Node.js from main dev shell to avoid conflicts
           ];
           commands = [
             {
@@ -326,6 +373,15 @@
                 echo "   - .windsurfrules"
                 echo "   - .cursorrules"
                 echo "   - .goosehints"
+              '';
+            }
+            {
+              name = "web-dev";
+              category = "website";
+              help = "Launch Node.js shell for website development";
+              command = ''
+                echo "--- Launching Node.js shell for website development ---"
+                nix develop .#web
               '';
             }
             {
