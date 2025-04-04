@@ -17,7 +17,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-nix-primary to-nix-dark text-white py-20 shadow-lg">
         <div className="container-custom text-center">
-          <AnchorHeading level={1} className="text-4xl md:text-6xl font-bold mb-6">MCP-NixOS</AnchorHeading>
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">MCP-NixOS</h1>
           <div className="mb-8 max-w-3xl mx-auto">
             <p className="text-xl md:text-2xl font-medium mb-2">
               <span className="font-bold tracking-wide">Model Context Protocol</span>
