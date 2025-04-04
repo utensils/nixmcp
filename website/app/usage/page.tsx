@@ -1,5 +1,6 @@
 import AnchorHeading from '@/components/AnchorHeading';
 import CodeBlock from '@/components/CodeBlock';
+import CollapsibleSection from '@/components/CollapsibleSection';
 
 export default function UsagePage() {
   return (
@@ -93,31 +94,15 @@ export default function UsagePage() {
                 configuration options?&quot;
               </p>
 
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  Tool Call 1: Search for PostgreSQL Packages
-                </h5>
+              <CollapsibleSection title="Tool Call 1: Search for PostgreSQL Packages">
                 <CodeBlock
-                  code={`{  
-  "type": "call",
-  "tool": "nixos_search",
-  "params": {
-    "query": "postgresql",
-    "type": "packages",
-    "limit": 10
-  }
-}`}
-                  language="json"
-                />
-              </div>
-
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  Available PostgreSQL Versions:
-                </h5>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <CodeBlock
-                    code={`Found 10 packages matching 'postgresql':
+                  code={`{
+  "ctx": "Checking NixOS search for packages",
+  "type": "packages",
+  "limit": 10,
+  "query": "postgresql"
+}
+Found 10 packages matching 'postgresql':
 
 - postgresql_13 (13.14)
   PostgreSQL is a powerful, open source object-relational database system
@@ -148,35 +133,18 @@ export default function UsagePage() {
 
 - postgresql14JitPackages.lantern (0.5.0)
   PostgreSQL vector database extension for building AI applications`}
-                    language="markdown"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  Tool Call 2: Get PostgreSQL Service Options
-                </h5>
-                <CodeBlock
-                  code={`{  
-  "type": "call",
-  "tool": "nixos_info",
-  "params": {
-    "name": "services.postgresql",
-    "type": "option"
-  }
-}`}
                   language="json"
                 />
-              </div>
+              </CollapsibleSection>
 
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  PostgreSQL Configuration Options:
-                </h5>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <CodeBlock
-                    code={`# services.postgresql
+              <CollapsibleSection title="Tool Call 2: Get PostgreSQL Service Options">
+                <CodeBlock
+                  code={`{
+  "ctx": "Checking NixOS info for option",
+  "type": "option",
+  "name": "services.postgresql"
+}
+# services.postgresql
 
 **Description:** PostgreSQL database server.
 
@@ -227,10 +195,9 @@ rules entirely, you can use \`lib.mkForce\` in your module.
   Whether to enable JIT support.
 **Option: services.postgresql.enableTCPIP** (boolean)
   Whether PostgreSQL should listen on all network interfaces.`}
-                    language="markdown"
-                  />
-                </div>
-              </div>
+                  language="json"
+                />
+              </CollapsibleSection>
 
               <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
                 <h5 className="text-md font-semibold mb-2 text-nix-primary">
@@ -291,31 +258,15 @@ rules entirely, you can use \`lib.mkForce\` in your module.
                 &quot;Is the tldr package available in NixOS, and what variants exist?&quot;
               </p>
 
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  Tool Call 1: Search for tldr Package
-                </h5>
+              <CollapsibleSection title="Tool Call 1: Search for tldr Package">
                 <CodeBlock
-                  code={`{  
-  "type": "call",
-  "tool": "nixos_search",
-  "params": {
-    "query": "tldr",
-    "type": "packages",
-    "limit": 10
-  }
-}`}
-                  language="json"
-                />
-              </div>
-
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  Search Results:
-                </h5>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <CodeBlock
-                    code={`Found 6 packages matching 'tldr':
+                  code={`{
+  "ctx": "Checking NixOS search for packages",
+  "type": "packages",
+  "limit": 10,
+  "query": "tldr"
+}
+Found 6 packages matching 'tldr':
 
 - tldr (3.3.0)
   Simplified and community-driven man pages
@@ -332,35 +283,18 @@ rules entirely, you can use \`lib.mkForce\` in your module.
 - emacsPackages.tldr (20230301.136)
 
 - rPackages.tldr (0.4.0)`}
-                    language="markdown"
-                  />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  Tool Call 2: Get Detailed Package Information
-                </h5>
-                <CodeBlock
-                  code={`{  
-  "type": "call",
-  "tool": "nixos_info",
-  "params": {
-    "name": "tldr",
-    "type": "package"
-  }
-}`}
                   language="json"
                 />
-              </div>
+              </CollapsibleSection>
 
-              <div className="mb-4">
-                <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                  Package Details:
-                </h5>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <CodeBlock
-                    code={`# tldr
+              <CollapsibleSection title="Tool Call 2: Get Detailed Package Information">
+                <CodeBlock
+                  code={`{
+  "ctx": "Checking NixOS info for package",
+  "type": "package",
+  "name": "tldr"
+}
+# tldr
 
 **Version:** 3.3.0
 
@@ -379,10 +313,9 @@ hunt through a man page for the correct flags.
 **Platforms:** Multiple platforms including Linux, macOS, Windows, and more
 
 **Provided Programs:** tldr`}
-                    language="markdown"
-                  />
-                </div>
-              </div>
+                  language="json"
+                />
+              </CollapsibleSection>
 
               <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
                 <h5 className="text-md font-semibold mb-2 text-nix-primary">
