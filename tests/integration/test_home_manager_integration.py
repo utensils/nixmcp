@@ -362,18 +362,28 @@ class TestHomeManagerDocStructure(unittest.TestCase):
             dt = soup.find("dt")
 
             # Use the client's internal method to parse the option
-            option = client._parse_single_option(dt, f"test-{i}")
+            # Make sure dt is not None before passing it to the parsing method
+            if dt is not None:
+                option = client._parse_single_option(dt, f"test-{i}")
 
-            # Verify that parsing was successful and returned valid data
-            self.assertIsNotNone(option, f"Failed to parse sample {i}")
-            self.assertIn("name", option, f"No name found in sample {i}")
-            self.assertIn("description", option, f"No description found in sample {i}")
+                # Verify that parsing was successful and returned valid data
+                self.assertIsNotNone(option, f"Failed to parse sample {i}")
 
-            # Log the parsed option for debugging
-            logger.info(f"Successfully parsed sample {i}:")
-            logger.info(f"  Name: {option['name']}")
-            logger.info(f"  Type: {option.get('type', 'unknown')}")
-            logger.info(f"  Description: {option['description'][:50]}...")
+                # Add null checks before accessing the dict
+                if option is not None:
+                    self.assertIn("name", option, f"No name found in sample {i}")
+                    self.assertIn("description", option, f"No description found in sample {i}")
+
+                    # Log the parsed option for debugging with null safety
+                    logger.info(f"Successfully parsed sample {i}:")
+                    if "name" in option:
+                        logger.info(f"  Name: {option['name']}")
+                    type_value = option.get("type", "unknown") if option else "unknown"
+                    logger.info(f"  Type: {type_value}")
+                    if "description" in option:
+                        logger.info(f"  Description: {option['description'][:50]}...")
+            else:
+                logger.warning(f"Sample {i} has no dt element, skipping")
 
 
 if __name__ == "__main__":

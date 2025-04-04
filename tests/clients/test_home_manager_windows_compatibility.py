@@ -56,8 +56,8 @@ class TestHomeManagerWindowsCompatibility:
                     client._load_from_cache()
 
                     # Verify options were loaded
-                    assert len(client._options) > 0
-                    assert client._options[0]["name"] == "programs.git.enable"
+                    assert hasattr(client, "options") and len(client.options) > 0
+                    assert "programs.git.enable" in client.options
             finally:
                 # Clean up
                 import shutil
@@ -79,18 +79,18 @@ class TestHomeManagerWindowsCompatibility:
                     client = HomeManagerClient()
 
                     # Set up mock options
-                    client._options = [
-                        {
+                    client.options = {
+                        "programs.git.enable": {
                             "name": "programs.git.enable",
                             "description": "Whether to enable Git.",
                             "type": "boolean",
                             "default": "false",
                             "source": "options",
                         }
-                    ]
+                    }
 
                     # Save to cache - should handle Windows paths
-                    client._save_to_cache()
+                    client._save_in_memory_data()
 
                     # Verify cache file was created
                     cache_file = Path(test_dir) / "home_manager_options.json"
@@ -128,18 +128,18 @@ class TestHomeManagerWindowsCompatibility:
                             client = HomeManagerClient()
 
                             # Set up mock options
-                            client._options = [
-                                {
+                            client.options = {
+                                "programs.git.enable": {
                                     "name": "programs.git.enable",
                                     "description": "Whether to enable Git.",
                                     "type": "boolean",
                                     "default": "false",
                                     "source": "options",
                                 }
-                            ]
+                            }
 
                             # Save to cache - should use Windows locking
-                            client._save_to_cache()
+                            client._save_in_memory_data()
 
                             # Verify Windows locking was used
                             assert mock_locking.call_count > 0
@@ -158,19 +158,19 @@ class TestHomeManagerWindowsCompatibility:
                     client = HomeManagerClient()
 
                     # Set up mock options
-                    client._options = [
-                        {
+                    client.options = {
+                        "programs.git.enable": {
                             "name": "programs.git.enable",
                             "description": "Whether to enable Git.",
                             "type": "boolean",
                             "default": "false",
                             "source": "options",
                         }
-                    ]
+                    }
 
                     # Save to cache - should work without errors on Windows
                     try:
-                        client._save_to_cache()
+                        client._save_in_memory_data()
                         # If we get here, locking worked
                         assert True
                     except Exception as e:
@@ -214,7 +214,7 @@ class TestHomeManagerURLHandlingCrossPlatform:
 
                 # Internal _fetch_url should work the same regardless of platform
                 # Mock the fetch to avoid actual network requests
-                with mock.patch.object(client._client, "fetch") as mock_fetch:
+                with mock.patch.object(client.html_client, "fetch") as mock_fetch:
                     mock_fetch.return_value = "<html><body>Test</body></html>"
 
                     # Call fetch_url
