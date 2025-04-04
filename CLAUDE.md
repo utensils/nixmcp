@@ -299,7 +299,7 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Docker image includes pre-cached data for immediate startup
   - Build with pre-cache: `docker build -t mcp-nixos .`
   - Deployed on Smithery.ai as a hosted service
-- Interactive CLI (deprecated from v0.3.0):
+- Interactive CLI (deprecated from v0.3.1):
   - For manual testing, use a JSON-capable HTTP client like HTTPie or curl
   - Example: `echo '{"type":"call","tool":"nixos_search","params":{"query":"python"}}' | nc localhost 8080`
 - Development:
