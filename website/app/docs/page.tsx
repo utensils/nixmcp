@@ -25,6 +25,8 @@ export default function DocsPage() {
                   </svg>
                   Why Use MCP-NixOS?
                 </h3>
+                <p className="mb-3 text-gray-700">MCP-NixOS is built as a standard I/O (stdio) implementation using <a href="https://github.com/jlowin/fastmcp" target="_blank" rel="noopener noreferrer" className="text-nix-primary hover:underline">FastMCP</a>, the Pythonic framework for building Model Context Protocol servers. This allows seamless integration with AI assistants through the standardized MCP interface.</p>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-nix-light bg-opacity-30 p-3 rounded">
                     <h4 className="font-semibold text-nix-primary mb-1">AI Integration</h4>
@@ -37,6 +39,10 @@ export default function DocsPage() {
                   <div className="bg-nix-light bg-opacity-30 p-3 rounded">
                     <h4 className="font-semibold text-nix-primary mb-1">Rich Metadata</h4>
                     <p className="text-sm text-gray-700">Detailed information beyond what&apos;s available in standard documentation</p>
+                  </div>
+                  <div className="bg-nix-light bg-opacity-30 p-3 rounded">
+                    <h4 className="font-semibold text-nix-primary mb-1">FastMCP Implementation</h4>
+                    <p className="text-sm text-gray-700">Uses stdio communication for reliable tool execution and context sharing</p>
                   </div>
                   <div className="bg-nix-light bg-opacity-30 p-3 rounded">
                     <h4 className="font-semibold text-nix-primary mb-1">Fast Responses</h4>
