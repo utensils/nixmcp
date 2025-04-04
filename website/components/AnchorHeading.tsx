@@ -35,16 +35,18 @@ const AnchorHeading: React.FC<AnchorHeadingProps> = ({
   const HeadingTag = `h${level}` as keyof JSX.IntrinsicElements;
   
   return (
-    <HeadingTag id={headingId} className={`group relative flex items-center ${className}`}>
-      <a
-        href={`#${headingId}`}
-        onClick={handleAnchorClick}
-        className="absolute -left-6 w-6 text-center opacity-30 group-hover:opacity-100 transition-opacity text-nix-primary hover:text-nix-dark font-semibold"
-        aria-label={`Link to ${typeof children === 'string' ? children : 'this heading'}`}
-      >
-        #
-      </a>
-      {children}
+    <HeadingTag id={headingId} className={`group ${className}`}>
+      <span className="relative inline-block">
+        <a
+          href={`#${headingId}`}
+          onClick={handleAnchorClick}
+          className="absolute -left-5 w-5 text-center opacity-0 group-hover:opacity-100 transition-opacity text-nix-primary hover:text-nix-dark font-semibold"
+          aria-label={`Link to ${typeof children === 'string' ? children : 'this heading'}`}
+        >
+          #
+        </a>
+        {children}
+      </span>
     </HeadingTag>
   );
 };

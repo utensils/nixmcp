@@ -8,7 +8,7 @@ export default function AboutPage() {
       <div className="container-custom">
         <AnchorHeading level={1} className="text-4xl font-bold mb-8 text-nix-dark">About MCP-NixOS</AnchorHeading>
         
-        <div className="prose prose-lg max-w-none pl-6">
+        <div className="prose prose-lg max-w-none">
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
             <AnchorHeading level={2} className="text-2xl font-bold mb-6 text-nix-primary border-b border-nix-light pb-2">Project Overview</AnchorHeading>
             <p className="mb-6 text-gray-800">

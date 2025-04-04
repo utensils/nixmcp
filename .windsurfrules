@@ -1,5 +1,18 @@
 # MCP-NixOS Project Guidelines
 
+## ⚠️ CRITICAL: Testing and Implementation Changes ⚠️
+
+**NEVER MODIFY IMPLEMENTATION CODE WITHOUT VALIDATING YOUR APPROACH**
+
+- **TEST BEHAVIOR, NOT IMPLEMENTATION**: Ensure tests validate expected behaviors, not internal details
+- **UNDERSTAND BEFORE CHANGING**: Thoroughly understand existing patterns and architecture before modifying
+- **ROOT CAUSES, NOT SYMPTOMS**: Address fundamental issues instead of adding workarounds
+- **VERIFY ALL CONTEXTS**: Test in all usage contexts (direct code, API calls, MCP interface, CLI)
+- **IMPLEMENTATION CHANGES REQUIRE EVIDENCE**: Provide clear evidence that implementation changes are correct
+- **CHANGES MUST BE REVERSIBLE**: Ensure you can roll back if a change causes regressions
+
+Implementing quick fixes without understanding the architecture can completely break functionality, especially with context-sensitive code. Always validate your approach with robust tests that cover all usage scenarios.
+
 ## Source of Truth & Code Patterns
 
 - CLAUDE.md is the primary source of truth for coding rules
