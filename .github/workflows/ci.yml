@@ -483,19 +483,14 @@ jobs:
       
       - name: Deploy to S3
         run: |
-          aws s3 sync website/out/ s3://mcp-nixos.utensils.io/ --delete
+          aws s3 sync website/out/ s3://urandom-mcp-nixos/ --delete
       
       - name: Invalidate CloudFront cache
         run: |
-          # Get the CloudFront distribution ID
-          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items!=null] | [?contains(Aliases.Items, 'mcp-nixos.utensils.io')].Id" --output text)
-          
-          if [ -n "$DISTRIBUTION_ID" ]; then
-            echo "Invalidating CloudFront distribution: $DISTRIBUTION_ID"
-            aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
-          else
-            echo "Warning: Could not find CloudFront distribution for mcp-nixos.utensils.io"
-          fi
+          # Use the fixed CloudFront distribution ID
+          DISTRIBUTION_ID="E1QS1G7FYYJ6TL"
+          echo "Invalidating CloudFront distribution: $DISTRIBUTION_ID"
+          aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
 
   publish:
     name: Build and Publish to PyPI
