@@ -54,6 +54,173 @@ export default function DocsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Data Collection and Caching System */}
+              <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-primary p-5 mt-6">
+                <h3 className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-nix-primary" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                  </svg>
+                  Data Collection and Caching Architecture
+                </h3>
+                
+                <div className="mb-4">
+                  <h4 className="font-semibold text-nix-primary mb-2">Data Sources</h4>
+                  <p className="text-gray-700 mb-2">MCP-NixOS collects data from multiple authoritative sources:</p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4 mb-3">
+                    <li><span className="font-semibold">NixOS Elasticsearch API</span> - Queries the official search.nixos.org backend for package and option data</li>
+                    <li><span className="font-semibold">Home Manager</span> - Parses official HTML documentation to extract option definitions and metadata from Home Manager modules</li>
+                    <li><span className="font-semibold">nix-darwin</span> - Extracts macOS-specific configuration options by parsing official nix-darwin HTML documentation</li>
+                  </ul>
+                </div>
+
+                <div className="mb-4">
+                  <h4 className="font-semibold text-nix-primary mb-2">Multi-Level Caching System</h4>
+                  <p className="text-gray-700 mb-2">MCP-NixOS implements a sophisticated multi-level caching architecture for optimal performance:</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                    <div className="bg-nix-light bg-opacity-20 p-3 rounded">
+                      <h5 className="font-semibold text-nix-dark mb-1">In-Memory Cache (SimpleCache)</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                        <li>Thread-safe implementation with RLock</li>
+                        <li>Dual timestamp approach for time shift resilience</li>
+                        <li>Configurable TTL (default: 10 minutes for API data)</li>
+                        <li>Automatic expiration with lazy cleanup</li>
+                        <li>Size-limited with LRU eviction policy</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-nix-light bg-opacity-20 p-3 rounded">
+                      <h5 className="font-semibold text-nix-dark mb-1">Filesystem Cache (HTMLCache)</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                        <li>Cross-platform cache directory management</li>
+                        <li>Atomic file operations with proper locking</li>
+                        <li>Content-addressed storage with MD5 hashing</li>
+                        <li>Metadata preservation for diagnostics</li>
+                        <li>Longer TTL (default: 24 hours for stable data)</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <p className="text-gray-700 text-sm italic">Both caching systems include comprehensive metrics tracking and resilience against system time shifts.</p>
+                </div>
+
+                <div className="mb-4">
+                  <h4 className="font-semibold text-nix-primary mb-2">Optimization Techniques</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
+                    <li><span className="font-semibold">Smart Query Construction</span> - Optimized Elasticsearch DSL queries with proper field boosting</li>
+                    <li><span className="font-semibold">Parallel Processing</span> - Concurrent data fetching for multi-source queries</li>
+                    <li><span className="font-semibold">Pre-Caching</span> - Optional pre-population of cache during initialization</li>
+                    <li><span className="font-semibold">Incremental Updates</span> - Only fetch and process changed data</li>
+                    <li><span className="font-semibold">Response Formatting</span> - Efficient markdown generation for AI consumption</li>
+                  </ul>
+                </div>
+
+                <div className="mb-2">
+                  <h4 className="font-semibold text-nix-primary mb-2">Configuration Options</h4>
+                  <p className="text-gray-700 mb-2">The caching system can be fine-tuned via environment variables:</p>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm text-gray-700">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 text-left">Variable</th>
+                          <th className="px-4 py-2 text-left">Description</th>
+                          <th className="px-4 py-2 text-left">Default</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        <tr>
+                          <td className="px-4 py-2 font-mono text-xs">MCP_NIXOS_CACHE_DIR</td>
+                          <td className="px-4 py-2">Custom cache directory location</td>
+                          <td className="px-4 py-2">OS-specific cache location</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-2 font-mono text-xs">MCP_NIXOS_CACHE_TTL</td>
+                          <td className="px-4 py-2">Cache time-to-live in seconds</td>
+                          <td className="px-4 py-2">86400 (24 hours)</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-2 font-mono text-xs">ELASTICSEARCH_URL</td>
+                          <td className="px-4 py-2">NixOS Elasticsearch API URL</td>
+                          <td className="px-4 py-2">search.nixos.org/backend</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* FastMCP Implementation */}
+              <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-secondary p-5 mt-6">
+                <h3 className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-nix-secondary" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  FastMCP and STDIO Implementation
+                </h3>
+                
+                <div className="mb-4">
+                  <h4 className="font-semibold text-nix-secondary mb-2">JSON-based Communication Protocol</h4>
+                  <p className="text-gray-700 mb-2">MCP-NixOS uses the Model Context Protocol (MCP) with a stdio implementation powered by FastMCP:</p>
+                  
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-3">
+                    <h5 className="font-semibold text-gray-700 mb-2">Communication Flow</h5>
+                    <ol className="list-decimal list-inside space-y-2 text-gray-700">
+                      <li>
+                        <span className="font-semibold">Request Handling</span>
+                        <ul className="list-disc list-inside ml-5 mt-1 text-sm">
+                          <li>Client sends JSON request via stdin</li>
+                          <li>FastMCP server parses and validates request format</li>
+                          <li>Request is routed to appropriate MCP resource handler</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <span className="font-semibold">Resource Processing</span>
+                        <ul className="list-disc list-inside ml-5 mt-1 text-sm">
+                          <li>Resource handler executes the requested operation</li>
+                          <li>Data is retrieved from cache or source as needed</li>
+                          <li>Response is formatted according to MCP specifications</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <span className="font-semibold">Response Delivery</span>
+                        <ul className="list-disc list-inside ml-5 mt-1 text-sm">
+                          <li>JSON response is serialized with proper formatting</li>
+                          <li>Response is written to stdout for client consumption</li>
+                          <li>Errors are handled gracefully with descriptive messages</li>
+                        </ul>
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h4 className="font-semibold text-nix-secondary mb-2">FastMCP Integration</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                    <div className="bg-nix-secondary bg-opacity-10 p-3 rounded">
+                      <h5 className="font-semibold text-nix-dark mb-1">Server Features</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                        <li>Asynchronous request processing</li>
+                        <li>Thread-safe resource management</li>
+                        <li>Graceful error handling and recovery</li>
+                        <li>Comprehensive logging with configurable levels</li>
+                        <li>Automatic context management and cleanup</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-nix-secondary bg-opacity-10 p-3 rounded">
+                      <h5 className="font-semibold text-nix-dark mb-1">MCP Resources</h5>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                        <li>URL-based resource identification</li>
+                        <li>Consistent scheme patterns (nixos://, home-manager://, darwin://)</li>
+                        <li>Structured response formatting</li>
+                        <li>Rich metadata with source information</li>
+                        <li>Standardized error reporting</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
               
               {/* Tool Categories */}
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -154,6 +321,58 @@ export default function DocsPage() {
           </div>
 
           <AnchorHeading level={2} className="text-2xl font-bold mt-8 mb-6 text-nix-primary border-b border-nix-light pb-2">API Reference</AnchorHeading>
+          
+          <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-primary p-5 mb-6">
+            <h3 className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-nix-primary" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+              </svg>
+              Response Format
+            </h3>
+            
+            <p className="text-gray-700 mb-3">All MCP-NixOS responses are wrapped in a standardized JSON structure following the Model Context Protocol:</p>
+            
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-3">
+              <CodeBlock
+                code={`{
+  "result": "# Markdown or text content here...\n\nFormatted for AI consumption",
+  "status": "success",
+  "metadata": {
+    "source": "nixos|home-manager|darwin",
+    "timestamp": 1649267584,
+    "cache_hit": true,
+    "query_time_ms": 42
+  }
+}`}
+                language="json"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-nix-light bg-opacity-20 p-3 rounded">
+                <h4 className="font-semibold text-nix-dark mb-1">Key Fields</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                  <li><span className="font-mono text-xs">result</span>: The main response content (markdown/text)</li>
+                  <li><span className="font-mono text-xs">status</span>: Operation result (success/error)</li>
+                  <li><span className="font-mono text-xs">metadata</span>: Additional context information</li>
+                  <li><span className="font-mono text-xs">error</span>: Error message (if status is error)</li>
+                </ul>
+              </div>
+              
+              <div className="bg-nix-light bg-opacity-20 p-3 rounded">
+                <h4 className="font-semibold text-nix-dark mb-1">Response Characteristics</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                  <li>Markdown formatting optimized for AI consumption</li>
+                  <li>Consistent structure across all tools</li>
+                  <li>Rich metadata for context awareness</li>
+                  <li>Standardized error handling</li>
+                </ul>
+              </div>
+            </div>
+            
+            <p className="text-gray-700 text-sm mt-3 italic">Note: For clarity, the documentation examples below show only the <span className="font-mono text-xs">result</span> field content, not the full JSON wrapper.</p>
+          </div>
           
           <section className="mb-16 bg-nix-light bg-opacity-30 rounded-lg p-6 shadow-sm">
             <AnchorHeading level={3} className="text-xl font-bold mb-4 text-nix-dark">NixOS Resources & Tools</AnchorHeading>
