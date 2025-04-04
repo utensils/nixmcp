@@ -54,6 +54,16 @@ export default function ClientFooter() {
               </li>
               <li>
                 <a 
+                  href="https://pypi.org/project/mcp-nixos/"
+                  className="hover:text-nix-primary"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  PyPI Package
+                </a>
+              </li>
+              <li>
+                <a 
                   href="https://nixos.org"
                   className="hover:text-nix-primary"
                   target="_blank"
