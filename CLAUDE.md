@@ -35,6 +35,16 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Creates JUnit XML test results for Codecov Test Analytics
   - Uses `continue-on-error` and `if: always()` to ensure reports are uploaded even when tests fail
   - Configured with appropriate flags to categorize different test types
+- Website deployment to AWS S3/CloudFront:
+  - Automatic deployment only when changes are detected in the website directory
+  - Only runs on pushes to `main` branch (not on PRs)
+  - Uses AWS environment credentials for S3 sync and CloudFront cache invalidation
+  - Independent of other jobs like testing or type checking
+  - Configured to skip deployment entirely if no website files have changed
+- PyPI package deployment:
+  - Only runs on version tag pushes (v*)
+  - Depends on successful completion of all test and quality jobs
+  - Uses the PyPI trusted publishing workflow
 - When working with PRs:
   - The CI workflow is configured to run only on:
     - Pushes to `main` branch
@@ -135,6 +145,12 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - `/public` - Static assets including favicon and images
   - `/public/favicon` - Website favicon files
   - `/public/images` - Logo images and attribution information
+- Deployment:
+  - Hosted on AWS S3 with CloudFront CDN at https://mcp-nixos.utensils.io
+  - Automatically deployed via GitHub Actions when changes are detected in the website directory
+  - Only deploys on pushes to the `main` branch, not on PRs or feature branches
+  - Configured to skip deployment entirely if no website files have changed
+  - Uses AWS credentials stored in the AWS environment in GitHub repository
 - Nested shell architecture:
   - Main shell has single command: `web-dev` - Launch website development shell
   - Website shell (`nix develop .#web`) provides dedicated commands:
