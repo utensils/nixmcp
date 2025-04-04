@@ -146,7 +146,7 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - `/public/favicon` - Website favicon files
   - `/public/images` - Logo images and attribution information
 - Deployment:
-  - Hosted on AWS S3 with CloudFront CDN at https://mcp-nixos.utensils.io
+  - Hosted on AWS S3 bucket `urandom-mcp-nixos` with CloudFront CDN distribution ID `E1QS1G7FYYJ6TL`
   - Automatically deployed via GitHub Actions when changes are detected in the website directory
   - Only deploys on pushes to the `main` branch, not on PRs or feature branches
   - Configured to skip deployment entirely if no website files have changed
