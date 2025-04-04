@@ -7,9 +7,9 @@ export default function UsagePage() {
   return (
     <div className="py-12 bg-white">
       <div className="container-custom">
-        <AnchorHeading level={1} className="text-4xl font-bold mb-8 text-nix-dark">
+        <h1 className="text-4xl font-bold mb-8 text-nix-dark">
           Usage Examples
-        </AnchorHeading>
+        </h1>
 
         <div className="prose prose-lg max-w-none">
           <AnchorHeading
