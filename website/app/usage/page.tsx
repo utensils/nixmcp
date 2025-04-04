@@ -27,12 +27,14 @@ export default function UsagePage() {
             </p>
             
             <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-primary p-5 mb-2">
-              <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Configuration
+              <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3">
+                <span className="flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Configuration
+                </span>
               </AnchorHeading>
               <p className="mb-4 text-gray-700">
                 Before using these examples, you&apos;ll need to configure your MCP server. Add the following to your MCP configuration file:
@@ -67,20 +69,22 @@ export default function UsagePage() {
               information they provide. Each example shows the complete workflow from user question to AI response.
             </p>
             
-            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
-              <svg
-                className="w-5 h-5 mr-2 text-nix-primary"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Example 1: PostgreSQL Versions and Configuration
+            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3">
+              <span className="flex items-center">
+                <svg
+                  className="w-5 h-5 mr-2 text-nix-primary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Example 1: PostgreSQL Versions and Configuration
+              </span>
             </AnchorHeading>
 
             <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
@@ -245,20 +249,22 @@ rules entirely, you can use \`lib.mkForce\` in your module.
               </div>
             </div>
 
-            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
-              <svg
-                className="w-5 h-5 mr-2 text-nix-primary"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Example 2: Checking Package Availability
+            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3">
+              <span className="flex items-center">
+                <svg
+                  className="w-5 h-5 mr-2 text-nix-primary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Example 2: Checking Package Availability
+              </span>
             </AnchorHeading>
             
             <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
@@ -363,20 +369,22 @@ hunt through a man page for the correct flags.
               </div>
             </div>
 
-            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
-              <svg
-                className="w-5 h-5 mr-2 text-nix-primary"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Example 3: Validating NixOS Configuration
+            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3">
+              <span className="flex items-center">
+                <svg
+                  className="w-5 h-5 mr-2 text-nix-primary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Example 3: Validating NixOS Configuration
+              </span>
             </AnchorHeading>
             
             <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
@@ -590,20 +598,22 @@ Found 2 options matching 'services.nginx worker':
               </div>
             </div>
 
-            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
-              <svg
-                className="w-5 h-5 mr-2 text-nix-primary"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Example 4: Checking Cross-Platform Package Availability
+            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3">
+              <span className="flex items-center">
+                <svg
+                  className="w-5 h-5 mr-2 text-nix-primary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Example 4: Checking Cross-Platform Package Availability
+              </span>
             </AnchorHeading>
             
             <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
@@ -756,20 +766,22 @@ nix-shell -p goose-cli`}
               </div>
             </div>
 
-            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
-              <svg
-                className="w-5 h-5 mr-2 text-nix-primary"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Example 5: macOS Configuration with nix-darwin
+            <AnchorHeading level={3} className="text-xl font-semibold text-nix-dark mb-3">
+              <span className="flex items-center">
+                <svg
+                  className="w-5 h-5 mr-2 text-nix-primary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Example 5: macOS Configuration with nix-darwin
+              </span>
             </AnchorHeading>
             
             <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
