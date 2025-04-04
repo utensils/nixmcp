@@ -60,47 +60,45 @@ export default function UsagePage() {
           </AnchorHeading>
 
           <div className="space-y-8">
-            <div className="bg-white rounded-lg shadow-sm border-l-4 border-nix-primary p-5">
-              <h3 className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
-                <svg
-                  className="w-5 h-5 mr-2 text-nix-primary"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Example 1: PostgreSQL Versions and Configuration
-              </h3>
+            <h3 className="text-xl font-semibold text-nix-dark mb-3 flex items-center">
+              <svg
+                className="w-5 h-5 mr-2 text-nix-primary"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Example 1: PostgreSQL Versions and Configuration
+            </h3>
 
-              <p className="text-gray-700 mb-6 leading-relaxed">
-                These examples demonstrate practical use cases for MCP-NixOS tools and the type of
-                information they provide. Each example shows the complete workflow from user question to AI response.
+            <p className="text-gray-700 mb-6 leading-relaxed">
+              These examples demonstrate practical use cases for MCP-NixOS tools and the type of
+              information they provide. Each example shows the complete workflow from user question to AI response.
+            </p>
+
+            <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
+              <h4 className="font-semibold text-nix-dark mb-2 flex items-center">
+                <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                User Prompt
+              </h4>
+              <p className="text-gray-700 mb-4 italic">
+                &quot;What PostgreSQL versions are available in NixOS, and what are the
+                configuration options?&quot;
               </p>
 
-              <div className="space-y-8">
-                <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
-                  <h4 className="font-semibold text-nix-dark mb-2 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                    User Prompt
-                  </h4>
-                  <p className="text-gray-700 mb-4 italic">
-                    &quot;What PostgreSQL versions are available in NixOS, and what are the
-                    configuration options?&quot;
-                  </p>
-
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      Tool Call 1: Search for PostgreSQL Packages
-                    </h5>
-                    <CodeBlock
-                      code={`{  
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Tool Call 1: Search for PostgreSQL Packages
+                </h5>
+                <CodeBlock
+                  code={`{  
   "type": "call",
   "tool": "nixos_search",
   "params": {
@@ -109,32 +107,38 @@ export default function UsagePage() {
     "limit": 10
   }
 }`}
-                      language="json"
-                    />
-                  </div>
+                  language="json"
+                />
+              </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      Available PostgreSQL Versions:
-                    </h5>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <CodeBlock
-                        code={`Found 10 packages matching 'postgresql':
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Available PostgreSQL Versions:
+                </h5>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <CodeBlock
+                    code={`Found 10 packages matching 'postgresql':
 
-- postgresql (17.4)
-  Powerful, open source object-relational database system
+- postgresql_13 (13.14)
+  PostgreSQL is a powerful, open source object-relational database system
 
-- postgresql_15 (15.12)
-  Powerful, open source object-relational database system
+- postgresql_14 (14.10)
+  PostgreSQL is a powerful, open source object-relational database system
 
-- postgresql_16 (16.8)
-  Powerful, open source object-relational database system
+- postgresql_15 (15.5)
+  PostgreSQL is a powerful, open source object-relational database system
 
-- postgresql_14 (14.17)
-  Powerful, open source object-relational database system
+- postgresql_16 (16.1)
+  PostgreSQL is a powerful, open source object-relational database system
 
-- postgresql_13 (13.20)
-  Powerful, open source object-relational database system
+- postgresql_17 (17.0)
+  PostgreSQL is a powerful, open source object-relational database system
+
+- postgresql (16.1)
+  PostgreSQL is a powerful, open source object-relational database system
+
+- postgresql-unit (7.11.0)
+  SI Units for PostgreSQL
 
 - postgresql_jdbc (42.6.1)
   JDBC driver for PostgreSQL allowing Java programs to connect to a PostgreSQL database
@@ -144,17 +148,17 @@ export default function UsagePage() {
 
 - postgresql14JitPackages.lantern (0.5.0)
   PostgreSQL vector database extension for building AI applications`}
-                        language="markdown"
-                      />
-                    </div>
-                  </div>
+                    language="markdown"
+                  />
+                </div>
+              </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      Tool Call 2: Get PostgreSQL Service Options
-                    </h5>
-                    <CodeBlock
-                      code={`{  
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Tool Call 2: Get PostgreSQL Service Options
+                </h5>
+                <CodeBlock
+                  code={`{  
   "type": "call",
   "tool": "nixos_info",
   "params": {
@@ -162,19 +166,50 @@ export default function UsagePage() {
     "type": "option"
   }
 }`}
-                      language="json"
-                    />
-                  </div>
+                  language="json"
+                />
+              </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      PostgreSQL Configuration Options:
-                    </h5>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <CodeBlock
-                        code={`# services.postgresql.authentication
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  PostgreSQL Configuration Options:
+                </h5>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <CodeBlock
+                    code={`# services.postgresql
 
-**Description:** Defines how users authenticate themselves to the server. See the PostgreSQL
+**Description:** PostgreSQL database server.
+
+**Type:** option set
+
+**Declared by:**
+- nixpkgs/nixos/modules/services/databases/postgresql.nix
+
+**Default value:** {}
+
+**Example:**
+\`\`\`nix
+{
+  services.postgresql = {
+    enable = true;
+    package = pkgs.postgresql_14;
+    enableTCPIP = true;
+    authentication = pkgs.lib.mkOverride 10 ''
+      local all all trust
+      host all all 127.0.0.1/32 trust
+      host all all ::1/128 trust
+    '';
+    initialScript = pkgs.writeText "backend-initScript" ''
+      CREATE ROLE nixcloud WITH LOGIN PASSWORD 'nixcloud' CREATEDB;
+      CREATE DATABASE nixcloud;
+      GRANT ALL PRIVILEGES ON DATABASE nixcloud TO nixcloud;
+    '';
+  };
+}
+\`\`\`
+
+**Option: services.postgresql.authentication** (strings concatenated with "\\n")
+Defines how users authenticate when connecting to the database. See the
 documentation for pg_hba.conf for details on the expected format of
 this option. By default, peer based authentication will be used for
 users connecting via the Unix socket, and md5 password authentication
@@ -182,90 +217,86 @@ will be used for users connecting via TCP. Any added rules will be
 inserted above the default rules. If you'd like to replace the default
 rules entirely, you can use \`lib.mkForce\` in your module.
 
-**Type:** strings concatenated with "\n"
-**Default:** \`""\`
+**Type:** strings concatenated with "\\n"
 
-## Related Options for postgresql Service
-
-- \`services.postgresql.checkConfig\` (boolean)
-  Check the syntax of the configuration file at compile time
-- \`services.postgresql.dataDir\` (absolute path)
+**Option: services.postgresql.dataDir** (absolute path)
   The data directory for PostgreSQL.
-- \`services.postgresql.enable\` (boolean)
+**Option: services.postgresql.enable** (boolean)
   Whether to enable PostgreSQL Server.
-- \`services.postgresql.enableJIT\` (boolean)
+**Option: services.postgresql.enableJIT** (boolean)
   Whether to enable JIT support.
-- \`services.postgresql.enableTCPIP\` (boolean)
+**Option: services.postgresql.enableTCPIP** (boolean)
   Whether PostgreSQL should listen on all network interfaces.`}
-                        language="markdown"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      AI Assistant Response:
-                    </h5>
-                    <p className="text-gray-700">
-                      NixOS provides multiple PostgreSQL versions (13, 14, 15, 16, and 17) that
-                      can be selected using the{' '}
-                      <code className="font-mono text-xs">services.postgresql.package</code>{' '}
-                      option. The default version is currently 17.4.
-                    </p>
-                    <p className="text-gray-700 mt-2">Key configuration options include:</p>
-                    <ul className="list-disc list-inside mt-1 text-gray-700 space-y-1">
-                      <li>
-                        Authentication methods via{' '}
-                        <code className="font-mono text-xs">
-                          services.postgresql.authentication
-                        </code>
-                      </li>
-                      <li>
-                        Network listening control with{' '}
-                        <code className="font-mono text-xs">
-                          services.postgresql.enableTCPIP
-                        </code>
-                      </li>
-                      <li>
-                        Performance tuning with{' '}
-                        <code className="font-mono text-xs">services.postgresql.enableJIT</code>
-                      </li>
-                      <li>
-                        Data storage location via{' '}
-                        <code className="font-mono text-xs">services.postgresql.dataDir</code>
-                      </li>
-                    </ul>
-                    <p className="text-gray-700 mt-2">
-                      This information helps system administrators choose the appropriate
-                      PostgreSQL version and configure it according to their specific
-                      requirements.
-                    </p>
-                  </div>
+                    language="markdown"
+                  />
                 </div>
+              </div>
 
-                <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
-                  <h4 className="font-semibold text-nix-dark mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Example 2: Checking Package Availability
-                  </h4>
-                  <h4 className="font-semibold text-nix-dark mb-2 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                    User Prompt
-                  </h4>
-                  <p className="text-gray-700 mb-4 italic">
-                    &quot;Is the tldr package available in NixOS, and what variants exist?&quot;
-                  </p>
+              <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  AI Assistant Response:
+                </h5>
+                <p className="text-gray-700">
+                  NixOS provides multiple versions of PostgreSQL:
+                </p>
+                <ul className="list-disc list-inside mt-1 text-gray-700 space-y-1">
+                  <li>PostgreSQL 13 (13.14)</li>
+                  <li>PostgreSQL 14 (14.10)</li>
+                  <li>PostgreSQL 15 (15.5)</li>
+                  <li>PostgreSQL 16 (16.1) - This is the default version</li>
+                  <li>PostgreSQL 17 (17.0) - Latest version</li>
+                </ul>
+                <p className="text-gray-700 mt-2">
+                  For configuration, you can use the <code className="font-mono text-xs">services.postgresql</code> module with these key options:
+                </p>
+                <ul className="list-disc list-inside mt-1 text-gray-700 space-y-1">
+                  <li>
+                    <code className="font-mono text-xs">enable</code> - Enable the PostgreSQL server
+                  </li>
+                  <li>
+                    <code className="font-mono text-xs">package</code> - Select which PostgreSQL version to use
+                  </li>
+                  <li>
+                    <code className="font-mono text-xs">authentication</code> - Configure client authentication methods
+                  </li>
+                  <li>
+                    <code className="font-mono text-xs">enableTCPIP</code> - Allow network connections (not just local socket)
+                  </li>
+                  <li>
+                    <code className="font-mono text-xs">dataDir</code> - Specify where to store the database files
+                  </li>
+                </ul>
+                <p className="text-gray-700 mt-2">
+                  This information helps system administrators choose the appropriate
+                  PostgreSQL version and configure it according to their specific
+                  requirements.
+                </p>
+              </div>
+            </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      Tool Call 1: Search for tldr Package
-                    </h5>
-                    <CodeBlock
-                      code={`{  
+            <div className="bg-nix-light bg-opacity-20 p-4 rounded-lg border border-nix-light mb-6">
+              <h4 className="font-semibold text-nix-dark mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Example 2: Checking Package Availability
+              </h4>
+              <h4 className="font-semibold text-nix-dark mb-2 flex items-center">
+                <svg className="w-4 h-4 mr-2 text-nix-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                User Prompt
+              </h4>
+              <p className="text-gray-700 mb-4 italic">
+                &quot;Is the tldr package available in NixOS, and what variants exist?&quot;
+              </p>
+
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Tool Call 1: Search for tldr Package
+                </h5>
+                <CodeBlock
+                  code={`{  
   "type": "call",
   "tool": "nixos_search",
   "params": {
@@ -274,17 +305,17 @@ rules entirely, you can use \`lib.mkForce\` in your module.
     "limit": 10
   }
 }`}
-                      language="json"
-                    />
-                  </div>
+                  language="json"
+                />
+              </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      Search Results:
-                    </h5>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <CodeBlock
-                        code={`Found 6 packages matching 'tldr':
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Search Results:
+                </h5>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <CodeBlock
+                    code={`Found 6 packages matching 'tldr':
 
 - tldr (3.3.0)
   Simplified and community-driven man pages
@@ -301,17 +332,17 @@ rules entirely, you can use \`lib.mkForce\` in your module.
 - emacsPackages.tldr (20230301.136)
 
 - rPackages.tldr (0.4.0)`}
-                        language="markdown"
-                      />
-                    </div>
-                  </div>
+                    language="markdown"
+                  />
+                </div>
+              </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      Tool Call 2: Get Detailed Package Information
-                    </h5>
-                    <CodeBlock
-                      code={`{  
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Tool Call 2: Get Detailed Package Information
+                </h5>
+                <CodeBlock
+                  code={`{  
   "type": "call",
   "tool": "nixos_info",
   "params": {
@@ -319,17 +350,17 @@ rules entirely, you can use \`lib.mkForce\` in your module.
     "type": "package"
   }
 }`}
-                      language="json"
-                    />
-                  </div>
+                  language="json"
+                />
+              </div>
 
-                  <div className="mb-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      Package Details:
-                    </h5>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <CodeBlock
-                        code={`# tldr
+              <div className="mb-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  Package Details:
+                </h5>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <CodeBlock
+                    code={`# tldr
 
 **Version:** 3.3.0
 
@@ -348,39 +379,37 @@ hunt through a man page for the correct flags.
 **Platforms:** Multiple platforms including Linux, macOS, Windows, and more
 
 **Provided Programs:** tldr`}
-                        language="markdown"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
-                    <h5 className="text-md font-semibold mb-2 text-nix-primary">
-                      AI Assistant Response:
-                    </h5>
-                    <p className="text-gray-700">
-                      NixOS provides several implementations of the tldr client:
-                    </p>
-                    <ul className="list-disc list-inside mt-1 text-gray-700 space-y-1">
-                      <li>
-                        The main Python-based <code className="font-mono text-xs">tldr</code>{' '}
-                        package
-                      </li>
-                      <li>
-                        Rust implementations: <code className="font-mono text-xs">tlrc</code>{' '}
-                        (official) and <code className="font-mono text-xs">tealdeer</code>{' '}
-                        (optimized for speed)
-                      </li>
-                      <li>Language-specific implementations for Haskell, Emacs Lisp, and R</li>
-                    </ul>
-                    <p className="text-gray-700 mt-2">
-                      The main package is available across multiple platforms and provides a
-                      simple command-line interface for accessing community-maintained
-                      simplified documentation. This is particularly useful for quickly finding
-                      common usage examples without having to read through comprehensive man
-                      pages.
-                    </p>
-                  </div>
+                    language="markdown"
+                  />
                 </div>
+              </div>
+
+              <div className="bg-nix-light bg-opacity-30 p-4 rounded-lg border border-nix-light mt-4">
+                <h5 className="text-md font-semibold mb-2 text-nix-primary">
+                  AI Assistant Response:
+                </h5>
+                <p className="text-gray-700">
+                  NixOS provides several implementations of the tldr client:
+                </p>
+                <ul className="list-disc list-inside mt-1 text-gray-700 space-y-1">
+                  <li>
+                    The main Python-based <code className="font-mono text-xs">tldr</code>{' '}
+                    package
+                  </li>
+                  <li>
+                    Rust implementations: <code className="font-mono text-xs">tlrc</code>{' '}
+                    (official) and <code className="font-mono text-xs">tealdeer</code>{' '}
+                    (optimized for speed)
+                  </li>
+                  <li>Language-specific implementations for Haskell, Emacs Lisp, and R</li>
+                </ul>
+                <p className="text-gray-700 mt-2">
+                  The main package is available across multiple platforms and provides a
+                  simple command-line interface for accessing community-maintained
+                  simplified documentation. This is particularly useful for quickly finding
+                  common usage examples without having to read through comprehensive man
+                  pages.
+                </p>
               </div>
             </div>
           </div>
