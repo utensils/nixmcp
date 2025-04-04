@@ -1,21 +1,71 @@
+"use client";
+
 import Link from 'next/link';
 import FeatureCard from '@/components/FeatureCard';
 import CodeBlock from '@/components/CodeBlock';
 
 export default function Home() {
+  const scrollToSection = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-nix-primary to-nix-dark text-white py-20 shadow-lg">
         <div className="container-custom text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">MCP-NixOS</h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto font-medium drop-shadow-sm">
-            Model Context Protocol resources and tools for NixOS, Home Manager, and nix-darwin
-          </p>
+          <div className="mb-8 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl font-medium mb-2">
+              <span className="font-bold tracking-wide">Model Context Protocol</span>
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-3 md:gap-4 py-2">
+              <a 
+                href="https://nixos.org/manual/nixos/stable/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="px-4 py-1 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 shadow-lg font-semibold text-nix-secondary flex items-center hover:bg-white/20 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4L20 8V16L12 20L4 16V8L12 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                NixOS
+              </a>
+              <a 
+                href="https://nix-community.github.io/home-manager/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="px-4 py-1 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 shadow-lg font-semibold text-nix-secondary flex items-center hover:bg-white/20 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Home Manager
+              </a>
+              <a 
+                href="https://daiderd.com/nix-darwin/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="px-4 py-1 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 shadow-lg font-semibold text-nix-secondary flex items-center hover:bg-white/20 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 8L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8 12L16 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                nix-darwin
+              </a>
+            </div>
+          </div>
           <div className="flex flex-col md:flex-row gap-4 justify-center">
-            <Link href="/docs" className="btn-primary bg-white text-nix-primary hover:bg-nix-light">
+            <button 
+              onClick={() => scrollToSection('getting-started')} 
+              className="btn-primary bg-white text-nix-primary hover:bg-nix-light"
+            >
               Get Started
-            </Link>
+            </button>
             <Link href="https://github.com/utensils/mcp-nixos" className="btn-secondary bg-transparent text-white border-white hover:bg-white/10">
               GitHub
             </Link>
@@ -63,7 +113,7 @@ export default function Home() {
       </section>
 
       {/* Getting Started Section */}
-      <section className="py-16 bg-nix-light">
+      <section id="getting-started" className="py-16 bg-nix-light">
         <div className="container-custom">
           <h2 className="text-3xl font-bold text-center mb-12 text-nix-dark">Getting Started</h2>
           <div className="max-w-2xl mx-auto">
