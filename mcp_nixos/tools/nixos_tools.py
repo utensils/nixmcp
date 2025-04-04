@@ -605,11 +605,11 @@ def check_request_ready(ctx) -> bool:
     # Handle case where ctx is a string (from MCP tool interface)
     if isinstance(ctx, str):
         return True  # Always ready when called from MCP outside server
-    
+
     # Handle case where ctx is a request context (from our server)
-    if hasattr(ctx, 'request_context'):
+    if hasattr(ctx, "request_context"):
         return ctx.request_context.lifespan_context.get("is_ready", False)
-    
+
     # Default to ready if we can't determine
     logger.warning("Unknown context type, assuming ready")
     return True

@@ -64,9 +64,9 @@ def home_manager_search(query: str, limit: int = 20, context=None) -> str:
             # Ensure context is not None before accessing its attributes
             if context is None:
                 return "Error: Home Manager context not available"
-            
+
             results = context.search_options(query, limit)
-        
+
         options = results.get("options", [])
 
         if not options:
@@ -255,7 +255,7 @@ def home_manager_info(name: str, context=None) -> str:
             # Ensure context is not None before accessing its attributes
             if context is None:
                 return f"Error: Home Manager context not available for option '{name}'"
-            
+
             info = context.get_option(name)
 
         if not info.get("found", False):
@@ -444,7 +444,7 @@ def home_manager_stats(context=None) -> str:
             # Ensure context is not None before accessing its attributes
             if context is None:
                 return "Error: Home Manager context not available"
-            
+
             stats = context.get_stats()
 
         if "error" in stats:
@@ -550,7 +550,7 @@ def home_manager_list_options(context=None) -> str:
             # Ensure context is not None before accessing its attributes
             if context is None:
                 return "Error: Home Manager context not available"
-            
+
             result = context.get_options_list()
 
         if not result.get("found", False):
@@ -683,7 +683,7 @@ def home_manager_options_by_prefix(option_prefix: str, context=None) -> str:
             # Ensure context is not None before accessing its attributes
             if context is None:
                 return f"Error: Home Manager context not available for prefix '{option_prefix}'"
-            
+
             result = context.get_options_by_prefix(option_prefix)
 
         if not result.get("found", False):
@@ -894,11 +894,11 @@ def check_request_ready(ctx) -> bool:
     # Handle case where ctx is a string (from MCP tool interface)
     if isinstance(ctx, str):
         return True  # Always ready when called from MCP outside server
-    
+
     # Handle case where ctx is a request context (from our server)
-    if hasattr(ctx, 'request_context'):
+    if hasattr(ctx, "request_context"):
         return ctx.request_context.lifespan_context.get("is_ready", False)
-    
+
     # Default to ready if we can't determine
     logger.warning("Unknown context type, assuming ready")
     return True
@@ -916,13 +916,13 @@ def check_home_manager_ready(ctx) -> Optional[Dict[str, Any]]:
     # Handle case where ctx is a string (from MCP tool interface)
     if isinstance(ctx, str):
         return None  # Always ready when called from MCP outside server
-    
+
     # First check if server is ready
     if not check_request_ready(ctx):
         return {"error": "The server is still initializing. Please try again in a few seconds.", "found": False}
 
     # Get Home Manager context and check if data is loaded
-    if hasattr(ctx, 'request_context'):
+    if hasattr(ctx, "request_context"):
         home_manager_context = ctx.request_context.lifespan_context.get("home_manager_context")
         if home_manager_context and hasattr(home_manager_context, "hm_client"):
             client = home_manager_context.hm_client
@@ -977,9 +977,10 @@ def register_home_manager_tools(mcp) -> None:
             if isinstance(ctx, str):
                 # Access the correct function (not this decorated function)
                 from mcp_nixos.tools.home_manager_tools import home_manager_search as search_func
+
                 result = search_func(query, limit, ctx)
                 return result
-            
+
             # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             # Access the correct function (not this decorated function)
@@ -1016,9 +1017,10 @@ def register_home_manager_tools(mcp) -> None:
             if isinstance(ctx, str):
                 # Access the correct function (not this decorated function)
                 from mcp_nixos.tools.home_manager_tools import home_manager_info as info_func
+
                 result = info_func(name, ctx)
                 return result
-            
+
             # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_info as info_func
@@ -1051,9 +1053,10 @@ def register_home_manager_tools(mcp) -> None:
             if isinstance(ctx, str):
                 # Access the correct function (not this decorated function)
                 from mcp_nixos.tools.home_manager_tools import home_manager_stats as stats_func
+
                 result = stats_func(ctx)
                 return result
-            
+
             # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_stats as stats_func
@@ -1086,9 +1089,10 @@ def register_home_manager_tools(mcp) -> None:
             if isinstance(ctx, str):
                 # Access the correct function (not this decorated function)
                 from mcp_nixos.tools.home_manager_tools import home_manager_list_options as list_options_func
+
                 result = list_options_func(ctx)
                 return result
-            
+
             # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_list_options as list_options_func
@@ -1124,9 +1128,10 @@ def register_home_manager_tools(mcp) -> None:
             if isinstance(ctx, str):
                 # Access the correct function (not this decorated function)
                 from mcp_nixos.tools.home_manager_tools import home_manager_options_by_prefix as options_by_prefix_func
+
                 result = options_by_prefix_func(option_prefix, ctx)
                 return result
-            
+
             # Regular request context from server
             home_ctx = ctx.request_context.lifespan_context.get("home_manager_context")
             from mcp_nixos.tools.home_manager_tools import home_manager_options_by_prefix as options_by_prefix_func
