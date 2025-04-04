@@ -449,7 +449,7 @@ jobs:
 
   deploy-website:
     name: Deploy Website to AWS S3
-    needs: [build, check-website-changes]
+    needs: [check-website-changes]
     if: github.ref == 'refs/heads/main' && needs.check-website-changes.outputs.website_changed == 'true'
     runs-on: ubuntu-latest
     environment:
