@@ -49,45 +49,65 @@ def get_tool_schema(tool_name: str) -> Dict[str, Any]:
     # Tool parameter schemas
     schemas = {
         "nixos_search": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "query": {"type": "string", "description": "Search term like 'firefox' or 'services.postgresql'", "required": True},
             "type": {"type": "string", "description": "Type of search: 'packages', 'options', or 'programs'", "default": "packages"},
             "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 20},
             "channel": {"type": "string", "description": "NixOS channel ('unstable', 'stable', or '24.11')", "default": "unstable"}
         },
         "nixos_info": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "name": {"type": "string", "description": "Name of package or option", "required": True},
             "type": {"type": "string", "description": "Type of info: 'package' or 'option'", "default": "package"},
             "channel": {"type": "string", "description": "NixOS channel ('unstable', 'stable', or '24.11')", "default": "unstable"}
         },
         "nixos_stats": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "channel": {"type": "string", "description": "NixOS channel ('unstable', 'stable', or '24.11')", "default": "unstable"}
         },
         "home_manager_search": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "query": {"type": "string", "description": "Search term like 'programs.git' or 'browsers'", "required": True},
             "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 20}
         },
         "home_manager_info": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "name": {"type": "string", "description": "Name of the Home Manager option", "required": True}
         },
-        "home_manager_stats": {},
-        "home_manager_list_options": {},
+        "home_manager_stats": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True}
+        },
+        "home_manager_list_options": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True}
+        },
         "home_manager_options_by_prefix": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "option_prefix": {"type": "string", "description": "The option prefix path (e.g., 'programs', 'services')", "required": True}
         },
         "darwin_search": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "query": {"type": "string", "description": "Search term like 'services.yabai' or 'system'", "required": True},
             "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 20}
         },
         "darwin_info": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "name": {"type": "string", "description": "Name of the nix-darwin option", "required": True}
         },
-        "darwin_stats": {},
-        "darwin_list_options": {},
+        "darwin_stats": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True}
+        },
+        "darwin_list_options": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True}
+        },
         "darwin_options_by_prefix": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "option_prefix": {"type": "string", "description": "The option prefix path (e.g., 'services', 'system.defaults')", "required": True}
         },
-        "discover_tools": {},
+        "discover_tools": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True}
+        },
         "get_tool_usage": {
+            "ctx": {"type": "string", "description": "MCP context parameter", "required": True},
             "tool_name": {"type": "string", "description": "Name of the tool to get usage information for", "required": True}
         }
     }
@@ -269,15 +289,23 @@ def register_discovery_tools(mcp):
     logger.info("Registering discovery tools")
     
     @mcp.tool()
-    def discover_tools():
-        """List all available MCP tools with brief descriptions."""
+    def discover_tools(ctx):
+        """List all available MCP tools with brief descriptions.
+        
+        Args:
+            ctx: MCP context parameter
+        
+        Returns:
+            Dictionary mapping tool names to descriptions
+        """
         return get_tool_list()
     
     @mcp.tool()
-    def get_tool_usage(tool_name: str):
+    def get_tool_usage(ctx, tool_name: str):
         """Get detailed usage information for a specific tool.
         
         Args:
+            ctx: MCP context parameter
             tool_name: Name of the tool to get usage information for
             
         Returns:

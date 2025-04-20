@@ -56,6 +56,12 @@ class TestDiscoveryTools(unittest.TestCase):
         nixos_search_schema = get_tool_schema("nixos_search")
         self.assertIsInstance(nixos_search_schema, dict)
         
+        # Check ctx parameter is included
+        self.assertIn("ctx", nixos_search_schema)
+        self.assertEqual(nixos_search_schema["ctx"]["type"], "string")
+        self.assertTrue(nixos_search_schema["ctx"]["required"])
+        self.assertIn("MCP context parameter", nixos_search_schema["ctx"]["description"])
+        
         # Check required parameters
         self.assertIn("query", nixos_search_schema)
         self.assertEqual(nixos_search_schema["query"]["type"], "string")
@@ -74,11 +80,28 @@ class TestDiscoveryTools(unittest.TestCase):
         # Test schema for a tool with fewer parameters
         home_manager_stats_schema = get_tool_schema("home_manager_stats")
         self.assertIsInstance(home_manager_stats_schema, dict)
-        self.assertEqual(len(home_manager_stats_schema), 0)  # No parameters
+        self.assertGreaterEqual(len(home_manager_stats_schema), 1)  # At least ctx parameter
+        self.assertIn("ctx", home_manager_stats_schema)
         
         # Test schema for a non-existent tool
         non_existent_schema = get_tool_schema("non_existent_tool")
         self.assertIn("error", non_existent_schema)
+        
+    def test_all_schemas_include_ctx(self):
+        """Test that all schemas include the ctx parameter."""
+        tools = get_tool_list()
+        
+        for tool_name in tools:
+            schema = get_tool_schema(tool_name)
+            
+            # Skip tools that return error schemas
+            if "error" in schema:
+                continue
+                
+            self.assertIn("ctx", schema, f"Tool {tool_name} missing ctx parameter in schema")
+            self.assertEqual(schema["ctx"]["type"], "string")
+            self.assertTrue(schema["ctx"]["required"])
+            self.assertIn("MCP context parameter", schema["ctx"]["description"])
 
     def test_get_tool_examples(self):
         """Test that get_tool_examples returns examples for tools."""
@@ -164,6 +187,8 @@ class TestDiscoveryToolsRegistration(unittest.TestCase):
         
         # Create a mock MCP server
         mock_mcp = MagicMock()
+        mock_decorator = MagicMock()
+        mock_mcp.tool = MagicMock(return_value=mock_decorator)
         
         # Call register_discovery_tools
         register_discovery_tools(mock_mcp)
@@ -172,12 +197,26 @@ class TestDiscoveryToolsRegistration(unittest.TestCase):
         # When a decorator is used, it creates two calls in the mock:
         # 1. The decorator itself (which returns a wrapper function)
         # 2. The wrapper function being called with the function to decorate
-        # Since we have 2 tools (discover_tools and get_tool_usage), we expect 4 calls
+        # Since we have 2 tools (discover_tools and get_tool_usage), we expect at least 2 calls
         self.assertGreaterEqual(mock_mcp.tool.call_count, 2)
         
-        # We can't directly access the name of the decorated function from the mock calls
-        # So instead of asserting the exact number, let's just verify that the calls were made
-        self.assertGreaterEqual(len(mock_mcp.tool.mock_calls), 2)
+        # Inspect the functions that were decorated to ensure they have ctx parameter
+        decorator_calls = mock_decorator.mock_calls
+        decorated_functions = []
+        for call in decorator_calls:
+            if len(call.args) > 0:
+                decorated_functions.append(call.args[0])
+                
+        # Verify at least some functions were found
+        self.assertGreaterEqual(len(decorated_functions), 1)
+        
+        # Check that the functions have ctx parameter
+        for func in decorated_functions:
+            import inspect
+            params = list(inspect.signature(func).parameters.keys())
+            self.assertIn("ctx", params, f"Function {func.__name__} is missing ctx parameter")
+            # Check ctx is the first parameter
+            self.assertEqual(params[0], "ctx", f"Function {func.__name__} should have ctx as first parameter")
 
 
 if __name__ == "__main__":
