@@ -283,4 +283,15 @@ def register_discovery_tools(mcp):
         Returns:
             Dictionary with tool usage information
         """
-        return get_tool_usage(tool_name)
+        # Directly use the module-level functions to avoid recursion
+        tools = get_tool_list()
+        if tool_name not in tools:
+            return {"error": f"Tool '{tool_name}' not found", "available_tools": list(tools.keys())}
+        
+        return {
+            "name": tool_name,
+            "description": tools.get(tool_name, ""),
+            "parameters": get_tool_schema(tool_name),
+            "examples": get_tool_examples(tool_name),
+            "best_practices": get_tool_tips(tool_name)
+        }
