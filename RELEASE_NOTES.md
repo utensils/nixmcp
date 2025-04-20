@@ -1,43 +1,46 @@
-# MCP-NixOS: v0.3.1 Release Notes
+# MCP-NixOS: v0.4.0 Release Notes
 
 ## Overview
 
-MCP-NixOS v0.3.1 is a patch release that fixes critical issues with the Home Manager and NixOS tools when used through Claude's Model Context Protocol (MCP) interface.
+MCP-NixOS v0.4.0 introduces significant architectural improvements, focusing on resolving critical issues with channel switching and context management. This release also includes a completely redesigned prompt system following Model Context Protocol (MCP) best practices for dynamic discovery.
 
-## Changes in v0.3.1
+## Changes in v0.4.0
 
-### 🐛 Bug Fixes
+### 🚀 Major Enhancements
 
-- **Fixed Home Manager context handling in MCP interface**: Resolved issues where Home Manager tools would fail with `'str' object has no attribute 'request_context'` error when accessed through Claude's MCP interface
-- **Improved context type validation**: Added proper type checking with `isinstance(ctx, str)` to handle both server request contexts and string contexts from MCP
-- **Enhanced error handling in tool registration**: Modified MCP tool registration to dynamically import the proper context when string contexts are passed
-- **Restored dependency lock file**: Added `uv.lock` to ensure consistent dependencies across all environments, fixing missing `psutil` dependency issues
+- **Fixed Channel Switching Functionality**: Resolved issues with channel switching between stable and unstable NixOS versions, ensuring accurate data retrieval for different channels
+- **Improved Context Management**: Completely refactored context management to eliminate type confusion and provide consistent handling across all tools
+- **Dynamic Discovery Tools**: Implemented discovery tools following MCP best practices, enabling AI to explore available capabilities dynamically
+- **Redesigned MCP Prompt**: Replaced the extensive documentation with a concise, principle-based prompt that emphasizes proper tool usage patterns
+
+### 🛠️ Implementation Details
+
+- **Channel Validation**: Added proper validation to ensure channel switching actually retrieves distinct data
+- **Context Type Consistency**: Standardized context handling across NixOS, Home Manager, and Darwin tools
+- **Enhanced Parameter Documentation**: Improved documentation for the `ctx` parameter across all tools
+- **Comprehensive Testing**: Added new tests for channel switching and context handling
 
 ## Technical Details
 
-The fundamental issue occurred in the context handling within the MCP-NixOS integration:
+The release addresses two main architectural issues:
 
-1. **Inconsistent Context Types**: The Home Manager tools were originally designed to handle `request_context` objects from the internal server, but when called through Claude's MCP interface, they received a string context instead.
+1. **Channel Switching Failure**: Previously, switching between channels (like "unstable" and "24.11") didn't properly change the Elasticsearch index, resulting in identical data regardless of channel selection. This has been fixed with proper verification of channel differences.
 
-2. **Type Mismatch Error**: This led to the error `'str' object has no attribute 'request_context'` when the tools tried to access `ctx.request_context` on a string.
+2. **Context Management Chaos**: The codebase had inconsistent handling of the `ctx` parameter across different tools, sometimes treating it as a request context object and other times as a string identifier. This has been standardized with proper type checking and appropriate handling for all context types.
 
-3. **Two-Layer Context Problem**: The issue existed in both:
-   - The direct tool functions 
-   - The MCP tool registration wrappers
-
-The fix required implementing proper type checking in both the tool functions themselves and in their MCP registration wrappers, along with appropriate handling for string contexts by dynamically importing the proper context object.
+3. **Dynamic Discovery**: Following MCP best practices, tools now support dynamic discovery rather than requiring hardcoded documentation in the prompt, making the system more maintainable and scalable.
 
 ## Installation
 
 ```bash
 # Install with pip
-pip install mcp-nixos==0.3.1
+pip install mcp-nixos==0.4.0
 
 # Install with uv
-uv pip install mcp-nixos==0.3.1
+uv pip install mcp-nixos==0.4.0
 
 # Install with uvx
-uvx mcp-nixos==0.3.1
+uvx mcp-nixos==0.4.0
 ```
 
 ## Usage
