@@ -209,6 +209,15 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
   - Add verbosity: `run-tests -- path/to/test -v`
   - Debug with PDB: `run-tests -- path/to/test --pdb`
   - Filter tests by markers: `run-tests -- -m "integration and not slow"`
+
+### MCP Testing Best Practices
+- Test tool registration and functionality separately
+- Avoid testing the MCP protocol itself, focus on business logic
+- Mock direct functions rather than trying to mock MCP calls
+- Use `assertGreaterEqual` when testing decorated functions (call counts can vary)
+- Never use recursive logic in MCP tool functions
+- Validate tool discovery and self-documentation capabilities
+- Mock context objects but test real implementations
 - Codecov Test Analytics integration:
   - JUnit XML reports generated during all test runs
   - Uploaded to Codecov for insights on test performance and failures
