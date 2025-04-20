@@ -1,5 +1,22 @@
 # MCP-NixOS Project Guidelines
 
+## 🛠️ Essential Development Commands (Quick Reference)
+
+- **Develop environment**: `nix develop` (Python) or `nix develop .#web` (Website)
+- **Run the server**: `run` (in nix shell)
+- **Test commands**:
+  - All tests: `run-tests`
+  - Unit tests only: `run-tests -- --unit`
+  - Integration tests only: `run-tests -- --integration`
+  - Single test: `run-tests -- tests/path/to/test_file.py::TestClass::test_function -v`
+  - With coverage: `run-tests -- --cov=mcp_nixos`
+- **Code quality**:
+  - Format code: `format`
+  - Lint code: `lint`
+  - Type check: `typecheck`
+  - Check complexity: `complexity report <file> <metric>`
+- **Website development**: `web-dev` → opens website shell with its own commands
+
 ## ⚠️ CRITICAL: Testing and Implementation Changes ⚠️
 
 **NEVER MODIFY IMPLEMENTATION CODE WITHOUT VALIDATING YOUR APPROACH**
@@ -185,6 +202,13 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 
 ### Testing
 - 80%+ code coverage with pytest
+- Test debugging and single test execution:
+  - Run a specific test file: `run-tests -- tests/path/to/test_file.py`
+  - Run a specific test class: `run-tests -- tests/path/to/test_file.py::TestClass`
+  - Run a specific test method: `run-tests -- tests/path/to/test_file.py::TestClass::test_method`
+  - Add verbosity: `run-tests -- path/to/test -v`
+  - Debug with PDB: `run-tests -- path/to/test --pdb`
+  - Filter tests by markers: `run-tests -- -m "integration and not slow"`
 - Codecov Test Analytics integration:
   - JUnit XML reports generated during all test runs
   - Uploaded to Codecov for insights on test performance and failures
@@ -194,6 +218,7 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 - Linting with Black and Flake8
 - Test organization mirrors module structure
 - Use dependency injection for testable components
+- Write test docstrings that clearly explain the test's purpose
 - Tests categorized with markers:
   - Integration tests: `@pytest.mark.integration`
   - Slow tests: `@pytest.mark.slow`
@@ -314,11 +339,24 @@ Official repository: [https://github.com/utensils/mcp-nixos](https://github.com/
 
 ### Code Style
 - Python 3.11+ with strict type hints
-- PEP 8 naming conventions
-- Google-style docstrings
-- Black formatting, 120 char line limit
-- Strict null safety practices
+- PEP 8 naming conventions:
+  - Classes: `CamelCase`
+  - Functions/methods: `snake_case`
+  - Constants: `UPPER_SNAKE_CASE`
+  - Private attributes/methods: `_leading_underscore`
+  - Module-level names should be descriptive and avoid abbreviations
+- Imports organization:
+  - Standard library imports first
+  - Third-party imports second
+  - Local application imports third
+  - Alphabetical order within each section
+  - No star imports (`from module import *`)
+- Google-style docstrings for all public functions and classes
+- Black formatting, 120 char line limit (enforced by CI)
+- Strict null safety practices (all `None` returns must be typed with `Optional`)
 - Zero-tolerance for type errors
+- Error handling using typed exceptions with descriptive messages
+- Context managers for resource management
 
 ### Licensing and Attribution
 - Project code is licensed under MIT License
