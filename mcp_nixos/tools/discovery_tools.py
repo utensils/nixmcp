@@ -126,63 +126,63 @@ def get_tool_examples(tool_name: str) -> Dict[str, str]:
     """
     examples = {
         "nixos_search": {
-            "Search packages": "nixos_search(query=\"python\", type=\"packages\")",
-            "Search options": "nixos_search(query=\"services.postgresql\", type=\"options\")",
-            "Search programs": "nixos_search(query=\"firefox\", type=\"programs\", channel=\"stable\")",
-            "Search virtual hosts": "nixos_search(query=\"services.nginx.virtualHosts\", type=\"options\")"
+            "Search packages": "nixos_search(ctx, query=\"python\", type=\"packages\")",
+            "Search options": "nixos_search(ctx, query=\"services.postgresql\", type=\"options\")",
+            "Search programs": "nixos_search(ctx, query=\"firefox\", type=\"programs\", channel=\"stable\")",
+            "Search virtual hosts": "nixos_search(ctx, query=\"services.nginx.virtualHosts\", type=\"options\")"
         },
         "nixos_info": {
-            "Package info": "nixos_info(name=\"firefox\", type=\"package\")",
-            "Option info": "nixos_info(name=\"services.postgresql.enable\", type=\"option\")",
-            "Stable channel info": "nixos_info(name=\"git\", type=\"package\", channel=\"stable\")"
+            "Package info": "nixos_info(ctx, name=\"firefox\", type=\"package\")",
+            "Option info": "nixos_info(ctx, name=\"services.postgresql.enable\", type=\"option\")",
+            "Stable channel info": "nixos_info(ctx, name=\"git\", type=\"package\", channel=\"stable\")"
         },
         "nixos_stats": {
-            "Default stats": "nixos_stats()",
-            "Stable channel stats": "nixos_stats(channel=\"stable\")"
+            "Default stats": "nixos_stats(ctx)",
+            "Stable channel stats": "nixos_stats(ctx, channel=\"stable\")"
         },
         "home_manager_search": {
-            "Search git options": "home_manager_search(query=\"git\")",
-            "Search program options": "home_manager_search(query=\"programs.alacritty\")",
-            "Search firefox options": "home_manager_search(query=\"firefox\")"
+            "Search git options": "home_manager_search(ctx, query=\"git\")",
+            "Search program options": "home_manager_search(ctx, query=\"programs.alacritty\")",
+            "Search firefox options": "home_manager_search(ctx, query=\"firefox\")"
         },
         "home_manager_info": {
-            "Option details": "home_manager_info(name=\"programs.git.enable\")",
-            "Program details": "home_manager_info(name=\"programs.vscode\")"
+            "Option details": "home_manager_info(ctx, name=\"programs.git.enable\")",
+            "Program details": "home_manager_info(ctx, name=\"programs.vscode\")"
         },
         "home_manager_stats": {
-            "Get stats": "home_manager_stats()"
+            "Get stats": "home_manager_stats(ctx)"
         },
         "home_manager_list_options": {
-            "List categories": "home_manager_list_options()"
+            "List categories": "home_manager_list_options(ctx)"
         },
         "home_manager_options_by_prefix": {
-            "List program options": "home_manager_options_by_prefix(option_prefix=\"programs\")",
-            "List service options": "home_manager_options_by_prefix(option_prefix=\"services\")"
+            "List program options": "home_manager_options_by_prefix(ctx, option_prefix=\"programs\")",
+            "List service options": "home_manager_options_by_prefix(ctx, option_prefix=\"services\")"
         },
         "darwin_search": {
-            "Search yabai": "darwin_search(query=\"yabai\")",
-            "Search keyboard": "darwin_search(query=\"system.keyboard\")",
-            "Search services": "darwin_search(query=\"services\")"
+            "Search yabai": "darwin_search(ctx, query=\"yabai\")",
+            "Search keyboard": "darwin_search(ctx, query=\"system.keyboard\")",
+            "Search services": "darwin_search(ctx, query=\"services\")"
         },
         "darwin_info": {
-            "Service option": "darwin_info(name=\"services.yabai.enable\")",
-            "System defaults": "darwin_info(name=\"system.defaults.dock\")"
+            "Service option": "darwin_info(ctx, name=\"services.yabai.enable\")",
+            "System defaults": "darwin_info(ctx, name=\"system.defaults.dock\")"
         },
         "darwin_stats": {
-            "Get stats": "darwin_stats()"
+            "Get stats": "darwin_stats(ctx)"
         },
         "darwin_list_options": {
-            "List categories": "darwin_list_options()"
+            "List categories": "darwin_list_options(ctx)"
         },
         "darwin_options_by_prefix": {
-            "List services": "darwin_options_by_prefix(option_prefix=\"services\")",
-            "List system defaults": "darwin_options_by_prefix(option_prefix=\"system.defaults\")"
+            "List services": "darwin_options_by_prefix(ctx, option_prefix=\"services\")",
+            "List system defaults": "darwin_options_by_prefix(ctx, option_prefix=\"system.defaults\")"
         },
         "discover_tools": {
-            "List all tools": "discover_tools()"
+            "List all tools": "discover_tools(ctx)"
         },
         "get_tool_usage": {
-            "Get usage info": "get_tool_usage(tool_name=\"nixos_search\")"
+            "Get usage info": "get_tool_usage(ctx, tool_name=\"nixos_search\")"
         }
     }
     

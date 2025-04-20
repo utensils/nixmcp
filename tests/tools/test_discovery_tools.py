@@ -116,11 +116,30 @@ class TestDiscoveryTools(unittest.TestCase):
         
         # Verify example content
         self.assertIn("nixos_search", nixos_search_examples["Search packages"])
+        self.assertIn("ctx", nixos_search_examples["Search packages"])
         self.assertIn("query=", nixos_search_examples["Search packages"])
         
         # Test examples for a non-existent tool
         non_existent_examples = get_tool_examples("non_existent_tool")
         self.assertIn("error", non_existent_examples)
+        
+    def test_examples_include_ctx_parameter(self):
+        """Test that all examples include the ctx parameter."""
+        # Get all tools
+        tools = get_tool_list()
+        
+        # Check each tool's examples for ctx parameter
+        for tool_name in tools.keys():
+            examples = get_tool_examples(tool_name)
+            
+            # Skip tools that return error examples
+            if "error" in examples:
+                continue
+                
+            # Check each example for the tool
+            for example_name, example_text in examples.items():
+                self.assertIn("ctx", example_text, 
+                             f"Example '{example_name}' for tool '{tool_name}' is missing ctx parameter")
 
     def test_get_tool_tips(self):
         """Test that get_tool_tips returns best practices for tools."""

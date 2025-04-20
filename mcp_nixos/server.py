@@ -317,6 +317,8 @@ async def app_lifespan(mcp_server: FastMCP):
     home_manager_stats()    # Home Manager metrics
     darwin_stats()    # Darwin configuration stats
     ```
+    
+    Note: All tools require a context parameter that is handled automatically by the MCP framework.
 
     ## Quick Reference
 
