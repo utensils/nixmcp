@@ -140,26 +140,23 @@ class ElasticsearchClient:
         channel_id = self.available_channels[ch_lower]
         
         # Check if we're actually changing the channel
-        if channel_id != self._current_channel_id:
-            # Save the old channel ID before updating
-            old_channel_id = self._current_channel_id
-            
-            # Update the current channel ID
-            self._current_channel_id = channel_id
-            
-            logger.info(f"Setting Elasticsearch channel to '{ch_lower}' (index: {channel_id})")
-            
-            # Clear the cache when changing channels to ensure fresh results
+        is_channel_change = channel_id != self._current_channel_id
+        
+        # Always update the internal state
+        self._current_channel_id = channel_id
+        
+        # Always update the URLs for consistent behavior
+        self.es_packages_url = f"{self.es_base_url}/{channel_id}/_search"
+        self.es_options_url = f"{self.es_base_url}/{channel_id}/_search"
+        
+        # Only clear the cache when actually changing channels
+        if is_channel_change:
+            logger.info(f"Channel changed to '{ch_lower}' (index: {channel_id})")
             if hasattr(self, 'cache') and self.cache is not None:
-                logger.info(f"Channel changed from '{old_channel_id}' to '{channel_id}', clearing cache")
-                self.cache.clear()  # Always do a full clear for channel changes
-            
-            # Update the URLs for the new channel
-            # Both options and packages use the same index endpoint, options filter by type="option"
-            self.es_packages_url = f"{self.es_base_url}/{channel_id}/_search"
-            self.es_options_url = f"{self.es_base_url}/{channel_id}/_search"
+                logger.info(f"Clearing cache due to channel change")
+                self.cache.clear()
         else:
-            logger.debug(f"Channel '{ch_lower}' already set, using index: {channel_id}")
+            logger.debug(f"Channel already set to '{ch_lower}' (index: {channel_id})")
 
     def safe_elasticsearch_query(self, endpoint: str, query_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute an Elasticsearch query with HTTP handling, retries, and caching."""

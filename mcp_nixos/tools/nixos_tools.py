@@ -33,32 +33,64 @@ def get_valid_channels() -> List[str]:
 
 
 def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
-    """Gets the NixOS context and sets the specified channel."""
-    # Import NixOSContext locally if needed, or assume context is passed correctly
-    # from mcp_nixos.contexts.nixos_context import NixOSContext
-    if context is not None:
-        ctx = context
-    else:
-        # Import get_nixos_context dynamically to avoid circular imports
+    """Gets the NixOS context and sets the specified channel.
+    
+    This function handles the conversion of various context types into a consistent
+    context object with channel settings.
+    
+    Args:
+        context: Can be a NixOSContext instance, string ID, or None
+        channel: The channel to use (e.g., "unstable", "stable", "24.11")
+        
+    Returns:
+        A properly configured context object or None if unavailable
+    """
+    # Case 1: Context is None - get from server
+    if context is None:
         try:
             server_module = importlib.import_module("mcp_nixos.server")
             get_nixos_context = getattr(server_module, "get_nixos_context")
             ctx = get_nixos_context()
         except (ImportError, AttributeError) as e:
             logger.error(f"Failed to dynamically import get_nixos_context: {e}")
-            ctx = None
+            return None
+    # Case 2: Context is a string ID (from MCP) - treat as None and get from server
+    elif isinstance(context, str):
+        try:
+            server_module = importlib.import_module("mcp_nixos.server")
+            get_nixos_context = getattr(server_module, "get_nixos_context")
+            ctx = get_nixos_context()
+        except (ImportError, AttributeError) as e:
+            logger.error(f"Failed to dynamically import get_nixos_context: {e}")
+            return None
+    # Case 3: Context is an object (NixOSContext or request context)
+    else:
+        ctx = context
+        
+    # Validate the context object
     if ctx is None:
         logger.warning("Failed to get NixOS context")
         return None
-    
-    # Pass the channel directly to the client which will handle all normalization
-    # This eliminates inconsistencies between our handling and the client's handling
-    if hasattr(ctx, "es_client") and ctx.es_client is not None and hasattr(ctx.es_client, "set_channel"):
+        
+    # Extract the es_client from the context (handle various context types)
+    es_client = None
+    if hasattr(ctx, "es_client") and ctx.es_client is not None:
+        # Direct NixOSContext
+        es_client = ctx.es_client
+    elif hasattr(ctx, "request_context") and hasattr(ctx.request_context, "lifespan_context"):
+        # FastMCP request context
+        nixos_ctx = ctx.request_context.lifespan_context.get("nixos_context")
+        if nixos_ctx and hasattr(nixos_ctx, "es_client"):
+            es_client = nixos_ctx.es_client
+            
+    # Set the channel on the client
+    if es_client is not None and hasattr(es_client, "set_channel"):
         # Client will handle "stable" -> "24.11" conversion and validation internally
-        ctx.es_client.set_channel(channel)
-        logger.info(f"Using context 'nixos_context' with channel: {channel}")
+        es_client.set_channel(channel)
+        logger.info(f"Successfully set channel to: {channel}")
     else:
-        logger.warning("Context or es_client missing set_channel method.")
+        logger.warning("Unable to set channel: context structure not recognized")
+        
     return ctx
 
 
