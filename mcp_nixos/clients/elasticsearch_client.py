@@ -5,6 +5,7 @@ Elasticsearch client for accessing NixOS package and option data via search.nixo
 import logging
 import os
 import re
+import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 # Import SimpleCache and HTTP helper
@@ -95,9 +96,14 @@ class ElasticsearchClient:
         es_user: str = os.environ.get("ELASTICSEARCH_USER", DEFAULT_ES_USER)
         es_password: str = os.environ.get("ELASTICSEARCH_PASSWORD", DEFAULT_ES_PASSWORD)
         self.es_auth: Tuple[str, str] = (es_user, es_password)
+        
+        # Give this client instance a unique ID for debugging
+        self.instance_id = str(uuid.uuid4())[:8]
 
         self.available_channels: Dict[str, str] = AVAILABLE_CHANNELS
-        self.cache: SimpleCache = SimpleCache(max_size=500, ttl=DEFAULT_CACHE_TTL)
+        # Add channel versioning to the cache to ensure old entries are properly invalidated
+        cache_version = f"channel_aware_v1.2"
+        self.cache: SimpleCache = SimpleCache(max_size=500, ttl=DEFAULT_CACHE_TTL, version=cache_version)
 
         # Timeouts and Retries
         self.connect_timeout: float = DEFAULT_CONNECT_TIMEOUT
@@ -105,30 +111,55 @@ class ElasticsearchClient:
         self.max_retries: int = DEFAULT_MAX_RETRIES
         self.retry_delay: float = DEFAULT_RETRY_DELAY
 
-        # Set default channel and URLs
+        # Set default channel and URLs - initialize with empty strings
         self._current_channel_id: str = ""  # Internal state for current index
         self.es_packages_url: str = ""
         self.es_options_url: str = ""
+        
+        # Call set_channel to initialize the URLs with the default channel
         self.set_channel(DEFAULT_CHANNEL)  # Initialize URLs
-
-        logger.info(f"Elasticsearch client initialized for {self.es_base_url} with caching")
+        
+        logger.info(f"Elasticsearch client initialized (id={self.instance_id}) for {self.es_base_url} with channel={DEFAULT_CHANNEL}")
 
     def set_channel(self, channel: str) -> None:
         """Set the NixOS channel (Elasticsearch index) to use for queries."""
+        # Normalize channel name to lowercase
         ch_lower = channel.lower()
+        
+        # First check if we need to handle the stable alias
+        if ch_lower == "stable":
+            logger.debug(f"Converting 'stable' alias to actual channel name: 24.11")
+            ch_lower = "24.11"  # Always convert stable to the actual version
+            
+        # Then check if the channel is valid
         if ch_lower not in self.available_channels:
             logger.warning(f"Unknown channel '{channel}', falling back to '{DEFAULT_CHANNEL}'")
             ch_lower = DEFAULT_CHANNEL
 
+        # Get the actual Elasticsearch index ID for this channel
         channel_id = self.available_channels[ch_lower]
+        
+        # Check if we're actually changing the channel
         if channel_id != self._current_channel_id:
-            logger.info(f"Setting Elasticsearch channel to '{ch_lower}' (index: {channel_id})")
+            # Save the old channel ID before updating
+            old_channel_id = self._current_channel_id
+            
+            # Update the current channel ID
             self._current_channel_id = channel_id
+            
+            logger.info(f"Setting Elasticsearch channel to '{ch_lower}' (index: {channel_id})")
+            
+            # Clear the cache when changing channels to ensure fresh results
+            if hasattr(self, 'cache') and self.cache is not None:
+                logger.info(f"Channel changed from '{old_channel_id}' to '{channel_id}', clearing cache")
+                self.cache.clear()  # Always do a full clear for channel changes
+            
+            # Update the URLs for the new channel
             # Both options and packages use the same index endpoint, options filter by type="option"
             self.es_packages_url = f"{self.es_base_url}/{channel_id}/_search"
             self.es_options_url = f"{self.es_base_url}/{channel_id}/_search"
         else:
-            logger.debug(f"Channel '{ch_lower}' already set.")
+            logger.debug(f"Channel '{ch_lower}' already set, using index: {channel_id}")
 
     def safe_elasticsearch_query(self, endpoint: str, query_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute an Elasticsearch query with HTTP handling, retries, and caching."""
@@ -373,6 +404,11 @@ class ElasticsearchClient:
         """Search for NixOS packages."""
         logger.info(f"Searching packages: query='{query}', limit={limit}, channel={channel}")
         self.set_channel(channel)
+
+        # Log channel details for debugging
+        ch_lower = channel.lower()
+        channel_id = self.available_channels.get(ch_lower, self.available_channels[DEFAULT_CHANNEL])
+        logger.debug(f"Package search using channel='{ch_lower}', index='{channel_id}', URL={self.es_packages_url}")
 
         match = re.match(r"([a-zA-Z0-9_-]+?)([\d.]+)?Packages\.(.*)", query)
         if match:

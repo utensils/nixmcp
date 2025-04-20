@@ -184,7 +184,7 @@ class TestNixOSTools(unittest.TestCase):
         result = nixos_info("git", "package", CHANNEL_UNSTABLE, context=mock_context)
 
         # Verify the mock was called correctly
-        mock_context.get_package.assert_called_once_with("git")
+        mock_context.get_package.assert_called_once_with("git", channel=CHANNEL_UNSTABLE)
         # Verify that set_channel was called on the es_client with unstable
         mock_context.es_client.set_channel.assert_called_with(CHANNEL_UNSTABLE)
 
@@ -229,7 +229,7 @@ class TestNixOSTools(unittest.TestCase):
         result = nixos_info("services.nginx.enable", "option", CHANNEL_STABLE, context=mock_context)
 
         # Verify the mock was called correctly
-        mock_context.get_option.assert_called_once_with("services.nginx.enable")
+        mock_context.get_option.assert_called_once_with("services.nginx.enable", channel=CHANNEL_STABLE)
         # Verify that set_channel was called on the es_client with stable
         mock_context.es_client.set_channel.assert_called_with(CHANNEL_STABLE)
 
@@ -352,7 +352,7 @@ class TestNixOSTools(unittest.TestCase):
         result = nixos_info("services.nonexistent.option", "option", context=mock_context)
 
         # Verify the mock was called correctly
-        mock_context.get_option.assert_called_once_with("services.nonexistent.option")
+        mock_context.get_option.assert_called_once_with("services.nonexistent.option", channel=CHANNEL_UNSTABLE)
 
         # Check the result includes helpful suggestions
         self.assertIn("Option 'services.nonexistent.option' not found", result)

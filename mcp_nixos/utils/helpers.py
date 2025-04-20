@@ -238,8 +238,23 @@ def make_http_request(
     cache_key = None
     if cache is not None:
         method_key = method.lower()
+        
+        # Extract channel information from URL for ES requests to ensure proper cache separation
+        channel_key = ""
+        if "latest-42-nixos" in url:
+            if "unstable" in url:
+                channel_info = "unstable" 
+            elif "24.11" in url:
+                channel_info = "24.11"
+            else:
+                channel_info = "unknown"
+            channel_key = f":channel={channel_info}"
+            logger.debug(f"Making request to {channel_info} channel index: {url}")
+            
+        # Include channel in the cache key to prevent cross-channel cache contamination
         data_key = "" if json_data is None else f":{str(json_data)}"
-        cache_key = f"{method_key}:{url}{data_key}"
+        cache_key = f"{method_key}:{url}{channel_key}{data_key}"
+        
         cached_result = cache.get(cache_key)
         if cached_result:
             logger.debug(f"Cache hit for request: {cache_key[:100]}...")

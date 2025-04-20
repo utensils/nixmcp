@@ -326,8 +326,9 @@ async def app_lifespan(mcp_server: FastMCP):
 
     ## Channel Awareness
 
-    The default NixOS channel is "unstable". For stable release, use:
-    `channel="24.11"` (current stable version)
+    The default NixOS channel is "unstable". For stable release, use either:
+    - `channel="stable"` (recommended, automatically maps to current stable)
+    - `channel="24.11"` (explicit version reference)
     IMPORTANT: Do NOT use outdated versions like 23.11, 23.05, etc.
 
     ## Error Handling

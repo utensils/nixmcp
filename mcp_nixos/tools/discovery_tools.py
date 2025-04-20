@@ -52,15 +52,15 @@ def get_tool_schema(tool_name: str) -> Dict[str, Any]:
             "query": {"type": "string", "description": "Search term like 'firefox' or 'services.postgresql'", "required": True},
             "type": {"type": "string", "description": "Type of search: 'packages', 'options', or 'programs'", "default": "packages"},
             "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 20},
-            "channel": {"type": "string", "description": "NixOS channel (only 'unstable' or '24.11')", "default": "unstable"}
+            "channel": {"type": "string", "description": "NixOS channel ('unstable', 'stable', or '24.11')", "default": "unstable"}
         },
         "nixos_info": {
             "name": {"type": "string", "description": "Name of package or option", "required": True},
             "type": {"type": "string", "description": "Type of info: 'package' or 'option'", "default": "package"},
-            "channel": {"type": "string", "description": "NixOS channel (only 'unstable' or '24.11')", "default": "unstable"}
+            "channel": {"type": "string", "description": "NixOS channel ('unstable', 'stable', or '24.11')", "default": "unstable"}
         },
         "nixos_stats": {
-            "channel": {"type": "string", "description": "NixOS channel (only 'unstable' or '24.11')", "default": "unstable"}
+            "channel": {"type": "string", "description": "NixOS channel ('unstable', 'stable', or '24.11')", "default": "unstable"}
         },
         "home_manager_search": {
             "query": {"type": "string", "description": "Search term like 'programs.git' or 'browsers'", "required": True},
@@ -108,17 +108,17 @@ def get_tool_examples(tool_name: str) -> Dict[str, str]:
         "nixos_search": {
             "Search packages": "nixos_search(query=\"python\", type=\"packages\")",
             "Search options": "nixos_search(query=\"services.postgresql\", type=\"options\")",
-            "Search programs": "nixos_search(query=\"firefox\", type=\"programs\", channel=\"24.11\")",
+            "Search programs": "nixos_search(query=\"firefox\", type=\"programs\", channel=\"stable\")",
             "Search virtual hosts": "nixos_search(query=\"services.nginx.virtualHosts\", type=\"options\")"
         },
         "nixos_info": {
             "Package info": "nixos_info(name=\"firefox\", type=\"package\")",
             "Option info": "nixos_info(name=\"services.postgresql.enable\", type=\"option\")",
-            "Stable channel info": "nixos_info(name=\"git\", type=\"package\", channel=\"24.11\")"
+            "Stable channel info": "nixos_info(name=\"git\", type=\"package\", channel=\"stable\")"
         },
         "nixos_stats": {
             "Default stats": "nixos_stats()",
-            "Stable channel stats": "nixos_stats(channel=\"24.11\")"
+            "Stable channel stats": "nixos_stats(channel=\"stable\")"
         },
         "home_manager_search": {
             "Search git options": "home_manager_search(query=\"git\")",
@@ -182,7 +182,7 @@ def get_tool_tips(tool_name: str) -> Dict[str, str]:
         "nixos_search": {
             "use_wildcards": "Wildcards (*) are automatically added to most queries",
             "path_search": "For service options, use paths like 'services.postgresql'",
-            "channels": "Use channel='24.11' for the current stable release",
+            "channels": "Use channel='stable' or channel='24.11' for the current stable release",
             "type_param": "Set type='packages', 'options', or 'programs' for different searches"
         },
         "nixos_info": {
@@ -191,7 +191,7 @@ def get_tool_tips(tool_name: str) -> Dict[str, str]:
             "package_names": "For packages, use the exact attribute name, not the package name"
         },
         "nixos_stats": {
-            "channels": "Compare unstable vs stable with different channel parameters"
+            "channels": "Compare different channels using channel='unstable', channel='stable', or channel='24.11'"
         },
         "home_manager_search": {
             "program_configs": "For application configs, try 'programs.NAME'",

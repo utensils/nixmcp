@@ -21,7 +21,7 @@ class SimpleCache:
     handle system time shifts gracefully.
     """
 
-    def __init__(self, max_size=1000, ttl=300):  # ttl in seconds
+    def __init__(self, max_size=1000, ttl=300, version="v1.0.0"):  # ttl in seconds
         """Initialize the cache with maximum size and TTL."""
         self.cache = {}
         self.max_size = max_size
@@ -29,6 +29,8 @@ class SimpleCache:
         self.hits = 0
         self.misses = 0
         self.instance_id = str(uuid.uuid4())[:8]
+        # Version can be used to invalidate all old cache entries when behavior changes
+        self.version = version
 
         # Add lock for thread safety
         self.lock = threading.RLock()
@@ -36,7 +38,7 @@ class SimpleCache:
         # Store initialization time to detect significant time shifts
         self.init_time = time.time()
 
-        logger.info(f"Initialized SimpleCache with max_size={max_size}, ttl={ttl}s, instance={self.instance_id}")
+        logger.info(f"Initialized SimpleCache with max_size={max_size}, ttl={ttl}s, instance={self.instance_id}, version={version}")
 
     def __del__(self):
         """Destructor to ensure proper cleanup when the cache is garbage collected."""
@@ -146,8 +148,18 @@ class SimpleCache:
                 oldest_key = min(self.cache.keys(), key=lambda k: self.cache[k][0])
                 del self.cache[oldest_key]
 
+            # Add version information for cache invalidation checks
+            # If the value is a dict, we can add version info directly
+            actual_value = value
+            if isinstance(value, dict) and "_cache_metadata" not in value:
+                # Make a copy to avoid modifying the original
+                value_copy = dict(value)
+                value_copy["_cache_version"] = self.version
+                value_copy["_cache_instance"] = self.instance_id  
+                actual_value = value_copy
+
             # Store as (timestamp, creation_time, value) tuple
-            self.cache[key] = (current_time, current_time, value)
+            self.cache[key] = (current_time, current_time, actual_value)
 
     def update_timestamp(self, key: Any) -> bool:
         """

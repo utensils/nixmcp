@@ -595,7 +595,7 @@ class TestMCPTools(unittest.TestCase):
             self.assertIn("**Provided Programs:**", result)
 
             # Verify the mock was called correctly
-            mock_get.assert_called_once_with("python3")
+            mock_get.assert_called_once_with("python3", channel="unstable")
 
     def test_nixos_info_option(self):
         """Test the nixos_info tool with option type."""
@@ -620,7 +620,7 @@ class TestMCPTools(unittest.TestCase):
             self.assertIn("**Example:**", result)
 
             # Verify the mock was called correctly
-            mock_get.assert_called_once_with("services.nginx.enable")
+            mock_get.assert_called_once_with("services.nginx.enable", channel="unstable")
 
     def test_nixos_stats(self):
         """Test the nixos_stats tool."""

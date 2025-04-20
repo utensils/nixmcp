@@ -15,9 +15,18 @@ import importlib
 # Get logger
 logger = logging.getLogger("mcp_nixos")
 
+# Import channel constants from elasticsearch_client
+from mcp_nixos.clients.elasticsearch_client import AVAILABLE_CHANNELS, DEFAULT_CHANNEL
+
 # Define channel constants
-CHANNEL_UNSTABLE = "unstable"
-CHANNEL_STABLE = "stable"  # Consider updating this mapping if needed elsewhere
+CHANNEL_UNSTABLE = DEFAULT_CHANNEL
+CHANNEL_STABLE = "stable"  # Alias for stable channel
+VALID_CHANNELS = list(AVAILABLE_CHANNELS.keys())  # Central list of valid channels
+
+
+def get_valid_channels() -> List[str]:
+    """Returns a list of valid NixOS channels."""
+    return VALID_CHANNELS.copy()  # Return a copy to prevent modification
 
 
 # --- Helper Functions ---
@@ -41,8 +50,11 @@ def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
     if ctx is None:
         logger.warning("Failed to get NixOS context")
         return None
-
+    
+    # Pass the channel directly to the client which will handle all normalization
+    # This eliminates inconsistencies between our handling and the client's handling
     if hasattr(ctx, "es_client") and ctx.es_client is not None and hasattr(ctx.es_client, "set_channel"):
+        # Client will handle "stable" -> "24.11" conversion and validation internally
         ctx.es_client.set_channel(channel)
         logger.info(f"Using context 'nixos_context' with channel: {channel}")
     else:
@@ -440,7 +452,7 @@ def nixos_search(
             return "Error: NixOS context not available"
 
         search_query = query
-        search_args = {"limit": limit}
+        search_args = {"limit": limit, "channel": channel}
         multi_word_info = {}
 
         if search_type == "options":
@@ -512,14 +524,14 @@ def nixos_info(name: str, type: str = "package", channel: str = CHANNEL_UNSTABLE
             return "Error: NixOS context not available"
 
         if info_type == "package":
-            info = ctx.get_package(name)
+            info = ctx.get_package(name, channel=channel)
             if not info.get("found", False):
                 return (
                     f"Package '{name}' not found in channel '{channel}'. Error: {info.get('error', 'Unknown reason')}"
                 )
             return _format_package_info(info)
         else:  # option
-            info = ctx.get_option(name)
+            info = ctx.get_option(name, channel=channel)
             if not info.get("found", False):
                 # Handle service path suggestions for not found options
                 if info.get("is_service_path"):
@@ -551,8 +563,8 @@ def nixos_stats(channel: str = CHANNEL_UNSTABLE, context=None) -> str:
         if ctx is None:
             return "Error: NixOS context not available"
 
-        package_stats = ctx.get_package_stats()
-        options_stats = ctx.count_options()
+        package_stats = ctx.get_package_stats(channel=channel)
+        options_stats = ctx.count_options(channel=channel)
 
         pkg_err = package_stats.get("error")
         opt_err = options_stats.get("error")
@@ -648,8 +660,8 @@ def register_nixos_tools(mcp) -> None:
             nixos_context = get_nixos_context()
 
             # Validate channel input
-            valid_channels = ["unstable", "24.11"]
-            if channel not in valid_channels:
+            valid_channels = get_valid_channels()
+            if channel.lower() not in valid_channels:
                 error_msg = f"Invalid channel: {channel}. Must be one of: {', '.join(valid_channels)}"
                 logger.error(error_msg)
                 return error_msg
@@ -692,8 +704,8 @@ def register_nixos_tools(mcp) -> None:
             nixos_context = get_nixos_context()
 
             # Validate channel input
-            valid_channels = ["unstable", "24.11"]
-            if channel not in valid_channels:
+            valid_channels = get_valid_channels()
+            if channel.lower() not in valid_channels:
                 error_msg = f"Invalid channel: {channel}. Must be one of: {', '.join(valid_channels)}"
                 logger.error(error_msg)
                 return error_msg
@@ -734,8 +746,8 @@ def register_nixos_tools(mcp) -> None:
             nixos_context = get_nixos_context()
 
             # Validate channel input
-            valid_channels = ["unstable", "24.11"]
-            if channel not in valid_channels:
+            valid_channels = get_valid_channels()
+            if channel.lower() not in valid_channels:
                 error_msg = f"Invalid channel: {channel}. Must be one of: {', '.join(valid_channels)}"
                 logger.error(error_msg)
                 return error_msg
