@@ -96,13 +96,13 @@ class ElasticsearchClient:
         es_user: str = os.environ.get("ELASTICSEARCH_USER", DEFAULT_ES_USER)
         es_password: str = os.environ.get("ELASTICSEARCH_PASSWORD", DEFAULT_ES_PASSWORD)
         self.es_auth: Tuple[str, str] = (es_user, es_password)
-        
+
         # Give this client instance a unique ID for debugging
         self.instance_id = str(uuid.uuid4())[:8]
 
         self.available_channels: Dict[str, str] = AVAILABLE_CHANNELS
         # Add channel versioning to the cache to ensure old entries are properly invalidated
-        cache_version = f"channel_aware_v1.2"
+        cache_version = "channel_aware_v1.2"
         self.cache: SimpleCache = SimpleCache(max_size=500, ttl=DEFAULT_CACHE_TTL, version=cache_version)
 
         # Timeouts and Retries
@@ -115,22 +115,25 @@ class ElasticsearchClient:
         self._current_channel_id: str = ""  # Internal state for current index
         self.es_packages_url: str = ""
         self.es_options_url: str = ""
-        
+
         # Call set_channel to initialize the URLs with the default channel
         self.set_channel(DEFAULT_CHANNEL)  # Initialize URLs
-        
-        logger.info(f"Elasticsearch client initialized (id={self.instance_id}) for {self.es_base_url} with channel={DEFAULT_CHANNEL}")
+
+        logger.info(
+            f"Elasticsearch client initialized (id={self.instance_id}) for {self.es_base_url} "
+            f"with channel={DEFAULT_CHANNEL}"
+        )
 
     def set_channel(self, channel: str) -> None:
         """Set the NixOS channel (Elasticsearch index) to use for queries."""
         # Normalize channel name to lowercase
         ch_lower = channel.lower()
-        
+
         # First check if we need to handle the stable alias
         if ch_lower == "stable":
-            logger.debug(f"Converting 'stable' alias to actual channel name: 24.11")
+            logger.debug("Converting 'stable' alias to actual channel name: 24.11")
             ch_lower = "24.11"  # Always convert stable to the actual version
-            
+
         # Then check if the channel is valid
         if ch_lower not in self.available_channels:
             logger.warning(f"Unknown channel '{channel}', falling back to '{DEFAULT_CHANNEL}'")
@@ -138,22 +141,22 @@ class ElasticsearchClient:
 
         # Get the actual Elasticsearch index ID for this channel
         channel_id = self.available_channels[ch_lower]
-        
+
         # Check if we're actually changing the channel
         is_channel_change = channel_id != self._current_channel_id
-        
+
         # Always update the internal state
         self._current_channel_id = channel_id
-        
+
         # Always update the URLs for consistent behavior
         self.es_packages_url = f"{self.es_base_url}/{channel_id}/_search"
         self.es_options_url = f"{self.es_base_url}/{channel_id}/_search"
-        
+
         # Only clear the cache when actually changing channels
         if is_channel_change:
             logger.info(f"Channel changed to '{ch_lower}' (index: {channel_id})")
-            if hasattr(self, 'cache') and self.cache is not None:
-                logger.info(f"Clearing cache due to channel change")
+            if hasattr(self, "cache") and self.cache is not None:
+                logger.info("Clearing cache due to channel change")
                 self.cache.clear()
         else:
             logger.debug(f"Channel already set to '{ch_lower}' (index: {channel_id})")

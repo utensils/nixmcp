@@ -34,14 +34,14 @@ def get_valid_channels() -> List[str]:
 
 def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
     """Gets the NixOS context and sets the specified channel.
-    
+
     This function handles the conversion of various context types into a consistent
     context object with channel settings.
-    
+
     Args:
         context: Can be a NixOSContext instance, string ID, or None
         channel: The channel to use (e.g., "unstable", "stable", "24.11")
-        
+
     Returns:
         A properly configured context object or None if unavailable
     """
@@ -66,12 +66,12 @@ def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
     # Case 3: Context is an object (NixOSContext or request context)
     else:
         ctx = context
-        
+
     # Validate the context object
     if ctx is None:
         logger.warning("Failed to get NixOS context")
         return None
-        
+
     # Extract the es_client from the context (handle various context types)
     es_client = None
     if hasattr(ctx, "es_client") and ctx.es_client is not None:
@@ -82,7 +82,7 @@ def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
         nixos_ctx = ctx.request_context.lifespan_context.get("nixos_context")
         if nixos_ctx and hasattr(nixos_ctx, "es_client"):
             es_client = nixos_ctx.es_client
-            
+
     # Set the channel on the client
     if es_client is not None and hasattr(es_client, "set_channel"):
         # Client will handle "stable" -> "24.11" conversion and validation internally
@@ -90,7 +90,7 @@ def _setup_context_and_channel(context: Optional[Any], channel: str) -> Any:
         logger.info(f"Successfully set channel to: {channel}")
     else:
         logger.warning("Unable to set channel: context structure not recognized")
-        
+
     return ctx
 
 

@@ -38,7 +38,10 @@ class SimpleCache:
         # Store initialization time to detect significant time shifts
         self.init_time = time.time()
 
-        logger.info(f"Initialized SimpleCache with max_size={max_size}, ttl={ttl}s, instance={self.instance_id}, version={version}")
+        logger.info(
+            f"Initialized SimpleCache with max_size={max_size}, ttl={ttl}s, "
+            f"instance={self.instance_id}, version={version}"
+        )
 
     def __del__(self):
         """Destructor to ensure proper cleanup when the cache is garbage collected."""
@@ -155,7 +158,7 @@ class SimpleCache:
                 # Make a copy to avoid modifying the original
                 value_copy = dict(value)
                 value_copy["_cache_version"] = self.version
-                value_copy["_cache_instance"] = self.instance_id  
+                value_copy["_cache_instance"] = self.instance_id
                 actual_value = value_copy
 
             # Store as (timestamp, creation_time, value) tuple

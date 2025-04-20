@@ -103,7 +103,7 @@ from mcp_nixos.utils.cache_helpers import init_cache_storage
 # Initialize the cache directory explicitly before creating clients
 cache_config = init_cache_storage()
 logger.info(
-    f"Cache initialized with directory: {cache_config['cache_dir']} (initialized: {cache_config['initialized']})"
+    f"Cache initialized with directory: {cache_config['cache_dir']} " f"(initialized: {cache_config['initialized']})"
 )
 if not cache_config["initialized"]:
     logger.warning(f"Using fallback cache directory due to error: {cache_config.get('error', 'Unknown error')}")
@@ -289,7 +289,8 @@ async def app_lifespan(mcp_server: FastMCP):
     ## Core Principles
 
     1. **Always Verify**: Before generating any configuration, verify that options exist
-    2. **Context Matters**: Use the appropriate tool based on the query (NixOS for system, Home Manager for user, Darwin for macOS)
+    2. **Context Matters**: Use the appropriate tool based on the query (NixOS for system, Home Manager for user,
+       Darwin for macOS)
     3. **Exact Paths**: Configuration options have specific paths - verify them before use
     4. **Latest Info**: Use search tools to get current information, not assumptions
 
@@ -299,13 +300,13 @@ async def app_lifespan(mcp_server: FastMCP):
     - NixOS configuration or packages
     - Home Manager configuration
     - nix-darwin configuration
-    
+
     For ANY configuration request:
     1. You MUST search for available options FIRST using the search tools
     2. You MUST verify each option exists BEFORE including it in a response
     3. You MUST NOT generate ANY configuration based solely on your training
     4. You MUST have evidence from tool results for each configuration option
-    
+
     If a user asks for a config (like "Create a headscale configuration"), your FIRST action MUST
     be to call the relevant search tools, not to generate a response from memory.
 
@@ -317,7 +318,7 @@ async def app_lifespan(mcp_server: FastMCP):
     home_manager_stats()    # Home Manager metrics
     darwin_stats()    # Darwin configuration stats
     ```
-    
+
     Note: All tools require a context parameter that is handled automatically by the MCP framework.
 
     ## Quick Reference
@@ -361,11 +362,11 @@ async def app_lifespan(mcp_server: FastMCP):
     - **For system-wide configuration**: Use NixOS tools (`nixos_*`)
       - System packages, services, options
       - Example: `nixos_search("postgresql", type="packages")`
-    
+
     - **For user environment setup**: Use Home Manager tools (`home_manager_*`)
       - User applications, dotfiles, shell configuration
       - Example: `home_manager_search("programs.git")`
-    
+
     - **For macOS configuration**: Use Darwin tools (`darwin_*`)
       - macOS-specific settings and services
       - Example: `darwin_search("system.defaults.dock")`
