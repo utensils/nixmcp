@@ -1,5 +1,3 @@
-[![MseeP Badge](https://mseep.net/pr/utensils-mcp-nixos-badge.jpg)](https://mseep.ai/app/utensils-mcp-nixos)
-
 # MCP-NixOS - Because Your AI Assistant Shouldn't Hallucinate About Packages
 
 [![CI](https://github.com/utensils/mcp-nixos/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/mcp-nixos/actions/workflows/ci.yml)
@@ -7,6 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/mcp-nixos.svg)](https://pypi.org/project/mcp-nixos/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/mcp-nixos.svg)](https://pypi.org/project/mcp-nixos/)
 [![smithery badge](https://smithery.ai/badge/@utensils/mcp-nixos)](https://smithery.ai/server/@utensils/mcp-nixos)
+[![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/99cc55fb-a5c5-4473-b315-45a6961b2e8c)
 
 > **⚠️ ACTIVE DEVELOPMENT**: This package is under active development. Like my career choices, it's constantly evolving.
 >
