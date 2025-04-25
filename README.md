@@ -1,3 +1,5 @@
+[![MseeP Badge](https://mseep.net/pr/utensils-mcp-nixos-badge.jpg)](https://mseep.ai/app/utensils-mcp-nixos)
+
 # MCP-NixOS - Because Your AI Assistant Shouldn't Hallucinate About Packages
 
 [![CI](https://github.com/utensils/mcp-nixos/actions/workflows/ci.yml/badge.svg)](https://github.com/utensils/mcp-nixos/actions/workflows/ci.yml)
