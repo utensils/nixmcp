@@ -10,8 +10,14 @@ on:
   # Run on pull requests to the main branch
   pull_request:
     branches: [main]
-  # Allow manual trigger
+  # Allow manual trigger with inputs
   workflow_dispatch:
+    inputs:
+      deploy_website:
+        description: 'Deploy website to production'
+        required: false
+        default: 'false'
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -450,7 +456,7 @@ jobs:
   deploy-website:
     name: Deploy Website to AWS S3
     needs: [check-website-changes]
-    if: github.ref == 'refs/heads/main' && needs.check-website-changes.outputs.website_changed == 'true'
+    if: (github.ref == 'refs/heads/main' && needs.check-website-changes.outputs.website_changed == 'true') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_website == 'true')
     runs-on: ubuntu-latest
     environment:
       name: AWS
